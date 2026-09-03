@@ -1,0 +1,270 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UnitStatus {
+  AVAILABLE
+  OCCUPIED
+  DIRTY
+  CLEANING
+  READY
+  MAINTENANCE
+}
+
+enum TicketCategory {
+  MAINTENANCE
+  HOUSEKEEPING
+  GUEST_REQUEST
+  GUEST_COMPLAINT
+  INVENTORY
+  IT_SYSTEM
+  PROPERTY
+  SAFETY
+  OTHER
+}
+
+enum TicketPriority {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum TicketStatus {
+  OPEN
+  TRIAGED
+  ASSIGNED
+  ACKNOWLEDGED
+  IN_PROGRESS
+  RESOLVED
+  VERIFIED
+  CLOSED
+  REOPENED
+}
+
+enum ReporterType {
+  GUEST
+  TEAM
+  MANAGEMENT
+}
+
+enum MessageDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum HousekeepingTaskType {
+  CHECKOUT_CLEAN
+  ROUTINE
+  DEEP_CLEAN
+  INSPECTION
+}
+
+enum HousekeepingTaskStatus {
+  PENDING
+  ACCEPTED
+  IN_PROGRESS
+  COMPLETED
+}
+
+model Property {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  address   String
+  city      String
+  state     String
+  country   String
+  phone     String
+  email     String
+  timezone  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  units            Unit[]
+  reservations     Reservation[]
+  teamMembers      TeamMember[]
+  tickets          Ticket[]
+  housekeepingTasks HousekeepingTask[]
+  inventoryItems   InventoryItem[]
+}
+
+model Unit {
+  id         String     @id @default(cuid())
+  propertyId String
+  name       String
+  type       String
+  floor      String
+  capacity   Int
+  status     UnitStatus @default(AVAILABLE)
+  amenities  Json       @default("[]")
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  property          Property           @relation(fields: [propertyId], references: [id])
+  reservations      Reservation[]
+  tickets           Ticket[]
+  housekeepingTasks HousekeepingTask[]
+}
+
+model Guest {
+  id                   String   @id @default(cuid())
+  name                 String
+  phone                String
+  email                String?
+  idType               String?
+  idNumber             String?
+  intellistayGuestId   String?  @unique
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  reservations Reservation[]
+  tickets      Ticket[]
+  membership   Membership?
+}
+
+model Reservation {
+  id                       String   @id @default(cuid())
+  intellistayReservationId String?  @unique
+  guestId                  String
+  unitId                   String
+  propertyId               String
+  checkIn                  DateTime
+  checkOut                 DateTime
+  status                   String
+  source                   String
+  totalAmount              Float
+  bookingNotes             String?
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+
+  guest    Guest    @relation(fields: [guestId], references: [id])
+  unit     Unit     @relation(fields: [unitId], references: [id])
+  property Property @relation(fields: [propertyId], references: [id])
+}
+
+model TeamMember {
+  id             String   @id @default(cuid())
+  name           String
+  phone          String
+  whatsappNumber String
+  role           String
+  department     String
+  propertyId     String
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  property          Property           @relation(fields: [propertyId], references: [id])
+  assignedTickets   Ticket[]           @relation("AssignedTickets")
+  housekeepingTasks HousekeepingTask[] @relation("AssignedTasks")
+}
+
+model Ticket {
+  id              String         @id @default(cuid()) // Format RT-XXXX
+  propertyId      String
+  unitId          String?
+  guestId         String?
+  reporterId      String
+  reporterType    ReporterType
+  category        TicketCategory
+  subcategory     String?
+  description     String
+  priority        TicketPriority
+  status          TicketStatus   @default(OPEN)
+  assignedToId    String?
+  slaDeadline     DateTime
+  firstResponseAt DateTime?
+  resolvedAt      DateTime?
+  closedAt        DateTime?
+  resolutionNotes String?
+  attachments     Json           @default("[]")
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  property Property @relation(fields: [propertyId], references: [id])
+  unit     Unit?    @relation(fields: [unitId], references: [id])
+  guest    Guest?   @relation(fields: [guestId], references: [id])
+  assignedTo TeamMember? @relation("AssignedTickets", fields: [assignedToId], references: [id])
+  auditLogs TicketAuditLog[]
+}
+
+model TicketAuditLog {
+  id         String   @id @default(cuid())
+  ticketId   String
+  action     String
+  actorId    String
+  actorType  String
+  fromStatus TicketStatus?
+  toStatus   TicketStatus?
+  notes      String?
+  createdAt  DateTime @default(now())
+
+  ticket Ticket @relation(fields: [ticketId], references: [id])
+}
+
+model HousekeepingTask {
+  id           String                 @id @default(cuid())
+  unitId       String
+  propertyId   String
+  assignedToId String?
+  type         HousekeepingTaskType
+  status       HousekeepingTaskStatus @default(PENDING)
+  scheduledFor DateTime
+  startedAt    DateTime?
+  completedAt  DateTime?
+  photoUrls    Json                   @default("[]")
+  notes        String?
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime               @updatedAt
+
+  unit       Unit        @relation(fields: [unitId], references: [id])
+  property   Property    @relation(fields: [propertyId], references: [id])
+  assignedTo TeamMember? @relation("AssignedTasks", fields: [assignedToId], references: [id])
+}
+
+model WhatsAppMessage {
+  id               String           @id @default(cuid())
+  direction        MessageDirection
+  from             String
+  to               String
+  messageType      String
+  content          String
+  templateName     String?
+  status           String
+  relatedEntityType String?
+  relatedEntityId   String?
+  createdAt        DateTime         @default(now())
+}
+
+model InventoryItem {
+  id           String   @id @default(cuid())
+  propertyId   String
+  name         String
+  category     String
+  quantity     Int
+  unit         String
+  minThreshold Int
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  property Property @relation(fields: [propertyId], references: [id])
+}
+
+model Membership {
+  id        String    @id @default(cuid())
+  guestId   String    @unique
+  tier      String    @default("STANDARD")
+  points    Int       @default(0)
+  joinedAt  DateTime
+  expiresAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  guest Guest @relation(fields: [guestId], references: [id])
+}
