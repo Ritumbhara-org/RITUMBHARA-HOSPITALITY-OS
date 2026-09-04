@@ -16,11 +16,9 @@ export function Topbar() {
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
       <Sheet>
-        <SheetTrigger asChild>
-          <Button size="icon" variant="outline" className="sm:hidden">
-            <Menu className="h-5 w-5" />
-            <span className="sr-only">Toggle Menu</span>
-          </Button>
+        <SheetTrigger render={<Button size="icon" variant="outline" className="sm:hidden" />}>
+          <Menu className="h-5 w-5" />
+          <span className="sr-only">Toggle Menu</span>
         </SheetTrigger>
         <SheetContent side="left" className="sm:max-w-xs p-0">
           <SheetTitle className="sr-only">Menu</SheetTitle>
@@ -43,13 +41,13 @@ export function Topbar() {
           </Button>
 
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="rounded-full">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src="" alt="Admin" />
-                  <AvatarFallback>AD</AvatarFallback>
-                </Avatar>
-              </Button>
+            <DropdownMenuTrigger render={
+              <Button variant="ghost" size="icon" className="rounded-full" />
+            }>
+              <Avatar className="h-8 w-8">
+                <AvatarImage src="" alt="Admin" />
+                <AvatarFallback>AD</AvatarFallback>
+              </Avatar>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>My Account</DropdownMenuLabel>
