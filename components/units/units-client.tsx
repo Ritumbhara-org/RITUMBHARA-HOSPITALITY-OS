@@ -25,14 +25,18 @@ export function UnitsClient({
   stats: UnitStats
 }) {
   const [searchTerm, setSearchTerm] = useState("")
+  const [filterStatus, setFilterStatus] = useState("ALL")
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const filteredData = initialData.filter((unit: any) => 
-    unit.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    unit.type.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const filteredData = initialData.filter((unit: any) => {
+    const matchesSearch = unit.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      unit.type.toLowerCase().includes(searchTerm.toLowerCase())
+    
+    if (filterStatus === "ALL") return matchesSearch;
+    return matchesSearch && unit.status === filterStatus;
+  })
 
   const getStatusColor = (status: string) => {
     switch(status) {
@@ -209,10 +213,23 @@ export function UnitsClient({
               className="w-full rounded-md border border-input bg-background py-2 pl-9 pr-4 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             />
           </div>
-          <button className="inline-flex items-center justify-center gap-2 rounded-md border border-input bg-background px-4 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground">
-            <Filter className="h-4 w-4" />
-            Filter Status
-          </button>
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <SelectTrigger className="w-[180px] bg-background">
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4" />
+                <span>Filter: {filterStatus === 'ALL' ? 'All Status' : filterStatus}</span>
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Status</SelectItem>
+              <SelectItem value="AVAILABLE">Available</SelectItem>
+              <SelectItem value="OCCUPIED">Occupied</SelectItem>
+              <SelectItem value="DIRTY">Dirty</SelectItem>
+              <SelectItem value="CLEANING">Cleaning</SelectItem>
+              <SelectItem value="READY">Ready</SelectItem>
+              <SelectItem value="MAINTENANCE">Maintenance</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="flex-1 overflow-auto p-4 bg-slate-50/30 dark:bg-slate-900/20">

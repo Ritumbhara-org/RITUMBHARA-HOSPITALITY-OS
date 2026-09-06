@@ -44,6 +44,7 @@ function OperationsClientContent({
   units: { id: string, name: string }[]
 }) {
   const [searchTerm, setSearchTerm] = useState("")
+  const [filterCategory, setFilterCategory] = useState("ALL")
   const [viewMode, setViewMode] = useState<'board' | 'list'>('board')
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -65,11 +66,14 @@ function OperationsClientContent({
     }
   }, [searchParams, router])
 
-  const filteredData = initialData.filter((ticket: any) => 
-    ticket.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    ticket.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    ticket.unit?.name.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const filteredData = initialData.filter((ticket: any) => {
+    const matchesSearch = ticket.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      ticket.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      ticket.unit?.name.toLowerCase().includes(searchTerm.toLowerCase())
+      
+    if (filterCategory === "ALL") return matchesSearch;
+    return matchesSearch && ticket.category === filterCategory;
+  })
 
   const openTickets = filteredData.filter((t: any) => t.status === 'OPEN' || t.status === 'TRIAGED')
   const inProgressTickets = filteredData.filter((t: any) => t.status === 'ASSIGNED' || t.status === 'ACKNOWLEDGED' || t.status === 'IN_PROGRESS')
@@ -274,10 +278,22 @@ function OperationsClientContent({
             >
               <GripVertical className="h-4 w-4" />
             </button>
-            <button className="inline-flex items-center justify-center gap-2 rounded-md border border-input bg-background px-4 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground">
-              <Filter className="h-4 w-4" />
-              Filter
-            </button>
+            <Select value={filterCategory} onValueChange={setFilterCategory}>
+              <SelectTrigger className="w-[180px] bg-background">
+                <div className="flex items-center gap-2">
+                  <Filter className="h-4 w-4" />
+                  <span>Filter: {filterCategory === 'ALL' ? 'All Categories' : filterCategory.replace('_', ' ')}</span>
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All Categories</SelectItem>
+                <SelectItem value="MAINTENANCE">Maintenance</SelectItem>
+                <SelectItem value="HOUSEKEEPING">Housekeeping</SelectItem>
+                <SelectItem value="GUEST_REQUEST">Guest Request</SelectItem>
+                <SelectItem value="COMPLAINT">Complaint</SelectItem>
+                <SelectItem value="OTHER">Other</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 

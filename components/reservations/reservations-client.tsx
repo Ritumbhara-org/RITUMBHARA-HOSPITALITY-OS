@@ -56,6 +56,7 @@ function ReservationsClientContent({
   units: { id: string, name: string, type: string }[]
 }) {
   const [searchTerm, setSearchTerm] = useState("")
+  const [filterStatus, setFilterStatus] = useState("ALL")
   const [loadingId, setLoadingId] = useState<string | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -98,10 +99,13 @@ function ReservationsClientContent({
     }
   }
 
-  const filteredData = initialData.filter((res: any) => 
-    res.guest.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    res.unit?.name.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const filteredData = initialData.filter((res: any) => {
+    const matchesSearch = res.guest.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      res.unit?.name.toLowerCase().includes(searchTerm.toLowerCase())
+    
+    if (filterStatus === "ALL") return matchesSearch;
+    return matchesSearch && res.status === filterStatus;
+  })
 
   const getStatusBadge = (status: string) => {
     switch(status) {
@@ -257,10 +261,21 @@ function ReservationsClientContent({
               className="w-full rounded-md border border-input bg-background py-2 pl-9 pr-4 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             />
           </div>
-          <button className="inline-flex items-center justify-center gap-2 rounded-md border border-input bg-background px-4 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground">
-            <Filter className="h-4 w-4" />
-            Filter
-          </button>
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <SelectTrigger className="w-[180px] bg-background">
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4" />
+                <span>Filter: {filterStatus === 'ALL' ? 'All Status' : filterStatus.replace('_', ' ')}</span>
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Status</SelectItem>
+              <SelectItem value="CONFIRMED">Confirmed</SelectItem>
+              <SelectItem value="CHECKED_IN">Checked In</SelectItem>
+              <SelectItem value="CHECKED_OUT">Checked Out</SelectItem>
+              <SelectItem value="CANCELLED">Cancelled</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="flex-1 overflow-auto">

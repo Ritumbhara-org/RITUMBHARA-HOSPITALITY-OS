@@ -26,6 +26,7 @@ export function GuestsClient({
   stats: GuestStats
 }) {
   const [searchTerm, setSearchTerm] = useState("")
+  const [filterMembership, setFilterMembership] = useState("ALL")
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   
@@ -33,11 +34,15 @@ export function GuestsClient({
   const [editGuest, setEditGuest] = useState<any>(null)
   const [isEditSubmitting, setIsEditSubmitting] = useState(false)
 
-  const filteredData = initialData.filter((guest: any) => 
-    guest.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    guest.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    guest.phone.includes(searchTerm)
-  )
+  const filteredData = initialData.filter((guest: any) => {
+    const matchesSearch = guest.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      guest.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      guest.phone.includes(searchTerm)
+    
+    if (filterMembership === "ALL") return matchesSearch;
+    if (filterMembership === "NONE") return matchesSearch && !guest.membership;
+    return matchesSearch && guest.membership?.tier === filterMembership;
+  })
 
   const getTierBadge = (tier: string) => {
     switch(tier) {
@@ -214,10 +219,22 @@ export function GuestsClient({
               className="w-full rounded-md border border-input bg-background py-2 pl-9 pr-4 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             />
           </div>
-          <button className="inline-flex items-center justify-center gap-2 rounded-md border border-input bg-background px-4 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground">
-            <Filter className="h-4 w-4" />
-            Filter
-          </button>
+          <Select value={filterMembership} onValueChange={setFilterMembership}>
+            <SelectTrigger className="w-[180px] bg-background">
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4" />
+                <span>Filter: {filterMembership === 'ALL' ? 'All Tiers' : filterMembership}</span>
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Tiers</SelectItem>
+              <SelectItem value="STANDARD">Standard</SelectItem>
+              <SelectItem value="GOLD">Gold</SelectItem>
+              <SelectItem value="PLATINUM">Platinum</SelectItem>
+              <SelectItem value="DIAMOND">Diamond</SelectItem>
+              <SelectItem value="NONE">No Membership</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="flex-1 overflow-auto">
