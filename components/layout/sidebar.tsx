@@ -8,7 +8,8 @@ import {
   Users,
   BedDouble,
   Wrench,
-  MessageSquare
+  MessageSquare,
+  Globe
 } from 'lucide-react'
 
 const navigation = [
@@ -18,6 +19,7 @@ const navigation = [
   { name: 'Units', href: '/units', icon: BedDouble },
   { name: 'Operations', href: '/operations', icon: Wrench },
   { name: 'WhatsApp', href: '/whatsapp', icon: MessageSquare },
+  { name: 'SEO Tools', href: '/seo', icon: Globe },
 ]
 
 export function Sidebar() {

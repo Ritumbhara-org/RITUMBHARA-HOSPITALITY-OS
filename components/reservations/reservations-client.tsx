@@ -1,8 +1,18 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, Suspense } from "react"
+import { useSearchParams, useRouter } from "next/navigation"
 import { motion } from "framer-motion"
-import { Search, Filter, MoreHorizontal, Calendar, ArrowUpRight, CheckCircle2, Clock, XCircle, User } from "lucide-react"
+import { Search, Filter, CalendarCheck, CalendarDays, MoreHorizontal, User, Key, CheckCircle2, Calendar, ArrowUpRight, Clock, XCircle, Loader2, Plus } from "lucide-react"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
+import { updateReservationStatus, createReservation } from "@/app/actions/reservations"
+import Link from "next/link"
+import { format } from "date-fns"
 
 type ReservationStats = {
   total: number
@@ -13,12 +23,80 @@ type ReservationStats = {
 
 export function ReservationsClient({ 
   initialData, 
-  stats 
+  stats,
+  guests,
+  units
 }: { 
   initialData: any[],
-  stats: ReservationStats
+  stats: ReservationStats,
+  guests: { id: string, name: string, phone: string }[],
+  units: { id: string, name: string, type: string }[]
+}) {
+  return (
+    <Suspense fallback={<div>Loading reservations...</div>}>
+      <ReservationsClientContent 
+        initialData={initialData} 
+        stats={stats} 
+        guests={guests} 
+        units={units} 
+      />
+    </Suspense>
+  )
+}
+
+function ReservationsClientContent({ 
+  initialData, 
+  stats,
+  guests,
+  units
+}: { 
+  initialData: any[],
+  stats: ReservationStats,
+  guests: { id: string, name: string, phone: string }[],
+  units: { id: string, name: string, type: string }[]
 }) {
   const [searchTerm, setSearchTerm] = useState("")
+  const [loadingId, setLoadingId] = useState<string | null>(null)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  
+  // Pre-fill guestId if provided in URL
+  const [defaultGuestId, setDefaultGuestId] = useState<string | undefined>()
+
+  useEffect(() => {
+    if (searchParams.get("newBooking") === "true") {
+      setIsDialogOpen(true)
+      const guestId = searchParams.get("guestId")
+      if (guestId) setDefaultGuestId(guestId)
+      
+      // Clear URL params so refresh doesn't reopen it
+      router.replace("/reservations")
+    }
+  }, [searchParams, router])
+
+  const handleStatusChange = async (reservationId: string, status: string, label: string) => {
+    if (!confirm(`Are you sure you want to mark this reservation as "${label}"?`)) return
+    setLoadingId(reservationId)
+    const result = await updateReservationStatus(reservationId, status)
+    setLoadingId(null)
+    if (!result.success) alert("Failed to update: " + result.error)
+  }
+
+  const handleNewBooking = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setIsSubmitting(true)
+    const formData = new FormData(e.currentTarget)
+    const result = await createReservation(formData)
+    setIsSubmitting(false)
+    if (result.success) {
+      setIsDialogOpen(false)
+    } else {
+      alert("Failed to create booking: " + result.error)
+    }
+  }
 
   const filteredData = initialData.filter((res: any) => 
     res.guest.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -47,9 +125,92 @@ export function ReservationsClient({
           <h1 className="text-2xl font-semibold tracking-tight">Reservations</h1>
           <p className="text-sm text-muted-foreground mt-1">Manage all property bookings and stays.</p>
         </div>
-        <button className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90">
-          New Booking
-        </button>
+
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90">
+            <Plus className="mr-2 h-4 w-4" />
+            New Booking
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[480px]">
+            <form onSubmit={handleNewBooking}>
+              <DialogHeader>
+                <DialogTitle>New Booking</DialogTitle>
+                <DialogDescription>Create a new reservation for a guest.</DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="guestId">Guest *</Label>
+                  <Select name="guestId" defaultValue={defaultGuestId} required>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select guest..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {guests.map(g => (
+                        <SelectItem key={g.id} value={g.id}>{g.name} — {g.phone}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="unitId">Unit / Room *</Label>
+                  <Select name="unitId" required>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select unit..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {units.map(u => (
+                        <SelectItem key={u.id} value={u.id}>{u.name} — {u.type}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="checkIn">Check-In *</Label>
+                    <Input id="checkIn" name="checkIn" type="date" required />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="checkOut">Check-Out *</Label>
+                    <Input id="checkOut" name="checkOut" type="date" required />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="source">Booking Source</Label>
+                    <Select name="source" defaultValue="DIRECT">
+                      <SelectTrigger>
+                        <SelectValue placeholder="Source" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="DIRECT">Direct</SelectItem>
+                        <SelectItem value="OTA">OTA (Booking.com etc)</SelectItem>
+                        <SelectItem value="PHONE">Phone</SelectItem>
+                        <SelectItem value="WALK_IN">Walk-in</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="totalAmount">Total Amount (₹)</Label>
+                    <Input id="totalAmount" name="totalAmount" type="number" min="0" step="0.01" placeholder="0.00" />
+                  </div>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="bookingNotes">Notes</Label>
+                  <Textarea id="bookingNotes" name="bookingNotes" placeholder="Any special requests or notes..." className="min-h-[80px]" />
+                </div>
+              </div>
+              <DialogFooter>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90 disabled:opacity-50"
+                >
+                  {isSubmitting ? "Saving..." : "Create Booking"}
+                </button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="grid shrink-0 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -139,9 +300,9 @@ export function ReservationsClient({
                       <div className="font-medium">{res.unit?.name || 'Unassigned'}</div>
                       <div className="text-xs text-muted-foreground">{res.unit?.type || '-'}</div>
                     </td>
-                    <td className="px-6 py-4" suppressHydrationWarning>
-                      <div>{new Date(res.checkIn).toLocaleDateString()}</div>
-                      <div className="text-xs text-muted-foreground">to {new Date(res.checkOut).toLocaleDateString()}</div>
+                    <td className="px-6 py-4">
+                      <div>{format(new Date(res.checkIn), "MMM d, yyyy")}</div>
+                      <div className="text-xs text-muted-foreground">to {format(new Date(res.checkOut), "MMM d, yyyy")}</div>
                     </td>
                     <td className="px-6 py-4">
                       {getStatusBadge(res.status)}
@@ -151,9 +312,46 @@ export function ReservationsClient({
                       <div className="text-[10px] text-muted-foreground uppercase">{res.source}</div>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button className="inline-flex items-center justify-center h-8 w-8 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger className="inline-flex items-center justify-center h-8 w-8 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors">
+                          {loadingId === res.id 
+                            ? <Loader2 className="h-4 w-4 animate-spin" />
+                            : <MoreHorizontal className="h-4 w-4" />}
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem render={<Link href={`/guests/${res.guest.id}`} />}>
+                            View Details
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          {res.status === 'ARRIVING' && (
+                            <DropdownMenuItem render={<div onClick={() => handleStatusChange(res.id, 'CHECKED_IN', 'Checked In')} />}>
+                              ✓ Check In Guest
+                            </DropdownMenuItem>
+                          )}
+                          {res.status === 'CONFIRMED' && (
+                            <DropdownMenuItem render={<div onClick={() => handleStatusChange(res.id, 'CHECKED_IN', 'Checked In')} />}>
+                              ✓ Check In Guest
+                            </DropdownMenuItem>
+                          )}
+                          {res.status === 'CHECKED_IN' && (
+                            <DropdownMenuItem render={<div onClick={() => handleStatusChange(res.id, 'CHECKED_OUT', 'Checked Out')} />}>
+                              ✓ Check Out Guest
+                            </DropdownMenuItem>
+                          )}
+                          {res.status === 'PENDING' && (
+                            <DropdownMenuItem render={<div onClick={() => handleStatusChange(res.id, 'CONFIRMED', 'Confirmed')} />}>
+                              ✓ Confirm Booking
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem 
+                            className="text-destructive focus:text-destructive"
+                            render={<div onClick={() => handleStatusChange(res.id, 'CANCELLED', 'Cancelled')} />}
+                          >
+                            ✕ Cancel Reservation
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </td>
                   </tr>
                 ))

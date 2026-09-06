@@ -3,6 +3,13 @@
 import { useState } from "react"
 import { motion } from "framer-motion"
 import { Search, Filter, MoreHorizontal, Users, Star, UserPlus, CreditCard, ShieldCheck } from "lucide-react"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { createGuest, updateGuest } from "@/app/actions/guests"
+import Link from "next/link"
 
 type GuestStats = {
   total: number
@@ -19,6 +26,12 @@ export function GuestsClient({
   stats: GuestStats
 }) {
   const [searchTerm, setSearchTerm] = useState("")
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  
+  // Edit Guest state
+  const [editGuest, setEditGuest] = useState<any>(null)
+  const [isEditSubmitting, setIsEditSubmitting] = useState(false)
 
   const filteredData = initialData.filter((guest: any) => 
     guest.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -41,6 +54,37 @@ export function GuestsClient({
     }
   }
 
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setIsSubmitting(true)
+    const formData = new FormData(e.currentTarget)
+    
+    const result = await createGuest(formData)
+    setIsSubmitting(false)
+    
+    if (result.success) {
+      setIsDialogOpen(false)
+    } else {
+      alert("Failed to create guest: " + result.error)
+    }
+  }
+
+  const handleEditSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    if (!editGuest) return
+    
+    setIsEditSubmitting(true)
+    const formData = new FormData(e.currentTarget)
+    const result = await updateGuest(editGuest.id, formData)
+    setIsEditSubmitting(false)
+    
+    if (result.success) {
+      setEditGuest(null)
+    } else {
+      alert("Failed to update guest: " + result.error)
+    }
+  }
+
   return (
     <div className="flex flex-col flex-1 h-full w-full gap-6 pb-4 min-h-0">
       <div className="flex items-center justify-between shrink-0">
@@ -48,10 +92,82 @@ export function GuestsClient({
           <h1 className="text-2xl font-semibold tracking-tight">Guest Directory</h1>
           <p className="text-sm text-muted-foreground mt-1">Manage guest profiles, memberships, and history.</p>
         </div>
-        <button className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90">
-          <UserPlus className="mr-2 h-4 w-4" />
-          Add Guest
-        </button>
+        
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90">
+            <UserPlus className="mr-2 h-4 w-4" />
+            Add Guest
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px]">
+            <form onSubmit={handleSubmit}>
+              <DialogHeader>
+                <DialogTitle>Add Guest</DialogTitle>
+                <DialogDescription>
+                  Register a new guest profile.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="name">Full Name *</Label>
+                  <Input id="name" name="name" placeholder="John Doe" required />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="phone">Phone Number *</Label>
+                    <Input id="phone" name="phone" placeholder="+1 234 567 8900" required />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="email">Email Address</Label>
+                    <Input id="email" name="email" type="email" placeholder="john@example.com" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="idType">ID Type</Label>
+                    <Select name="idType">
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select ID" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="PASSPORT">Passport</SelectItem>
+                        <SelectItem value="DRIVERS_LICENSE">Driver's License</SelectItem>
+                        <SelectItem value="NATIONAL_ID">National ID</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="idNumber">ID Number</Label>
+                    <Input id="idNumber" name="idNumber" placeholder="AB1234567" />
+                  </div>
+                </div>
+                <div className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 shadow-sm mt-2">
+                  <div className="flex h-5 items-center">
+                    <input 
+                      type="checkbox" 
+                      id="assignMembership" 
+                      name="assignMembership" 
+                      value="true"
+                      className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                    />
+                  </div>
+                  <div className="space-y-1 leading-none">
+                    <Label htmlFor="assignMembership">Enroll in Loyalty Program</Label>
+                    <p className="text-[10px] text-muted-foreground">Assigns a Standard tier membership to this guest profile.</p>
+                  </div>
+                </div>
+              </div>
+              <DialogFooter>
+                <button 
+                  type="submit" 
+                  disabled={isSubmitting}
+                  className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90 disabled:opacity-50"
+                >
+                  {isSubmitting ? "Saving..." : "Save Guest"}
+                </button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="grid shrink-0 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -162,9 +278,26 @@ export function GuestsClient({
                         <div className="font-medium text-emerald-600 dark:text-emerald-400">${totalSpend.toFixed(2)}</div>
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <button className="inline-flex items-center justify-center h-8 w-8 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger className="inline-flex items-center justify-center h-8 w-8 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem render={<Link href={`/guests/${guest.id}`} />}>
+                              View Profile
+                            </DropdownMenuItem>
+                            <DropdownMenuItem render={<div onClick={() => setEditGuest(guest)} />}>
+                              Edit Details
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem render={<Link href={`/reservations?newBooking=true&guestId=${guest.id}`} />}>
+                              New Reservation
+                            </DropdownMenuItem>
+                            <DropdownMenuItem render={<Link href={`/operations?newTicket=true&guestId=${guest.id}`} />}>
+                              Create Ticket
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </td>
                     </tr>
                   )
@@ -174,6 +307,62 @@ export function GuestsClient({
           </table>
         </div>
       </motion.div>
+
+      {/* Edit Guest Dialog */}
+      <Dialog open={!!editGuest} onOpenChange={(open) => !open && setEditGuest(null)}>
+        <DialogContent className="sm:max-w-[425px]">
+          <form key={editGuest?.id} onSubmit={handleEditSubmit}>
+            <DialogHeader>
+              <DialogTitle>Edit Guest</DialogTitle>
+              <DialogDescription>
+                Update details for {editGuest?.name}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-name">Full Name *</Label>
+                <Input id="edit-name" name="name" defaultValue={editGuest?.name} required />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-phone">Phone Number *</Label>
+                <Input id="edit-phone" name="phone" type="tel" defaultValue={editGuest?.phone} required />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-email">Email Address</Label>
+                <Input id="edit-email" name="email" type="email" defaultValue={editGuest?.email || ''} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-idType">ID Type</Label>
+                  <Select name="idType" defaultValue={editGuest?.idType || 'PASSPORT'}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select ID" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="PASSPORT">Passport</SelectItem>
+                      <SelectItem value="DRIVERS_LICENSE">Driver's License</SelectItem>
+                      <SelectItem value="NATIONAL_ID">National ID</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-idNumber">ID Number</Label>
+                  <Input id="edit-idNumber" name="idNumber" defaultValue={editGuest?.idNumber || ''} />
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <button
+                type="submit"
+                disabled={isEditSubmitting}
+                className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90 disabled:opacity-50"
+              >
+                {isEditSubmitting ? "Saving..." : "Save Changes"}
+              </button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

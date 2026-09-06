@@ -157,8 +157,9 @@ export function DashboardClient({ data }: { data: DashboardData }) {
                       <span className="relative flex h-2 w-2">
                         <span className={`relative inline-flex rounded-full h-2 w-2 ${isUrgent ? 'bg-destructive' : 'bg-amber-500'}`}></span>
                       </span>
-                      {ticket.title} {ticket.unit ? `- ${ticket.unit.name}` : ''}
+                      {ticket.category.replace('_', ' ')} {ticket.unit ? `- ${ticket.unit.name}` : ''}
                     </div>
+                    <div className="ml-4 mt-1 line-clamp-1 text-xs opacity-90">{ticket.description}</div>
                     <p suppressHydrationWarning className={`text-xs mt-1 ml-4 ${isUrgent ? 'text-destructive/80' : 'text-amber-600/80 dark:text-amber-400/80'}`}>
                       {ticket.status} • Reported {new Date(ticket.createdAt).toLocaleDateString()}
                     </p>

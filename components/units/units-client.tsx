@@ -2,7 +2,12 @@
 
 import { useState } from "react"
 import { motion } from "framer-motion"
-import { Search, Filter, Key, CheckCircle2, AlertTriangle, PenTool, LayoutGrid, List, User } from "lucide-react"
+import { Search, Filter, Key, CheckCircle2, AlertTriangle, PenTool, LayoutGrid, List, User, Plus } from "lucide-react"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { createUnit } from "@/app/actions/units"
 
 type UnitStats = {
   total: number
@@ -21,6 +26,8 @@ export function UnitsClient({
 }) {
   const [searchTerm, setSearchTerm] = useState("")
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const filteredData = initialData.filter((unit: any) => 
     unit.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -62,6 +69,21 @@ export function UnitsClient({
     }
   }
 
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setIsSubmitting(true)
+    const formData = new FormData(e.currentTarget)
+    
+    const result = await createUnit(formData)
+    setIsSubmitting(false)
+    
+    if (result.success) {
+      setIsDialogOpen(false)
+    } else {
+      alert("Failed to add unit: " + result.error)
+    }
+  }
+
   return (
     <div className="flex flex-col flex-1 h-full w-full gap-6 pb-4 min-h-0">
       <div className="flex items-center justify-between shrink-0">
@@ -84,9 +106,64 @@ export function UnitsClient({
               <List className="h-4 w-4" />
             </button>
           </div>
-          <button className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90">
-            Add Unit
-          </button>
+          
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90">
+              <Plus className="mr-2 h-4 w-4" />
+              Add Unit
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <form onSubmit={handleSubmit}>
+                <DialogHeader>
+                  <DialogTitle>Add Unit</DialogTitle>
+                  <DialogDescription>
+                    Add a new room or space to your property inventory.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="name">Unit Name / Number *</Label>
+                      <Input id="name" name="name" placeholder="e.g. 101 or Presidential Suite" required />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="type">Unit Type</Label>
+                      <Select name="type" defaultValue="STANDARD">
+                        <SelectTrigger>
+                          <SelectValue placeholder="Type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="STANDARD">Standard Room</SelectItem>
+                          <SelectItem value="DELUXE">Deluxe Room</SelectItem>
+                          <SelectItem value="SUITE">Suite</SelectItem>
+                          <SelectItem value="VILLA">Villa</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="floor">Floor / Building</Label>
+                      <Input id="floor" name="floor" placeholder="e.g. Ground or North Tower" />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="capacity">Max Capacity</Label>
+                      <Input id="capacity" name="capacity" type="number" min="1" defaultValue="2" required />
+                    </div>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <button 
+                    type="submit" 
+                    disabled={isSubmitting}
+                    className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90 disabled:opacity-50"
+                  >
+                    {isSubmitting ? "Saving..." : "Save Unit"}
+                  </button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 

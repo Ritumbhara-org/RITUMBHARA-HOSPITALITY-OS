@@ -14,6 +14,17 @@ export default async function OperationsPage() {
     }
   })
 
+  // Fetch all units so they can be selected when creating a ticket
+  const units = await prisma.unit.findMany({
+    orderBy: {
+      name: 'asc'
+    },
+    select: {
+      id: true,
+      name: true
+    }
+  })
+
   // Calculate stats
   const total = tickets.length
   const open = tickets.filter(t => t.status === 'OPEN' || t.status === 'TRIAGED').length
@@ -27,5 +38,5 @@ export default async function OperationsPage() {
     resolved
   }
 
-  return <OperationsClient initialData={tickets} stats={stats} />
+  return <OperationsClient initialData={tickets} stats={stats} units={units} />
 }

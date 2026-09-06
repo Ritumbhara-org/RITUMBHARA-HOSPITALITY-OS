@@ -110,6 +110,9 @@ model Unit {
   reservations      Reservation[]
   tickets           Ticket[]
   housekeepingTasks HousekeepingTask[]
+
+  @@index([propertyId])
+  @@index([status])
 }
 
 model Guest {
@@ -126,6 +129,9 @@ model Guest {
   reservations Reservation[]
   tickets      Ticket[]
   membership   Membership?
+
+  @@index([phone])
+  @@index([email])
 }
 
 model Reservation {
@@ -146,6 +152,13 @@ model Reservation {
   guest    Guest    @relation(fields: [guestId], references: [id])
   unit     Unit     @relation(fields: [unitId], references: [id])
   property Property @relation(fields: [propertyId], references: [id])
+
+  @@index([propertyId])
+  @@index([guestId])
+  @@index([unitId])
+  @@index([status])
+  @@index([checkIn])
+  @@index([checkOut])
 }
 
 model TeamMember {
@@ -163,6 +176,9 @@ model TeamMember {
   property          Property           @relation(fields: [propertyId], references: [id])
   assignedTickets   Ticket[]           @relation("AssignedTickets")
   housekeepingTasks HousekeepingTask[] @relation("AssignedTasks")
+
+  @@index([propertyId])
+  @@index([isActive])
 }
 
 model Ticket {
@@ -192,6 +208,12 @@ model Ticket {
   guest    Guest?   @relation(fields: [guestId], references: [id])
   assignedTo TeamMember? @relation("AssignedTickets", fields: [assignedToId], references: [id])
   auditLogs TicketAuditLog[]
+
+  @@index([propertyId])
+  @@index([status])
+  @@index([priority])
+  @@index([category])
+  @@index([assignedToId])
 }
 
 model TicketAuditLog {
@@ -206,6 +228,8 @@ model TicketAuditLog {
   createdAt  DateTime @default(now())
 
   ticket Ticket @relation(fields: [ticketId], references: [id])
+
+  @@index([ticketId])
 }
 
 model HousekeepingTask {
@@ -226,6 +250,10 @@ model HousekeepingTask {
   unit       Unit        @relation(fields: [unitId], references: [id])
   property   Property    @relation(fields: [propertyId], references: [id])
   assignedTo TeamMember? @relation("AssignedTasks", fields: [assignedToId], references: [id])
+
+  @@index([propertyId])
+  @@index([unitId])
+  @@index([status])
 }
 
 model WhatsAppMessage {
@@ -240,6 +268,9 @@ model WhatsAppMessage {
   relatedEntityType String?
   relatedEntityId   String?
   createdAt        DateTime         @default(now())
+
+  @@index([from])
+  @@index([to])
 }
 
 model InventoryItem {
@@ -254,6 +285,8 @@ model InventoryItem {
   updatedAt    DateTime @updatedAt
 
   property Property @relation(fields: [propertyId], references: [id])
+
+  @@index([propertyId])
 }
 
 model Membership {

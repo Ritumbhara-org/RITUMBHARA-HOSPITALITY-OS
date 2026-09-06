@@ -1,8 +1,15 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, Suspense } from "react"
+import { useSearchParams, useRouter } from "next/navigation"
 import { motion } from "framer-motion"
-import { Search, Filter, Wrench, AlertCircle, Clock, CheckCircle2, MessageSquare, GripVertical } from "lucide-react"
+import { Search, Filter, Wrench, AlertCircle, Clock, CheckCircle2, MessageSquare, GripVertical, Plus } from "lucide-react"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { createTicket } from "@/app/actions/operations"
 
 type OperationStats = {
   total: number
@@ -13,13 +20,50 @@ type OperationStats = {
 
 export function OperationsClient({ 
   initialData, 
-  stats 
+  stats,
+  units 
 }: { 
   initialData: any[],
-  stats: OperationStats
+  stats: OperationStats,
+  units: { id: string, name: string }[]
+}) {
+  return (
+    <Suspense fallback={<div>Loading operations...</div>}>
+      <OperationsClientContent initialData={initialData} stats={stats} units={units} />
+    </Suspense>
+  )
+}
+
+function OperationsClientContent({ 
+  initialData, 
+  stats,
+  units 
+}: { 
+  initialData: any[],
+  stats: OperationStats,
+  units: { id: string, name: string }[]
 }) {
   const [searchTerm, setSearchTerm] = useState("")
   const [viewMode, setViewMode] = useState<'board' | 'list'>('board')
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  
+  // Pre-fill fields if provided in URL
+  const [defaultGuestId, setDefaultGuestId] = useState<string | undefined>()
+
+  useEffect(() => {
+    if (searchParams.get("newTicket") === "true") {
+      setIsDialogOpen(true)
+      const guestId = searchParams.get("guestId")
+      if (guestId) setDefaultGuestId(guestId)
+      
+      // Clear URL params
+      router.replace("/operations")
+    }
+  }, [searchParams, router])
 
   const filteredData = initialData.filter((ticket: any) => 
     ticket.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -69,6 +113,21 @@ export function OperationsClient({
     </div>
   )
 
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setIsSubmitting(true)
+    const formData = new FormData(e.currentTarget)
+    
+    const result = await createTicket(formData)
+    setIsSubmitting(false)
+    
+    if (result.success) {
+      setIsDialogOpen(false)
+    } else {
+      alert("Failed to create ticket: " + result.error)
+    }
+  }
+
   return (
     <div className="flex flex-col flex-1 h-full w-full gap-6 pb-4 min-h-0">
       <div className="flex items-center justify-between shrink-0">
@@ -76,9 +135,92 @@ export function OperationsClient({
           <h1 className="text-2xl font-semibold tracking-tight">Operations Hub</h1>
           <p className="text-sm text-muted-foreground mt-1">Manage housekeeping, maintenance, and guest requests.</p>
         </div>
-        <button className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90">
-          Create Ticket
-        </button>
+        
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90">
+            <Plus className="mr-2 h-4 w-4" />
+            Create Ticket
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px]">
+            <form onSubmit={handleSubmit}>
+              <DialogHeader>
+                <DialogTitle>Create Ticket</DialogTitle>
+                <DialogDescription>
+                  Add a new maintenance or housekeeping issue to the board.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="title">Title</Label>
+                  <Input id="title" name="title" placeholder="e.g., AC not working" required />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="unitId">Location / Unit</Label>
+                    <Select name="unitId" defaultValue="property">
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select Location" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="property">Property-wide</SelectItem>
+                        {units.map((unit) => (
+                          <SelectItem key={unit.id} value={unit.id}>{unit.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="category">Category</Label>
+                    <Select name="category" defaultValue="MAINTENANCE">
+                      <SelectTrigger>
+                        <SelectValue placeholder="Category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="MAINTENANCE">Maintenance</SelectItem>
+                        <SelectItem value="HOUSEKEEPING">Housekeeping</SelectItem>
+                        <SelectItem value="GUEST_REQUEST">Guest Request</SelectItem>
+                        <SelectItem value="COMPLAINT">Complaint</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="priority">Priority</Label>
+                    <Select name="priority" defaultValue="MEDIUM">
+                      <SelectTrigger>
+                        <SelectValue placeholder="Priority" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="LOW">Low</SelectItem>
+                        <SelectItem value="MEDIUM">Medium</SelectItem>
+                        <SelectItem value="HIGH">High</SelectItem>
+                        <SelectItem value="CRITICAL">Critical</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea 
+                    id="description" 
+                    name="description" 
+                    placeholder="Details about the issue..." 
+                    className="min-h-[100px]"
+                    required
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <button 
+                  type="submit" 
+                  disabled={isSubmitting}
+                  className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90 disabled:opacity-50"
+                >
+                  {isSubmitting ? "Creating..." : "Create Ticket"}
+                </button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="grid shrink-0 gap-4 sm:grid-cols-2 lg:grid-cols-4">

@@ -55,3 +55,66 @@ The architecture relies on synchronous and asynchronous data flowing primarily f
 5. Post-clean, housekeeper takes **PHOTO**.
 6. Task marked **COMPLETE**.
 7. **UNIT = READY**.
+
+---
+
+## System Architecture Diagram
+
+```mermaid
+flowchart TD
+    subgraph EXTERNAL["External Systems"]
+        PMS["🏨 Intellistay PMS\n(Source of Truth)"]
+        WA["📱 WhatsApp Business API"]
+    end
+
+    subgraph APP["Ritumbhara Hospitality OS (Next.js)"]
+        direction TB
+        API["REST API Layer\n/api/*\n(Zod Validated)"]
+        SA["Server Actions\n(Mutations)"]
+        PAGES["Pages / UI\n(Dashboard, Reservations,\nGuests, Units, Operations)"]
+        SEO["SEO Automation\n/api/seo"]
+    end
+
+    subgraph DB["Database Layer"]
+        PG["🐘 PostgreSQL\n(Docker · Port 5433)"]
+        ORM["Prisma ORM v5"]
+    end
+
+    subgraph MODELS["Core Models"]
+        M1["Property"]
+        M2["Unit"]
+        M3["Guest"]
+        M4["Reservation"]
+        M5["Ticket"]
+        M6["TeamMember"]
+        M7["HousekeepingTask"]
+        M8["Membership"]
+        M9["WhatsAppMessage"]
+    end
+
+    PMS -->|"Webhook / Sync"| API
+    API --> ORM
+    SA --> ORM
+    ORM --> PG
+    PG --> MODELS
+    PAGES --> SA
+    PAGES --> API
+    API --> WA
+    SEO --> API
+```
+
+## Module Map
+
+```mermaid
+graph LR
+    Dashboard --> Reservations
+    Dashboard --> Operations
+    Dashboard --> Units
+    Reservations --> Guests
+    Operations --> Tickets
+    Tickets --> TeamMembers
+    Guests --> Membership
+    Units --> HousekeepingTasks
+    HousekeepingTasks --> TeamMembers
+```
+

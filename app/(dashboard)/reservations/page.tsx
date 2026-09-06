@@ -28,5 +28,11 @@ export default async function ReservationsPage() {
     cancelled: cancelledCount
   }
 
-  return <ReservationsClient initialData={reservations} stats={stats} />
+  // Fetch guests and units for the New Booking form
+  const [guests, units] = await Promise.all([
+    prisma.guest.findMany({ orderBy: { name: 'asc' }, select: { id: true, name: true, phone: true } }),
+    prisma.unit.findMany({ orderBy: { name: 'asc' }, select: { id: true, name: true, type: true } })
+  ])
+
+  return <ReservationsClient initialData={reservations} stats={stats} guests={guests} units={units} />
 }

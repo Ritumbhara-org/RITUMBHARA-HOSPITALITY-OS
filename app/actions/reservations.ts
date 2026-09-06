@@ -1,0 +1,61 @@
+"use server"
+
+import { prisma } from "@/lib/prisma"
+import { revalidatePath } from "next/cache"
+
+export async function updateReservationStatus(reservationId: string, status: string) {
+  try {
+    await prisma.reservation.update({
+      where: { id: reservationId },
+      data: { status }
+    })
+
+    revalidatePath("/reservations")
+    revalidatePath("/dashboard")
+    return { success: true }
+  } catch (error: any) {
+    console.error("Failed to update reservation status:", error)
+    return { success: false, error: error.message }
+  }
+}
+
+export async function createReservation(formData: FormData) {
+  try {
+    const guestId = formData.get("guestId") as string
+    const unitId = formData.get("unitId") as string
+    const checkIn = formData.get("checkIn") as string
+    const checkOut = formData.get("checkOut") as string
+    const source = formData.get("source") as string
+    const totalAmount = parseFloat(formData.get("totalAmount") as string)
+    const bookingNotes = formData.get("bookingNotes") as string
+
+    if (!guestId || !unitId || !checkIn || !checkOut) {
+      throw new Error("Guest, Unit, Check-in and Check-out are required.")
+    }
+
+    const defaultProperty = await prisma.property.findFirst()
+    if (!defaultProperty) throw new Error("No property found.")
+
+    await prisma.reservation.create({
+      data: {
+        guestId,
+        unitId,
+        propertyId: defaultProperty.id,
+        checkIn: new Date(checkIn),
+        checkOut: new Date(checkOut),
+        status: "CONFIRMED",
+        source: source || "DIRECT",
+        totalAmount: isNaN(totalAmount) ? 0 : totalAmount,
+        bookingNotes: bookingNotes || null
+      }
+    })
+
+    revalidatePath("/reservations")
+    revalidatePath("/dashboard")
+    return { success: true }
+  } catch (error: any) {
+    console.error("Failed to create reservation:", error)
+    return { success: false, error: error.message }
+  }
+}
+
