@@ -11,7 +11,9 @@ type DashboardData = {
   activeGuests: string;
   occupancyRate: string;
   arrivals: any[];
+  departures: any[];
   pendingOperations: any[];
+  unitStatuses: any[];
 }
 
 export function DashboardClient({ data }: { data: DashboardData }) {
