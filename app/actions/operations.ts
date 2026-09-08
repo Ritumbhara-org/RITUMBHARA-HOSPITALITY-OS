@@ -11,12 +11,18 @@ export async function createTicket(formData: FormData) {
     const priority = formData.get("priority") as string
     
     // In a real app, these would come from the auth session
-    // For now, let's just grab the first property and first team member to act as the "logged in" user
-    const defaultProperty = await prisma.property.findFirst()
-    const defaultTeamMember = await prisma.teamMember.findFirst()
+    let defaultProperty = await prisma.property.findFirst()
+    if (!defaultProperty) {
+      defaultProperty = await prisma.property.create({
+        data: { name: "Default Property", slug: "default", address: "System Generated", city: "System", state: "SYS", country: "SYS", phone: "000", email: "sys@sys.com", timezone: "UTC" }
+      })
+    }
 
-    if (!defaultProperty || !defaultTeamMember) {
-      throw new Error("System not fully initialized (missing property or team member).")
+    let defaultTeamMember = await prisma.teamMember.findFirst()
+    if (!defaultTeamMember) {
+      defaultTeamMember = await prisma.teamMember.create({
+        data: { name: "Admin User", email: "admin@ritumbhara.com", role: "MANAGER", phone: "0000000000", propertyId: defaultProperty.id }
+      })
     }
 
     const unitId = formData.get("unitId") as string
