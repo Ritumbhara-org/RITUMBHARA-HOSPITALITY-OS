@@ -21,7 +21,7 @@ export async function createTicket(formData: FormData) {
     let defaultTeamMember = await prisma.teamMember.findFirst()
     if (!defaultTeamMember) {
       defaultTeamMember = await prisma.teamMember.create({
-        data: { name: "Admin User", email: "admin@ritumbhara.com", role: "MANAGER", phone: "0000000000", propertyId: defaultProperty.id }
+        data: { name: "Admin User", department: "MANAGEMENT", role: "MANAGER", phone: "0000000000", whatsappNumber: "0000000000", propertyId: defaultProperty.id }
       })
     }
 
