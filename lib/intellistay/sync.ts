@@ -118,7 +118,8 @@ export async function syncBookings() {
                 name: roomNumber,
                 type: "SYNCED_ROOM",
                 capacity: 2,
-                status: "AVAILABLE"
+                status: "AVAILABLE",
+                floor: "1"
               }
             });
             unitId = newUnit.id;
