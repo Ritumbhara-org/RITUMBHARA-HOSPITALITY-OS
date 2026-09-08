@@ -34,6 +34,7 @@ export async function createGuest(formData: FormData) {
     })
 
     revalidatePath("/guests")
+    revalidatePath("/reservations")
     return { success: true, guest }
   } catch (error: any) {
     console.error("Failed to create guest:", error)
@@ -66,6 +67,7 @@ export async function updateGuest(guestId: string, formData: FormData) {
 
     revalidatePath("/guests")
     revalidatePath(`/guests/${guestId}`)
+    revalidatePath("/reservations")
     return { success: true, guest }
   } catch (error: any) {
     console.error("Failed to update guest:", error)

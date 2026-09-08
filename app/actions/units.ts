@@ -32,6 +32,7 @@ export async function createUnit(formData: FormData) {
     })
 
     revalidatePath("/units")
+    revalidatePath("/reservations")
     return { success: true, unit }
   } catch (error: any) {
     console.error("Failed to create unit:", error)
