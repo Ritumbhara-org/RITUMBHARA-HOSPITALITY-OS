@@ -54,6 +54,8 @@ export async function createTicket(formData: FormData) {
     })
 
     revalidatePath("/operations")
+    revalidatePath("/dashboard")
+    revalidatePath("/")
     return { success: true, ticket }
   } catch (error: any) {
     console.error("Failed to create ticket:", error)
