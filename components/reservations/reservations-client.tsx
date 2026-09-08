@@ -261,7 +261,7 @@ function ReservationsClientContent({
               className="w-full rounded-md border border-input bg-background py-2 pl-9 pr-4 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             />
           </div>
-          <Select value={filterStatus} onValueChange={setFilterStatus}>
+          <Select value={filterStatus} onValueChange={(val) => setFilterStatus(val || "ALL")}>
             <SelectTrigger className="w-[180px] bg-background">
               <div className="flex items-center gap-2">
                 <Filter className="h-4 w-4" />

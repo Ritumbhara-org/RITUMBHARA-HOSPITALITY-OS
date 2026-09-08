@@ -278,7 +278,7 @@ function OperationsClientContent({
             >
               <GripVertical className="h-4 w-4" />
             </button>
-            <Select value={filterCategory} onValueChange={setFilterCategory}>
+            <Select value={filterCategory} onValueChange={(val) => setFilterCategory(val || "ALL")}>
               <SelectTrigger className="w-[180px] bg-background">
                 <div className="flex items-center gap-2">
                   <Filter className="h-4 w-4" />
