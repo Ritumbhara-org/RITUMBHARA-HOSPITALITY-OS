@@ -128,7 +128,7 @@ function OperationsClientContent({
 
   return (
     <div className="flex flex-col flex-1 h-full w-full gap-5 pb-4 min-h-0">
-      <div className="flex items-center justify-between shrink-0">
+      <div className="flex flex-wrap items-center justify-between gap-4 shrink-0">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Operations Hub</h1>
           <p className="text-sm text-muted-foreground mt-1">Manage housekeeping, maintenance, and guest requests.</p>
