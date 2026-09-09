@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { motion } from "framer-motion"
-import { Search, Filter, CalendarCheck, CalendarDays, MoreHorizontal, User, Key, CheckCircle2, Calendar, ArrowUpRight, Clock, XCircle, Loader2, Plus } from "lucide-react"
+import { Search, Filter, CalendarCheck, MoreHorizontal, CheckCircle2, Calendar, Clock, XCircle, Loader2, Plus } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
@@ -33,7 +33,7 @@ export function ReservationsClient({
   units: { id: string, name: string, type: string }[]
 }) {
   return (
-    <Suspense fallback={<div>Loading reservations...</div>}>
+    <Suspense fallback={<div className="flex items-center justify-center h-64 text-muted-foreground">Loading reservations...</div>}>
       <ReservationsClientContent 
         initialData={initialData} 
         stats={stats} 
@@ -64,7 +64,6 @@ function ReservationsClientContent({
   const searchParams = useSearchParams()
   const router = useRouter()
   
-  // Pre-fill guestId if provided in URL
   const [defaultGuestId, setDefaultGuestId] = useState<string | undefined>()
 
   useEffect(() => {
@@ -72,8 +71,6 @@ function ReservationsClientContent({
       setIsDialogOpen(true)
       const guestId = searchParams.get("guestId")
       if (guestId) setDefaultGuestId(guestId)
-      
-      // Clear URL params so refresh doesn't reopen it
       router.replace("/reservations")
     }
   }, [searchParams, router])
@@ -102,7 +99,6 @@ function ReservationsClientContent({
   const filteredData = initialData.filter((res: any) => {
     const matchesSearch = res.guest.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       res.unit?.name.toLowerCase().includes(searchTerm.toLowerCase())
-    
     if (filterStatus === "ALL") return matchesSearch;
     return matchesSearch && res.status === filterStatus;
   })
@@ -110,42 +106,42 @@ function ReservationsClientContent({
   const getStatusBadge = (status: string) => {
     switch(status) {
       case 'CHECKED_IN':
-        return <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10 dark:bg-blue-900/30 dark:text-blue-400 dark:ring-blue-400/20"><CheckCircle2 className="h-3 w-3" /> Checked In</span>
+        return <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-semibold text-blue-700 ring-1 ring-inset ring-blue-700/10 dark:bg-blue-500/10 dark:text-blue-400 dark:ring-blue-500/20"><CheckCircle2 className="h-3 w-3" /> Checked In</span>
       case 'CONFIRMED':
-        return <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/20 dark:bg-emerald-900/30 dark:text-emerald-400 dark:ring-emerald-400/20"><Clock className="h-3 w-3" /> Confirmed</span>
+        return <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-600/15 dark:bg-emerald-500/10 dark:text-emerald-400 dark:ring-emerald-500/20"><Clock className="h-3 w-3" /> Confirmed</span>
       case 'CHECKED_OUT':
-        return <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600 ring-1 ring-inset ring-slate-500/10 dark:bg-slate-800 dark:text-slate-400 dark:ring-slate-400/20"><CheckCircle2 className="h-3 w-3" /> Checked Out</span>
+        return <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600 ring-1 ring-inset ring-slate-500/10 dark:bg-slate-500/10 dark:text-slate-400 dark:ring-slate-500/20"><CheckCircle2 className="h-3 w-3" /> Checked Out</span>
       case 'CANCELLED':
-        return <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-50 px-2 py-1 text-xs font-medium text-rose-700 ring-1 ring-inset ring-rose-600/10 dark:bg-rose-900/30 dark:text-rose-400 dark:ring-rose-400/20"><XCircle className="h-3 w-3" /> Cancelled</span>
+        return <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-50 px-2.5 py-1 text-[11px] font-semibold text-rose-700 ring-1 ring-inset ring-rose-600/10 dark:bg-rose-500/10 dark:text-rose-400 dark:ring-rose-500/20"><XCircle className="h-3 w-3" /> Cancelled</span>
       default:
-        return <span className="inline-flex items-center rounded-full bg-slate-50 px-2 py-1 text-xs font-medium text-slate-600 ring-1 ring-inset ring-slate-500/10 dark:bg-slate-800 dark:text-slate-400 dark:ring-slate-400/20">{status}</span>
+        return <span className="inline-flex items-center rounded-full bg-slate-50 px-2.5 py-1 text-[11px] font-semibold text-slate-600 ring-1 ring-inset ring-slate-500/10 dark:bg-slate-500/10 dark:text-slate-400 dark:ring-slate-500/20">{status}</span>
     }
   }
 
   return (
-    <div className="flex flex-col flex-1 h-full w-full gap-6 pb-4 min-h-0">
+    <div className="flex flex-col flex-1 h-full w-full gap-5 pb-4 min-h-0">
       <div className="flex items-center justify-between shrink-0">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Reservations</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Reservations</h1>
           <p className="text-sm text-muted-foreground mt-1">Manage all property bookings and stays.</p>
         </div>
 
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90">
-            <Plus className="mr-2 h-4 w-4" />
+          <DialogTrigger className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm shadow-primary/20 transition-all duration-200 hover:bg-primary/90 hover:shadow-md hover:shadow-primary/25 active:scale-[0.98]">
+            <Plus className="h-4 w-4" />
             New Booking
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[480px]">
+          <DialogContent className="sm:max-w-[480px] rounded-2xl">
             <form onSubmit={handleNewBooking}>
               <DialogHeader>
-                <DialogTitle>New Booking</DialogTitle>
+                <DialogTitle className="text-lg">New Booking</DialogTitle>
                 <DialogDescription>Create a new reservation for a guest.</DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <div className="grid gap-2">
                   <Label htmlFor="guestId">Guest *</Label>
                   <Select name="guestId" defaultValue={defaultGuestId} required>
-                    <SelectTrigger>
+                    <SelectTrigger className="rounded-xl">
                       <SelectValue placeholder="Select guest..." />
                     </SelectTrigger>
                     <SelectContent>
@@ -158,7 +154,7 @@ function ReservationsClientContent({
                 <div className="grid gap-2">
                   <Label htmlFor="unitId">Unit / Room *</Label>
                   <Select name="unitId" required>
-                    <SelectTrigger>
+                    <SelectTrigger className="rounded-xl">
                       <SelectValue placeholder="Select unit..." />
                     </SelectTrigger>
                     <SelectContent>
@@ -171,18 +167,18 @@ function ReservationsClientContent({
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="checkIn">Check-In *</Label>
-                    <Input id="checkIn" name="checkIn" type="date" required />
+                    <Input id="checkIn" name="checkIn" type="date" required className="rounded-xl" />
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="checkOut">Check-Out *</Label>
-                    <Input id="checkOut" name="checkOut" type="date" required />
+                    <Input id="checkOut" name="checkOut" type="date" required className="rounded-xl" />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="source">Booking Source</Label>
                     <Select name="source" defaultValue="DIRECT">
-                      <SelectTrigger>
+                      <SelectTrigger className="rounded-xl">
                         <SelectValue placeholder="Source" />
                       </SelectTrigger>
                       <SelectContent>
@@ -195,19 +191,19 @@ function ReservationsClientContent({
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="totalAmount">Total Amount (₹)</Label>
-                    <Input id="totalAmount" name="totalAmount" type="number" min="0" step="0.01" placeholder="0.00" />
+                    <Input id="totalAmount" name="totalAmount" type="number" min="0" step="0.01" placeholder="0.00" className="rounded-xl" />
                   </div>
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="bookingNotes">Notes</Label>
-                  <Textarea id="bookingNotes" name="bookingNotes" placeholder="Any special requests or notes..." className="min-h-[80px]" />
+                  <Textarea id="bookingNotes" name="bookingNotes" placeholder="Any special requests or notes..." className="min-h-[80px] rounded-xl" />
                 </div>
               </div>
               <DialogFooter>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90 disabled:opacity-50"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm shadow-primary/20 transition-all duration-200 hover:bg-primary/90 hover:shadow-md disabled:opacity-50"
                 >
                   {isSubmitting ? "Saving..." : "Create Booking"}
                 </button>
@@ -219,27 +215,25 @@ function ReservationsClientContent({
 
       <div className="grid shrink-0 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
-          { label: "Total Bookings", value: stats.total, icon: Calendar },
-          { label: "Active Stays", value: stats.active, icon: CheckCircle2 },
-          { label: "Upcoming", value: stats.upcoming, icon: Clock },
-          { label: "Cancelled", value: stats.cancelled, icon: XCircle }
+          { label: "Total Bookings", value: stats.total, icon: Calendar, color: "bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-400" },
+          { label: "Active Stays", value: stats.active, icon: CheckCircle2, color: "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400" },
+          { label: "Upcoming", value: stats.upcoming, icon: Clock, color: "bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400" },
+          { label: "Cancelled", value: stats.cancelled, icon: XCircle, color: "bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400" }
         ].map((stat, i) => (
           <motion.div
             key={stat.label}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: i * 0.05 }}
-            className="rounded-xl border bg-card p-4 shadow-sm"
+            transition={{ duration: 0.35, delay: i * 0.05 }}
+            className="group rounded-2xl border bg-card p-4 shadow-sm transition-all duration-300 hover:shadow-md hover:border-border/80"
           >
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mb-3">
               <p className="text-sm font-medium text-muted-foreground">{stat.label}</p>
-              <div className="rounded-md bg-slate-100 dark:bg-slate-800 p-2 text-slate-500">
+              <div className={`rounded-xl p-2 ${stat.color} transition-transform duration-300 group-hover:scale-110`}>
                 <stat.icon className="h-4 w-4" />
               </div>
             </div>
-            <div className="mt-2">
-              <h2 className="text-2xl font-semibold tracking-tight">{stat.value}</h2>
-            </div>
+            <h2 className="text-3xl font-bold tracking-tight">{stat.value}</h2>
           </motion.div>
         ))}
       </div>
@@ -248,9 +242,9 @@ function ReservationsClientContent({
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.2 }}
-        className="flex flex-col flex-1 min-h-0 rounded-xl border bg-card shadow-sm overflow-hidden"
+        className="flex flex-col flex-1 min-h-0 rounded-2xl border bg-card shadow-sm overflow-hidden"
       >
-        <div className="p-4 border-b bg-slate-50/50 dark:bg-slate-900/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
+        <div className="p-4 border-b border-border/40 bg-muted/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
           <div className="relative w-full sm:max-w-xs">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
@@ -258,14 +252,14 @@ function ReservationsClientContent({
               placeholder="Search guests or units..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full rounded-md border border-input bg-background py-2 pl-9 pr-4 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              className="w-full rounded-xl border border-border/60 bg-background py-2.5 pl-9 pr-4 text-sm shadow-sm transition-all placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary/40"
             />
           </div>
           <Select value={filterStatus} onValueChange={(val) => setFilterStatus(val || "ALL")}>
-            <SelectTrigger className="w-[180px] bg-background">
+            <SelectTrigger className="w-[180px] bg-background rounded-xl">
               <div className="flex items-center gap-2">
                 <Filter className="h-4 w-4" />
-                <span>Filter: {filterStatus === 'ALL' ? 'All Status' : filterStatus.replace('_', ' ')}</span>
+                <span>{filterStatus === 'ALL' ? 'All Status' : filterStatus.replace('_', ' ')}</span>
               </div>
             </SelectTrigger>
             <SelectContent>
@@ -278,84 +272,87 @@ function ReservationsClientContent({
           </Select>
         </div>
 
-        <div className="flex-1 overflow-auto">
-          <table className="w-full text-sm text-left">
-            <thead className="text-xs uppercase bg-slate-50 dark:bg-slate-900 text-slate-500 sticky top-0 z-10 border-b">
+        <div className="flex-1 overflow-x-auto">
+          <table className="w-full text-sm text-left whitespace-nowrap">
+            <thead className="text-[11px] uppercase bg-muted/30 text-muted-foreground sticky top-0 z-10 border-b border-border/40">
               <tr>
-                <th className="px-6 py-4 font-semibold">Guest</th>
-                <th className="px-6 py-4 font-semibold">Unit</th>
-                <th className="px-6 py-4 font-semibold">Stay Dates</th>
-                <th className="px-6 py-4 font-semibold">Status</th>
-                <th className="px-6 py-4 font-semibold">Amount</th>
-                <th className="px-6 py-4 font-semibold text-right">Actions</th>
+                <th className="px-6 py-3.5 font-semibold">Guest</th>
+                <th className="px-6 py-3.5 font-semibold">Unit</th>
+                <th className="px-6 py-3.5 font-semibold">Stay Dates</th>
+                <th className="px-6 py-3.5 font-semibold">Status</th>
+                <th className="px-6 py-3.5 font-semibold">Amount</th>
+                <th className="px-6 py-3.5 font-semibold text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y">
+            <tbody className="divide-y divide-border/40">
               {filteredData.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
-                    No reservations found matching your criteria.
+                  <td colSpan={6} className="px-6 py-16 text-center text-muted-foreground">
+                    <div className="flex flex-col items-center">
+                      <CalendarCheck className="h-10 w-10 mb-3 opacity-30" />
+                      <p className="text-sm font-medium">No reservations found matching your criteria.</p>
+                    </div>
                   </td>
                 </tr>
               ) : (
                 filteredData.map((res: any) => (
-                  <tr key={res.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
-                    <td className="px-6 py-4">
+                  <tr key={res.id} className="hover:bg-muted/30 transition-colors duration-150">
+                    <td className="px-6 py-3.5">
                       <div className="flex items-center gap-3">
-                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-xs">
+                        <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-violet-500/15 to-indigo-500/15 flex items-center justify-center text-violet-600 dark:text-violet-400 font-bold text-sm">
                           {res.guest.name.charAt(0)}
                         </div>
                         <div>
-                          <div className="font-medium text-slate-900 dark:text-slate-100">{res.guest.name}</div>
+                          <div className="font-semibold text-foreground">{res.guest.name}</div>
                           <div className="text-xs text-muted-foreground">{res.guest.email || res.guest.phone}</div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="font-medium">{res.unit?.name || 'Unassigned'}</div>
+                    <td className="px-6 py-3.5">
+                      <div className="font-semibold">{res.unit?.name || 'Unassigned'}</div>
                       <div className="text-xs text-muted-foreground">{res.unit?.type || '-'}</div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div>{format(new Date(res.checkIn), "MMM d, yyyy")}</div>
+                    <td className="px-6 py-3.5">
+                      <div className="font-medium">{format(new Date(res.checkIn), "MMM d, yyyy")}</div>
                       <div className="text-xs text-muted-foreground">to {format(new Date(res.checkOut), "MMM d, yyyy")}</div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-3.5">
                       {getStatusBadge(res.status)}
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="font-medium">${res.totalAmount.toFixed(2)}</div>
-                      <div className="text-[10px] text-muted-foreground uppercase">{res.source}</div>
+                    <td className="px-6 py-3.5">
+                      <div className="font-semibold">${res.totalAmount.toFixed(2)}</div>
+                      <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">{res.source}</div>
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-6 py-3.5 text-right">
                       <DropdownMenu>
-                        <DropdownMenuTrigger className="inline-flex items-center justify-center h-8 w-8 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors">
+                        <DropdownMenuTrigger className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-muted text-muted-foreground transition-colors">
                           {loadingId === res.id 
                             ? <Loader2 className="h-4 w-4 animate-spin" />
                             : <MoreHorizontal className="h-4 w-4" />}
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
+                        <DropdownMenuContent align="end" className="w-44">
                           <DropdownMenuItem render={<Link href={`/guests/${res.guest.id}`} />}>
                             View Details
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           {res.status === 'ARRIVING' && (
                             <DropdownMenuItem render={<div onClick={() => handleStatusChange(res.id, 'CHECKED_IN', 'Checked In')} />}>
-                              ✓ Check In Guest
+                              Check In Guest
                             </DropdownMenuItem>
                           )}
                           {res.status === 'CONFIRMED' && (
                             <DropdownMenuItem render={<div onClick={() => handleStatusChange(res.id, 'CHECKED_IN', 'Checked In')} />}>
-                              ✓ Check In Guest
+                              Check In Guest
                             </DropdownMenuItem>
                           )}
                           {res.status === 'CHECKED_IN' && (
                             <DropdownMenuItem render={<div onClick={() => handleStatusChange(res.id, 'CHECKED_OUT', 'Checked Out')} />}>
-                              ✓ Check Out Guest
+                              Check Out Guest
                             </DropdownMenuItem>
                           )}
                           {res.status === 'PENDING' && (
                             <DropdownMenuItem render={<div onClick={() => handleStatusChange(res.id, 'CONFIRMED', 'Confirmed')} />}>
-                              ✓ Confirm Booking
+                              Confirm Booking
                             </DropdownMenuItem>
                           )}
                           <DropdownMenuSeparator />
@@ -363,7 +360,7 @@ function ReservationsClientContent({
                             className="text-destructive focus:text-destructive"
                             render={<div onClick={() => handleStatusChange(res.id, 'CANCELLED', 'Cancelled')} />}
                           >
-                            ✕ Cancel Reservation
+                            Cancel Reservation
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>

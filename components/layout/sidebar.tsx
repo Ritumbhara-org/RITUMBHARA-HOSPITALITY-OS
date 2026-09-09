@@ -1,6 +1,7 @@
 "use client"
 
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
 import {
   LayoutDashboard,
@@ -9,7 +10,8 @@ import {
   BedDouble,
   Wrench,
   MessageSquare,
-  Globe
+  Globe,
+  Sparkles
 } from 'lucide-react'
 
 const navigation = [
@@ -23,43 +25,73 @@ const navigation = [
 ]
 
 export function Sidebar() {
+  const pathname = usePathname()
+
   return (
-    <div className="flex h-full w-64 flex-col border-r border-slate-800 bg-slate-950 px-3 py-4 text-slate-300">
-      <div className="mb-8 px-4">
-        <h1 className="text-xl font-bold tracking-tight text-white">
-          Hospitality OS
-        </h1>
-        <p className="text-xs text-slate-500 mt-1">by Ritumbhara</p>
+    <div className="flex h-full w-64 flex-col bg-gradient-to-b from-[#0f0d1a] via-[#13112a] to-[#0d0b1e] border-r border-white/[0.06]">
+      <div className="px-5 pt-6 pb-8">
+        <div className="flex items-center gap-3">
+          <div className="relative flex h-9 w-9 items-center justify-center rounded-xl overflow-hidden shadow-lg shadow-violet-500/25">
+            <img src="/logo.jpg" alt="Ritumbhara Logo" className="w-full h-full object-cover" />
+          </div>
+          <div>
+            <h1 className="text-base font-bold tracking-tight text-white">
+              Hospitality OS
+            </h1>
+            <p className="text-[10px] text-slate-500 font-medium tracking-wide uppercase">by Ritumbhara</p>
+          </div>
+        </div>
       </div>
-      <nav className="flex-1 space-y-1">
-        {navigation.map((item, index) => (
-          <Link
-            key={item.name}
-            href={item.href}
-            className="group flex items-center rounded-lg px-3 py-2 text-sm font-medium hover:bg-slate-800 hover:text-white text-slate-400 transition-colors duration-150"
-          >
-            <motion.div
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.05, duration: 0.2 }}
-              whileTap={{ scale: 0.95 }}
-              className="mr-3 flex items-center justify-center rounded-md text-slate-400 group-hover:text-white transition-colors duration-150"
+      <nav className="flex-1 space-y-0.5 px-3">
+        {navigation.map((item, index) => {
+          const isActive = pathname === item.href || pathname?.startsWith(item.href + '/')
+          return (
+            <Link
+              key={item.name}
+              href={item.href}
+              className={`group relative flex items-center rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
+                isActive
+                  ? 'bg-white/[0.1] text-white shadow-sm'
+                  : 'text-slate-400 hover:text-white hover:bg-white/[0.05]'
+              }`}
             >
-              <item.icon
-                className="h-5 w-5 flex-shrink-0"
-                aria-hidden="true"
-              />
-            </motion.div>
-            <motion.span
-               initial={{ opacity: 0 }}
-               animate={{ opacity: 1 }}
-               transition={{ delay: index * 0.05 + 0.1, duration: 0.2 }}
-            >
-              {item.name}
-            </motion.span>
-          </Link>
-        ))}
+              {isActive && (
+                <motion.div
+                  layoutId="sidebar-active"
+                  className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-[3px] rounded-full bg-gradient-to-b from-violet-400 to-indigo-500"
+                  transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                />
+              )}
+              <motion.div
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: index * 0.04, duration: 0.25 }}
+                className={`mr-3 flex items-center justify-center transition-colors duration-200 ${
+                  isActive ? 'text-violet-400' : 'text-slate-500 group-hover:text-slate-300'
+                }`}
+              >
+                <item.icon className="h-[18px] w-[18px] flex-shrink-0" aria-hidden="true" />
+              </motion.div>
+              <motion.span
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: index * 0.04 + 0.08, duration: 0.25 }}
+              >
+                {item.name}
+              </motion.span>
+              {item.name === 'WhatsApp' && (
+                <span className="ml-auto rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">
+                  Soon
+                </span>
+              )}
+            </Link>
+          )
+        })}
       </nav>
+      <div className="mx-3 mb-4 rounded-xl bg-gradient-to-br from-violet-500/10 to-indigo-500/10 border border-violet-500/10 p-4">
+        <p className="text-[11px] font-medium text-slate-300">Need help?</p>
+        <p className="text-[10px] text-slate-500 mt-1">Contact support for assistance with your account.</p>
+      </div>
     </div>
   )
 }

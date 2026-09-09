@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { motion } from "framer-motion"
-import { Search, Filter, Wrench, AlertCircle, Clock, CheckCircle2, MessageSquare, GripVertical, Plus } from "lucide-react"
+import { Search, Filter, Wrench, AlertCircle, Clock, CheckCircle2, GripVertical, Plus } from "lucide-react"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -28,7 +28,7 @@ export function OperationsClient({
   units: { id: string, name: string }[]
 }) {
   return (
-    <Suspense fallback={<div>Loading operations...</div>}>
+    <Suspense fallback={<div className="flex items-center justify-center h-64 text-muted-foreground">Loading operations...</div>}>
       <OperationsClientContent initialData={initialData} stats={stats} units={units} />
     </Suspense>
   )
@@ -52,7 +52,6 @@ function OperationsClientContent({
   const searchParams = useSearchParams()
   const router = useRouter()
   
-  // Pre-fill fields if provided in URL
   const [defaultGuestId, setDefaultGuestId] = useState<string | undefined>()
 
   useEffect(() => {
@@ -60,8 +59,6 @@ function OperationsClientContent({
       setIsDialogOpen(true)
       const guestId = searchParams.get("guestId")
       if (guestId) setDefaultGuestId(guestId)
-      
-      // Clear URL params
       router.replace("/operations")
     }
   }, [searchParams, router])
@@ -70,7 +67,6 @@ function OperationsClientContent({
     const matchesSearch = ticket.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       ticket.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       ticket.unit?.name.toLowerCase().includes(searchTerm.toLowerCase())
-      
     if (filterCategory === "ALL") return matchesSearch;
     return matchesSearch && ticket.category === filterCategory;
   })
@@ -81,36 +77,36 @@ function OperationsClientContent({
 
   const getPriorityColor = (priority: string) => {
     switch(priority) {
-      case 'CRITICAL': return 'text-destructive bg-destructive/10'
-      case 'HIGH': return 'text-orange-600 bg-orange-100 dark:text-orange-400 dark:bg-orange-900/30'
-      case 'MEDIUM': return 'text-amber-600 bg-amber-100 dark:text-amber-400 dark:bg-amber-900/30'
-      default: return 'text-blue-600 bg-blue-100 dark:text-blue-400 dark:bg-blue-900/30'
+      case 'CRITICAL': return 'text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-500/10'
+      case 'HIGH': return 'text-orange-600 bg-orange-50 dark:text-orange-400 dark:bg-orange-500/10'
+      case 'MEDIUM': return 'text-amber-600 bg-amber-50 dark:text-amber-400 dark:bg-amber-500/10'
+      default: return 'text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-500/10'
     }
   }
 
   const renderTicketCard = (ticket: any) => (
-    <div key={ticket.id} className="p-3 mb-3 bg-card border rounded-lg shadow-sm cursor-pointer hover:shadow-md transition-shadow group">
+    <div key={ticket.id} className="p-3.5 mb-2.5 bg-card border border-border/60 rounded-xl shadow-sm cursor-pointer hover:shadow-md hover:border-border transition-all duration-200 group">
       <div className="flex justify-between items-start mb-2">
-        <span className={`px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-sm ${getPriorityColor(ticket.priority)}`}>
+        <span className={`px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-lg ${getPriorityColor(ticket.priority)}`}>
           {ticket.priority}
         </span>
-        <span className="text-[10px] text-muted-foreground">{ticket.id}</span>
+        <span className="text-[10px] text-muted-foreground font-mono">#{ticket.id.substring(ticket.id.length - 4)}</span>
       </div>
       <h4 className="font-semibold text-sm mb-1 line-clamp-1">{ticket.title || ticket.category}</h4>
-      <p className="text-xs text-muted-foreground line-clamp-2 mb-3">{ticket.description}</p>
+      <p className="text-xs text-muted-foreground line-clamp-2 mb-3 leading-relaxed">{ticket.description}</p>
       
-      <div className="flex items-center justify-between mt-auto pt-2 border-t text-xs">
-        <div className="flex items-center gap-1 font-medium text-slate-700 dark:text-slate-300">
+      <div className="flex items-center justify-between mt-auto pt-2.5 border-t border-border/40 text-xs">
+        <div className="flex items-center gap-1.5 font-medium text-muted-foreground">
           <Wrench className="h-3 w-3" />
           {ticket.unit?.name || 'Property'}
         </div>
         <div className="flex -space-x-1">
           {ticket.assignedTo ? (
-            <div className="h-5 w-5 rounded-full bg-primary/20 flex items-center justify-center text-[10px] font-bold border border-background">
+            <div className="h-6 w-6 rounded-full bg-gradient-to-br from-violet-500/20 to-indigo-500/20 flex items-center justify-center text-[10px] font-bold border-2 border-background text-violet-600 dark:text-violet-400">
               {ticket.assignedTo.name.charAt(0)}
             </div>
           ) : (
-            <div className="text-[10px] text-muted-foreground italic">Unassigned</div>
+            <span className="text-[10px] text-muted-foreground italic">Unassigned</span>
           )}
         </div>
       </div>
@@ -121,10 +117,8 @@ function OperationsClientContent({
     e.preventDefault()
     setIsSubmitting(true)
     const formData = new FormData(e.currentTarget)
-    
     const result = await createTicket(formData)
     setIsSubmitting(false)
-    
     if (result.success) {
       setIsDialogOpen(false)
     } else {
@@ -133,36 +127,34 @@ function OperationsClientContent({
   }
 
   return (
-    <div className="flex flex-col flex-1 h-full w-full gap-6 pb-4 min-h-0">
+    <div className="flex flex-col flex-1 h-full w-full gap-5 pb-4 min-h-0">
       <div className="flex items-center justify-between shrink-0">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Operations Hub</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Operations Hub</h1>
           <p className="text-sm text-muted-foreground mt-1">Manage housekeeping, maintenance, and guest requests.</p>
         </div>
         
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90">
-            <Plus className="mr-2 h-4 w-4" />
+          <DialogTrigger className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm shadow-primary/20 transition-all duration-200 hover:bg-primary/90 hover:shadow-md hover:shadow-primary/25 active:scale-[0.98]">
+            <Plus className="h-4 w-4" />
             Create Ticket
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
+          <DialogContent className="sm:max-w-[425px] rounded-2xl">
             <form onSubmit={handleSubmit}>
               <DialogHeader>
-                <DialogTitle>Create Ticket</DialogTitle>
-                <DialogDescription>
-                  Add a new maintenance or housekeeping issue to the board.
-                </DialogDescription>
+                <DialogTitle className="text-lg">Create Ticket</DialogTitle>
+                <DialogDescription>Add a new maintenance or housekeeping issue to the board.</DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <div className="grid gap-2">
                   <Label htmlFor="title">Title</Label>
-                  <Input id="title" name="title" placeholder="e.g., AC not working" required />
+                  <Input id="title" name="title" placeholder="e.g., AC not working" required className="rounded-xl" />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="unitId">Location / Unit</Label>
                     <Select name="unitId" defaultValue="property">
-                      <SelectTrigger>
+                      <SelectTrigger className="rounded-xl">
                         <SelectValue placeholder="Select Location" />
                       </SelectTrigger>
                       <SelectContent>
@@ -176,7 +168,7 @@ function OperationsClientContent({
                   <div className="grid gap-2">
                     <Label htmlFor="category">Category</Label>
                     <Select name="category" defaultValue="MAINTENANCE">
-                      <SelectTrigger>
+                      <SelectTrigger className="rounded-xl">
                         <SelectValue placeholder="Category" />
                       </SelectTrigger>
                       <SelectContent>
@@ -190,7 +182,7 @@ function OperationsClientContent({
                   <div className="grid gap-2">
                     <Label htmlFor="priority">Priority</Label>
                     <Select name="priority" defaultValue="MEDIUM">
-                      <SelectTrigger>
+                      <SelectTrigger className="rounded-xl">
                         <SelectValue placeholder="Priority" />
                       </SelectTrigger>
                       <SelectContent>
@@ -208,7 +200,7 @@ function OperationsClientContent({
                     id="description" 
                     name="description" 
                     placeholder="Details about the issue..." 
-                    className="min-h-[100px]"
+                    className="min-h-[100px] rounded-xl"
                     required
                   />
                 </div>
@@ -217,7 +209,7 @@ function OperationsClientContent({
                 <button 
                   type="submit" 
                   disabled={isSubmitting}
-                  className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90 disabled:opacity-50"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm shadow-primary/20 transition-all duration-200 hover:bg-primary/90 hover:shadow-md disabled:opacity-50"
                 >
                   {isSubmitting ? "Creating..." : "Create Ticket"}
                 </button>
@@ -229,27 +221,25 @@ function OperationsClientContent({
 
       <div className="grid shrink-0 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
-          { label: "Total Tickets", value: stats.total, icon: Wrench },
-          { label: "Open Issues", value: stats.open, icon: AlertCircle },
-          { label: "In Progress", value: stats.inProgress, icon: Clock },
-          { label: "Resolved", value: stats.resolved, icon: CheckCircle2 }
+          { label: "Total Tickets", value: stats.total, icon: Wrench, color: "bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-400" },
+          { label: "Open Issues", value: stats.open, icon: AlertCircle, color: "bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400" },
+          { label: "In Progress", value: stats.inProgress, icon: Clock, color: "bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400" },
+          { label: "Resolved", value: stats.resolved, icon: CheckCircle2, color: "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400" }
         ].map((stat, i) => (
           <motion.div
             key={stat.label}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: i * 0.05 }}
-            className="rounded-xl border bg-card p-4 shadow-sm"
+            transition={{ duration: 0.35, delay: i * 0.05 }}
+            className="group rounded-2xl border bg-card p-4 shadow-sm transition-all duration-300 hover:shadow-md hover:border-border/80"
           >
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mb-3">
               <p className="text-sm font-medium text-muted-foreground">{stat.label}</p>
-              <div className="rounded-md bg-slate-100 dark:bg-slate-800 p-2 text-slate-500">
+              <div className={`rounded-xl p-2 ${stat.color} transition-transform duration-300 group-hover:scale-110`}>
                 <stat.icon className="h-4 w-4" />
               </div>
             </div>
-            <div className="mt-2 flex items-baseline gap-2">
-              <h2 className="text-2xl font-semibold tracking-tight">{stat.value}</h2>
-            </div>
+            <h2 className="text-3xl font-bold tracking-tight">{stat.value}</h2>
           </motion.div>
         ))}
       </div>
@@ -258,9 +248,9 @@ function OperationsClientContent({
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.2 }}
-        className="flex flex-col flex-1 min-h-0 rounded-xl border bg-card shadow-sm overflow-hidden"
+        className="flex flex-col flex-1 min-h-0 rounded-2xl border bg-card shadow-sm overflow-hidden"
       >
-        <div className="p-4 border-b bg-slate-50/50 dark:bg-slate-900/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
+        <div className="p-4 border-b border-border/40 bg-muted/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
           <div className="relative w-full sm:max-w-xs">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
@@ -268,21 +258,21 @@ function OperationsClientContent({
               placeholder="Search tickets..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full rounded-md border border-input bg-background py-2 pl-9 pr-4 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              className="w-full rounded-xl border border-border/60 bg-background py-2.5 pl-9 pr-4 text-sm shadow-sm transition-all placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary/40"
             />
           </div>
           <div className="flex items-center gap-2">
             <button 
               onClick={() => setViewMode('board')}
-              className={`p-1.5 rounded-sm transition-colors border shadow-sm ${viewMode === 'board' ? 'bg-muted text-foreground' : 'bg-background text-muted-foreground hover:text-foreground'}`}
+              className={`p-2 rounded-xl transition-all duration-200 border shadow-sm ${viewMode === 'board' ? 'bg-muted text-foreground' : 'bg-background text-muted-foreground hover:text-foreground border-border/60'}`}
             >
               <GripVertical className="h-4 w-4" />
             </button>
             <Select value={filterCategory} onValueChange={(val) => setFilterCategory(val || "ALL")}>
-              <SelectTrigger className="w-[180px] bg-background">
+              <SelectTrigger className="w-[180px] bg-background rounded-xl">
                 <div className="flex items-center gap-2">
                   <Filter className="h-4 w-4" />
-                  <span>Filter: {filterCategory === 'ALL' ? 'All Categories' : filterCategory.replace('_', ' ')}</span>
+                  <span>{filterCategory === 'ALL' ? 'All Categories' : filterCategory.replace('_', ' ')}</span>
                 </div>
               </SelectTrigger>
               <SelectContent>
@@ -297,35 +287,50 @@ function OperationsClientContent({
           </div>
         </div>
 
-        <div className="flex-1 overflow-auto bg-slate-50/30 dark:bg-slate-900/20 p-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-full min-w-[768px]">
-            {/* TODO Column */}
-            <div className="flex flex-col h-full rounded-lg bg-slate-100/50 dark:bg-slate-800/20 border border-slate-200/50 dark:border-slate-700/30">
-              <div className="p-3 border-b flex items-center justify-between sticky top-0 bg-inherit z-10 backdrop-blur-sm rounded-t-lg">
-                <h3 className="font-semibold text-sm">To Do <span className="ml-2 text-xs font-normal text-muted-foreground bg-background px-2 py-0.5 rounded-full border">{openTickets.length}</span></h3>
+        <div className="flex-1 overflow-auto bg-muted/10 p-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 h-full min-w-[768px]">
+            <div className="flex flex-col h-full rounded-2xl bg-muted/30 border border-border/40">
+              <div className="p-3.5 border-b border-border/40 flex items-center justify-between sticky top-0 bg-inherit z-10 backdrop-blur-sm rounded-t-2xl">
+                <div className="flex items-center gap-2">
+                  <div className="h-2.5 w-2.5 rounded-full bg-amber-500" />
+                  <h3 className="font-semibold text-sm">To Do</h3>
+                </div>
+                <span className="text-xs font-semibold text-muted-foreground bg-background/80 px-2.5 py-1 rounded-lg border border-border/40">{openTickets.length}</span>
               </div>
-              <div className="p-2 flex-1 overflow-y-auto">
-                {openTickets.map(renderTicketCard)}
-              </div>
-            </div>
-
-            {/* IN PROGRESS Column */}
-            <div className="flex flex-col h-full rounded-lg bg-slate-100/50 dark:bg-slate-800/20 border border-slate-200/50 dark:border-slate-700/30">
-              <div className="p-3 border-b flex items-center justify-between sticky top-0 bg-inherit z-10 backdrop-blur-sm rounded-t-lg">
-                <h3 className="font-semibold text-sm">In Progress <span className="ml-2 text-xs font-normal text-muted-foreground bg-background px-2 py-0.5 rounded-full border">{inProgressTickets.length}</span></h3>
-              </div>
-              <div className="p-2 flex-1 overflow-y-auto">
-                {inProgressTickets.map(renderTicketCard)}
+              <div className="p-2.5 flex-1 overflow-y-auto">
+                {openTickets.length === 0 ? (
+                  <div className="flex items-center justify-center py-8 text-muted-foreground text-xs">No open tickets</div>
+                ) : openTickets.map(renderTicketCard)}
               </div>
             </div>
 
-            {/* RESOLVED Column */}
-            <div className="flex flex-col h-full rounded-lg bg-slate-100/50 dark:bg-slate-800/20 border border-slate-200/50 dark:border-slate-700/30">
-              <div className="p-3 border-b flex items-center justify-between sticky top-0 bg-inherit z-10 backdrop-blur-sm rounded-t-lg">
-                <h3 className="font-semibold text-sm">Resolved <span className="ml-2 text-xs font-normal text-muted-foreground bg-background px-2 py-0.5 rounded-full border">{resolvedTickets.length}</span></h3>
+            <div className="flex flex-col h-full rounded-2xl bg-muted/30 border border-border/40">
+              <div className="p-3.5 border-b border-border/40 flex items-center justify-between sticky top-0 bg-inherit z-10 backdrop-blur-sm rounded-t-2xl">
+                <div className="flex items-center gap-2">
+                  <div className="h-2.5 w-2.5 rounded-full bg-blue-500" />
+                  <h3 className="font-semibold text-sm">In Progress</h3>
+                </div>
+                <span className="text-xs font-semibold text-muted-foreground bg-background/80 px-2.5 py-1 rounded-lg border border-border/40">{inProgressTickets.length}</span>
               </div>
-              <div className="p-2 flex-1 overflow-y-auto opacity-70">
-                {resolvedTickets.map(renderTicketCard)}
+              <div className="p-2.5 flex-1 overflow-y-auto">
+                {inProgressTickets.length === 0 ? (
+                  <div className="flex items-center justify-center py-8 text-muted-foreground text-xs">No tickets in progress</div>
+                ) : inProgressTickets.map(renderTicketCard)}
+              </div>
+            </div>
+
+            <div className="flex flex-col h-full rounded-2xl bg-muted/30 border border-border/40">
+              <div className="p-3.5 border-b border-border/40 flex items-center justify-between sticky top-0 bg-inherit z-10 backdrop-blur-sm rounded-t-2xl">
+                <div className="flex items-center gap-2">
+                  <div className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
+                  <h3 className="font-semibold text-sm">Resolved</h3>
+                </div>
+                <span className="text-xs font-semibold text-muted-foreground bg-background/80 px-2.5 py-1 rounded-lg border border-border/40">{resolvedTickets.length}</span>
+              </div>
+              <div className="p-2.5 flex-1 overflow-y-auto opacity-75">
+                {resolvedTickets.length === 0 ? (
+                  <div className="flex items-center justify-center py-8 text-muted-foreground text-xs">No resolved tickets</div>
+                ) : resolvedTickets.map(renderTicketCard)}
               </div>
             </div>
           </div>
