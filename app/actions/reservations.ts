@@ -36,6 +36,25 @@ export async function createReservation(formData: FormData) {
     const defaultProperty = await prisma.property.findFirst()
     if (!defaultProperty) throw new Error("No property found.")
 
+    const checkInDate = new Date(checkIn);
+    const checkOutDate = new Date(checkOut);
+
+    // Prevent double booking for the same unit
+    const overlapping = await prisma.reservation.findFirst({
+      where: {
+        unitId,
+        status: {
+          notIn: ["CANCELLED"]
+        },
+        checkIn: { lt: checkOutDate },
+        checkOut: { gt: checkInDate }
+      }
+    });
+
+    if (overlapping) {
+      throw new Error("This unit is already booked for the selected dates.");
+    }
+
     await prisma.reservation.create({
       data: {
         guestId,
