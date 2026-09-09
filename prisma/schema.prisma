@@ -302,3 +302,21 @@ model Membership {
 
   guest Guest @relation(fields: [guestId], references: [id])
 }
+
+enum SyncStatus {
+  SUCCESS
+  PARTIAL
+  FAILED
+}
+
+model SyncLog {
+  id              String      @id @default(cuid())
+  startedAt       DateTime    @default(now())
+  completedAt     DateTime?
+  status          SyncStatus
+  recordsProcessed Int        @default(0)
+  recordsUpdated   Int        @default(0)
+  recordsCreated   Int        @default(0)
+  error           String?
+  source          String      @default("INTELLISTAY")
+}

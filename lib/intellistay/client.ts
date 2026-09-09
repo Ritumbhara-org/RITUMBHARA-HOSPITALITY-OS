@@ -101,10 +101,36 @@ export class IntellistayClient {
 
     const url = endpoint.startsWith('http') ? endpoint : `${this.baseUrl}${endpoint}`;
 
-    return fetch(url, {
-      ...options,
-      headers
-    });
+    let retries = 3;
+    let lastError: Error | null = null;
+
+    while (retries > 0) {
+      try {
+        const response = await fetch(url, {
+          ...options,
+          headers
+        });
+
+        // If it's a 5xx server error, we should retry. For 4xx, we return immediately.
+        if (response.ok || (response.status >= 400 && response.status < 500)) {
+          return response;
+        }
+
+        console.warn(`Intellistay API responded with ${response.status}. Retries left: ${retries - 1}`);
+      } catch (error: any) {
+        console.warn(`Intellistay API Network Error: ${error.message}. Retries left: ${retries - 1}`);
+        lastError = error;
+      }
+
+      retries--;
+      if (retries > 0) {
+        // Exponential backoff: wait 1s, then 2s
+        await new Promise(resolve => setTimeout(resolve, (4 - retries) * 1000));
+      }
+    }
+
+    if (lastError) throw lastError;
+    throw new Error("Intellistay API failed after 3 retries.");
   }
 }
 

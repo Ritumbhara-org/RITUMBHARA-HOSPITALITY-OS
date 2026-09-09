@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma"
 import { intellistay } from "./client"
+import { eventBus } from "../events/bus"
 
 // Helper function to map Intellistay status IDs to our statuses
 function mapBookingStatus(statusId: number | string): string {
@@ -40,6 +41,19 @@ export async function syncBookings() {
   // Get fallback unit in case a booking has no rooms
   const defaultUnit = await prisma.unit.findFirst({ where: { propertyId: property.id }});
 
+  // Create initial SyncLog record
+  const syncLog = await prisma.syncLog.create({
+    data: {
+      status: "PARTIAL", // Start with partial, change to SUCCESS later
+      source: "INTELLISTAY"
+    }
+  });
+
+  let successCount = 0;
+  let newCount = 0;
+  let updateCount = 0;
+  let errorMessages: string[] = [];
+
   try {
     // 1. Fetch bookings from Intellistay
     // Using a POST for pagination, typical for such endpoints
@@ -62,10 +76,6 @@ export async function syncBookings() {
     // Intellistay pagination response wraps bookings in data.bookings
     const bookings = data?.data?.bookings || [];
     console.log(`Fetched ${bookings.length} bookings from Intellistay.`);
-
-    let successCount = 0;
-    let newCount = 0;
-    let updateCount = 0;
 
     // 2. Normalize and Upsert each booking
     for (const booking of bookings) {
@@ -145,7 +155,7 @@ export async function syncBookings() {
         });
 
         if (existingRes) {
-          await prisma.reservation.update({
+          const updatedRes = await prisma.reservation.update({
             where: { id: existingRes.id },
             data: {
               guestId: guest.id,
@@ -158,8 +168,22 @@ export async function syncBookings() {
             }
           });
           updateCount++;
+
+          // EVENT: Booking Updated / Checked In / Cancelled
+          if (existingRes.status !== updatedRes.status) {
+            if (updatedRes.status === 'CANCELLED') {
+              await eventBus.emit('BOOKING_CANCELLED', { reservationId: updatedRes.id, guestId: guest.id, propertyId: property.id, intellistayBookingId, status: updatedRes.status, checkIn: checkInDate, checkOut: checkOutDate });
+            } else if (updatedRes.status === 'CHECKED_IN') {
+              await eventBus.emit('GUEST_CHECKED_IN', { reservationId: updatedRes.id, guestId: guest.id, propertyId: property.id, intellistayBookingId, status: updatedRes.status, checkIn: checkInDate, checkOut: checkOutDate });
+            } else if (updatedRes.status === 'CHECKED_OUT') {
+              await eventBus.emit('GUEST_CHECKED_OUT', { reservationId: updatedRes.id, guestId: guest.id, propertyId: property.id, intellistayBookingId, status: updatedRes.status, checkIn: checkInDate, checkOut: checkOutDate });
+            } else {
+              await eventBus.emit('BOOKING_UPDATED', { reservationId: updatedRes.id, guestId: guest.id, propertyId: property.id, intellistayBookingId, status: updatedRes.status, checkIn: checkInDate, checkOut: checkOutDate });
+            }
+          }
+
         } else {
-          await prisma.reservation.create({
+          const newRes = await prisma.reservation.create({
             data: {
               intellistayReservationId: intellistayBookingId,
               propertyId: property.id,
@@ -174,19 +198,49 @@ export async function syncBookings() {
             }
           });
           newCount++;
+
+          // EVENT: New Booking Created
+          await eventBus.emit('BOOKING_CREATED', { reservationId: newRes.id, guestId: guest.id, propertyId: property.id, intellistayBookingId, status: newRes.status, checkIn: checkInDate, checkOut: checkOutDate });
         }
         
         successCount++;
       } catch (err: any) {
         console.error(`Error processing booking ${booking.bookingId}:`, err.message);
+        errorMessages.push(`Booking ${booking.bookingId}: ${err.message}`);
       }
     }
 
     console.log(`Sync Complete. Total Processed: ${successCount}. New: ${newCount}. Updated: ${updateCount}.`);
-    return { success: true, newCount, updateCount };
+
+    // Finalize SyncLog
+    await prisma.syncLog.update({
+      where: { id: syncLog.id },
+      data: {
+        completedAt: new Date(),
+        status: errorMessages.length > 0 ? "PARTIAL" : "SUCCESS",
+        recordsProcessed: bookings.length,
+        recordsUpdated: updateCount,
+        recordsCreated: newCount,
+        error: errorMessages.length > 0 ? errorMessages.join(" | ") : null
+      }
+    });
+
+    return { success: true, newCount, updateCount, logId: syncLog.id };
 
   } catch (error: any) {
     console.error("Fatal error during sync:", error);
+    
+    // Attempt to log fatal error if possible
+    try {
+      await prisma.syncLog.create({
+        data: {
+          status: "FAILED",
+          error: error.message,
+          source: "INTELLISTAY"
+        }
+      });
+    } catch (e) {}
+
     return { success: false, error: error.message };
   }
 }
