@@ -53,7 +53,7 @@ export function DashboardClient({ data }: { data: DashboardData }) {
   ]
 
   return (
-    <div className="flex flex-col flex-1 h-full w-full gap-5 pb-4 min-h-0">
+    <div className="flex flex-col flex-1 w-full gap-5 pb-4">
       {/* Hero Section */}
       <motion.div 
         initial={{ opacity: 0, y: 12 }}
