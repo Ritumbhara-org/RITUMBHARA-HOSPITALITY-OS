@@ -252,8 +252,9 @@ export function GuestsClient({
                 </tr>
               ) : (
                 filteredData.map((guest: any) => {
-                  const totalStays = guest.reservations.length
-                  const totalSpend = guest.reservations.reduce((sum: number, r: any) => sum + r.totalAmount, 0)
+                  const validReservations = guest.reservations.filter((r: any) => ["CHECKED_IN", "CHECKED_OUT"].includes(r.status))
+                  const totalStays = validReservations.length
+                  const totalSpend = validReservations.reduce((sum: number, r: any) => sum + r.totalAmount, 0)
                   
                   return (
                     <tr key={guest.id} className="hover:bg-muted/30 transition-colors duration-150">

@@ -27,7 +27,8 @@ export default async function DashboardPage() {
         checkIn: {
           gte: today,
           lt: tomorrow
-        }
+        },
+        status: { not: 'CANCELLED' }
       },
       include: {
         guest: true,
@@ -50,7 +51,8 @@ export default async function DashboardPage() {
         checkIn: {
           gte: new Date(today.getTime() - 24 * 60 * 60 * 1000),
           lt: today
-        }
+        },
+        status: { not: 'CANCELLED' }
       }
     }),
     prisma.reservation.findMany({
@@ -58,7 +60,8 @@ export default async function DashboardPage() {
         checkOut: {
           gte: today,
           lt: tomorrow
-        }
+        },
+        status: { not: 'CANCELLED' }
       },
       include: {
         guest: true,
