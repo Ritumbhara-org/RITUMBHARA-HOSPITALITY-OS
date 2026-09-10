@@ -91,6 +91,7 @@ export function Sidebar() {
       <div className="mx-3 mb-4 rounded-xl bg-gradient-to-br from-violet-500/10 to-indigo-500/10 border border-violet-500/10 p-4">
         <p className="text-[11px] font-medium text-slate-300">Need help?</p>
         <p className="text-[10px] text-slate-500 mt-1">Contact support for assistance with your account.</p>
+        <a href="mailto:ritumbharahotel@gmail.com" className="text-[10px] font-medium text-violet-400 hover:text-violet-300 mt-2 inline-block transition-colors">ritumbharahotel@gmail.com</a>
       </div>
     </div>
   )
