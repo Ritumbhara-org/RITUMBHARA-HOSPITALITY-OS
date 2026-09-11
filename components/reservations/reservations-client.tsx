@@ -215,7 +215,7 @@ function ReservationsClientContent({
 
       <div className="grid shrink-0 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
-          { label: "Total Bookings", value: stats.total, icon: Calendar, color: "bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-400" },
+          { label: "Total Bookings", value: stats.total, icon: Calendar, color: "bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400" },
           { label: "Active Stays", value: stats.active, icon: CheckCircle2, color: "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400" },
           { label: "Upcoming", value: stats.upcoming, icon: Clock, color: "bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400" },
           { label: "Cancelled", value: stats.cancelled, icon: XCircle, color: "bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400" }
@@ -299,7 +299,7 @@ function ReservationsClientContent({
                   <tr key={res.id} className="hover:bg-muted/30 transition-colors duration-150">
                     <td className="px-6 py-3.5">
                       <div className="flex items-center gap-3">
-                        <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-violet-500/15 to-indigo-500/15 flex items-center justify-center text-violet-600 dark:text-violet-400 font-bold text-sm">
+                        <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-rose-500/15 to-red-500/15 flex items-center justify-center text-rose-600 dark:text-rose-400 font-bold text-sm">
                           {res.guest.name.charAt(0)}
                         </div>
                         <div>

@@ -46,7 +46,7 @@ export function GuestsClient({
   const getTierBadge = (tier: string) => {
     switch(tier) {
       case 'DIAMOND':
-        return <span className="inline-flex items-center gap-1.5 rounded-full bg-violet-50 px-2.5 py-1 text-[11px] font-semibold text-violet-700 ring-1 ring-inset ring-violet-700/10 dark:bg-violet-500/10 dark:text-violet-400 dark:ring-violet-500/20"><Star className="h-3 w-3 fill-violet-700 dark:fill-violet-400" /> Diamond</span>
+        return <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-50 px-2.5 py-1 text-[11px] font-semibold text-rose-700 ring-1 ring-inset ring-rose-700/10 dark:bg-rose-500/10 dark:text-rose-400 dark:ring-rose-500/20"><Star className="h-3 w-3 fill-rose-700 dark:fill-rose-400" /> Diamond</span>
       case 'PLATINUM':
         return <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-700 ring-1 ring-inset ring-slate-600/15 dark:bg-slate-500/10 dark:text-slate-300 dark:ring-slate-500/20"><ShieldCheck className="h-3 w-3" /> Platinum</span>
       case 'GOLD':
@@ -170,7 +170,7 @@ export function GuestsClient({
 
       <div className="grid shrink-0 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
-          { label: "Total Guests", value: stats.total, icon: Users, color: "bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-400" },
+          { label: "Total Guests", value: stats.total, icon: Users, color: "bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400" },
           { label: "Active Members", value: stats.members, icon: CreditCard, color: "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400" },
           { label: "VIP Guests", value: stats.vips, icon: Star, color: "bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400" },
           { label: "In-House Guests", value: stats.activeStays, icon: ShieldCheck, color: "bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400" }
@@ -260,7 +260,7 @@ export function GuestsClient({
                     <tr key={guest.id} className="hover:bg-muted/30 transition-colors duration-150">
                       <td className="px-6 py-3.5">
                         <div className="flex items-center gap-3">
-                          <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-violet-500/15 to-indigo-500/15 flex items-center justify-center text-violet-600 dark:text-violet-400 font-bold text-sm shrink-0">
+                          <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-rose-500/15 to-red-500/15 flex items-center justify-center text-rose-600 dark:text-rose-400 font-bold text-sm shrink-0">
                             {guest.name.charAt(0)}
                           </div>
                           <div>

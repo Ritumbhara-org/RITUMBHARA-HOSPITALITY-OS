@@ -102,7 +102,7 @@ function OperationsClientContent({
         </div>
         <div className="flex -space-x-1">
           {ticket.assignedTo ? (
-            <div className="h-6 w-6 rounded-full bg-gradient-to-br from-violet-500/20 to-indigo-500/20 flex items-center justify-center text-[10px] font-bold border-2 border-background text-violet-600 dark:text-violet-400">
+            <div className="h-6 w-6 rounded-full bg-gradient-to-br from-rose-500/20 to-red-500/20 flex items-center justify-center text-[10px] font-bold border-2 border-background text-rose-600 dark:text-rose-400">
               {ticket.assignedTo.name.charAt(0)}
             </div>
           ) : (
@@ -221,7 +221,7 @@ function OperationsClientContent({
 
       <div className="grid shrink-0 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
-          { label: "Total Tickets", value: stats.total, icon: Wrench, color: "bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-400" },
+          { label: "Total Tickets", value: stats.total, icon: Wrench, color: "bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400" },
           { label: "Open Issues", value: stats.open, icon: AlertCircle, color: "bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400" },
           { label: "In Progress", value: stats.inProgress, icon: Clock, color: "bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400" },
           { label: "Resolved", value: stats.resolved, icon: CheckCircle2, color: "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400" }

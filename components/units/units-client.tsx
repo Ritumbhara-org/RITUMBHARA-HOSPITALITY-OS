@@ -168,7 +168,7 @@ export function UnitsClient({
 
       <div className="grid shrink-0 gap-4 sm:grid-cols-2 lg:grid-cols-5">
         {[
-          { label: "Total Units", value: stats.total, color: "bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-400" },
+          { label: "Total Units", value: stats.total, color: "bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400" },
           { label: "Available", value: stats.available, color: "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400" },
           { label: "Occupied", value: stats.occupied, color: "bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400" },
           { label: "Dirty", value: stats.dirty, color: "bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400" },

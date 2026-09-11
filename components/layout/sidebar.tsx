@@ -30,16 +30,11 @@ export function Sidebar() {
   return (
     <div className="flex h-full w-64 flex-col bg-gradient-to-b from-[#0f0d1a] via-[#13112a] to-[#0d0b1e] border-r border-white/[0.06]">
       <div className="px-5 pt-6 pb-8">
-        <div className="flex items-center gap-3">
-          <div className="relative flex h-9 w-9 items-center justify-center rounded-xl overflow-hidden shadow-lg shadow-violet-500/25">
-            <img src="/logo.jpg" alt="Ritumbhara Logo" className="w-full h-full object-cover" />
-          </div>
-          <div>
-            <h1 className="text-base font-bold tracking-tight text-white">
-              Hospitality OS
-            </h1>
-            <p className="text-[10px] text-slate-500 font-medium tracking-wide uppercase">by Ritumbhara</p>
-          </div>
+        <div className="flex flex-col items-start gap-1.5">
+          <img src="/logo.svg" alt="Ritumbhara Logo" className="h-9 w-auto object-contain drop-shadow-md" />
+          <h1 className="text-sm font-bold tracking-tight text-white/90 pl-1 mt-1">
+            HOSPITALITY OS
+          </h1>
         </div>
       </div>
       <nav className="flex-1 space-y-0.5 px-3">
@@ -58,7 +53,7 @@ export function Sidebar() {
               {isActive && (
                 <motion.div
                   layoutId="sidebar-active"
-                  className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-[3px] rounded-full bg-gradient-to-b from-violet-400 to-indigo-500"
+                  className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-[3px] rounded-full bg-gradient-to-b from-rose-400 to-red-500"
                   transition={{ type: "spring", stiffness: 380, damping: 30 }}
                 />
               )}
@@ -67,7 +62,7 @@ export function Sidebar() {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.04, duration: 0.25 }}
                 className={`mr-3 flex items-center justify-center transition-colors duration-200 ${
-                  isActive ? 'text-violet-400' : 'text-slate-500 group-hover:text-slate-300'
+                  isActive ? 'text-rose-400' : 'text-slate-500 group-hover:text-slate-300'
                 }`}
               >
                 <item.icon className="h-[18px] w-[18px] flex-shrink-0" aria-hidden="true" />
@@ -88,10 +83,10 @@ export function Sidebar() {
           )
         })}
       </nav>
-      <div className="mx-3 mb-4 rounded-xl bg-gradient-to-br from-violet-500/10 to-indigo-500/10 border border-violet-500/10 p-4">
+      <div className="mx-3 mb-4 rounded-xl bg-gradient-to-br from-rose-500/10 to-red-500/10 border border-rose-500/10 p-4">
         <p className="text-[11px] font-medium text-slate-300">Need help?</p>
         <p className="text-[10px] text-slate-500 mt-1">Contact support for assistance with your account.</p>
-        <a href="mailto:ritumbharahotel@gmail.com" className="text-[10px] font-medium text-violet-400 hover:text-violet-300 mt-2 inline-block transition-colors">ritumbharahotel@gmail.com</a>
+        <a href="mailto:ritumbharahotel@gmail.com" className="text-[10px] font-medium text-rose-400 hover:text-rose-300 mt-2 inline-block transition-colors">ritumbharahotel@gmail.com</a>
       </div>
     </div>
   )

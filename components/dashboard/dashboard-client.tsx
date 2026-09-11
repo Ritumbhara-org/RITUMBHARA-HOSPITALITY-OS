@@ -23,8 +23,8 @@ export function DashboardClient({ data }: { data: DashboardData }) {
       value: data.todayArrivals, 
       icon: CalendarCheck, 
       trend: data.arrivalsTrend,
-      color: "from-violet-500 to-indigo-600",
-      lightColor: "bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-400"
+      color: "from-rose-500 to-red-600",
+      lightColor: "bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400"
     },
     { 
       name: "Available Units", 
@@ -61,8 +61,8 @@ export function DashboardClient({ data }: { data: DashboardData }) {
         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
         className="relative shrink-0 overflow-hidden rounded-2xl bg-gradient-to-br from-[#1a1333] via-[#231a4a] to-[#1e1040] px-6 py-6 sm:px-8 border border-white/[0.08]"
       >
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-violet-500/10 via-transparent to-transparent" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-indigo-500/5 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-rose-500/10 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-red-500/5 via-transparent to-transparent" />
         <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between">
           <div>
             <motion.h1 
@@ -79,7 +79,7 @@ export function DashboardClient({ data }: { data: DashboardData }) {
               transition={{ duration: 0.5, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
               className="mt-1.5 text-sm text-slate-400"
             >
-              System is running smoothly. <span className="text-violet-300 font-medium">{data.arrivals.length} check-ins</span> arriving today.
+              System is running smoothly. <span className="text-rose-300 font-medium">{data.arrivals.length} check-ins</span> arriving today.
             </motion.p>
           </div>
           <motion.div 
@@ -133,8 +133,8 @@ export function DashboardClient({ data }: { data: DashboardData }) {
         <div className="col-span-4 flex flex-col rounded-2xl border bg-card p-5 shadow-sm min-h-0">
           <div className="flex items-center justify-between mb-4 shrink-0">
             <div className="flex items-center gap-2">
-              <div className="rounded-lg bg-violet-50 dark:bg-violet-500/10 p-1.5">
-                <Clock className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+              <div className="rounded-lg bg-rose-50 dark:bg-rose-500/10 p-1.5">
+                <Clock className="h-4 w-4 text-rose-600 dark:text-rose-400" />
               </div>
               <h3 className="text-sm font-semibold tracking-tight">Today&apos;s Arrivals</h3>
             </div>
@@ -150,7 +150,7 @@ export function DashboardClient({ data }: { data: DashboardData }) {
               data.arrivals.map((reservation: any) => (
                 <div key={reservation.id} className="flex items-center justify-between rounded-xl p-3 hover:bg-muted/50 transition-colors duration-200">
                   <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-violet-500/20 to-indigo-500/20 flex items-center justify-center text-violet-600 dark:text-violet-400 text-sm font-bold">
+                    <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-rose-500/20 to-red-500/20 flex items-center justify-center text-rose-600 dark:text-rose-400 text-sm font-bold">
                       {reservation.guest.name.charAt(0)}
                     </div>
                     <div>
