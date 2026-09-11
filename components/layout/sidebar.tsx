@@ -28,7 +28,7 @@ export function Sidebar() {
   const pathname = usePathname()
 
   return (
-    <div className="flex h-full w-64 flex-col bg-gradient-to-b from-[#0f0d1a] via-[#13112a] to-[#0d0b1e] border-r border-white/[0.06]">
+    <div className="flex h-full w-64 flex-col bg-gradient-to-b from-[#4a0518] via-[#5c0a20] to-[#3a0312] border-r border-white/[0.06]">
       <div className="px-5 pt-6 pb-8">
         <div className="flex flex-col items-start gap-1.5">
           <img src="/logo.svg" alt="Ritumbhara Logo" className="h-9 w-auto object-contain drop-shadow-md" />
