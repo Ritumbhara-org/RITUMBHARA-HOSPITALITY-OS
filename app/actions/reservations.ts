@@ -5,10 +5,28 @@ import { revalidatePath } from "next/cache"
 
 export async function updateReservationStatus(reservationId: string, status: string) {
   try {
-    await prisma.reservation.update({
+    const reservation = await prisma.reservation.update({
       where: { id: reservationId },
       data: { status }
     })
+
+    if (status === 'CHECKED_IN') {
+      await prisma.unit.update({
+        where: { id: reservation.unitId },
+        data: { status: 'OCCUPIED' }
+      })
+    } else if (status === 'CHECKED_OUT') {
+      await prisma.unit.update({
+        where: { id: reservation.unitId },
+        data: { status: 'DIRTY' }
+      })
+    } else if (status === 'CANCELLED') {
+      // Basic fallback to AVAILABLE if cancelled, though might need more robust checks
+      await prisma.unit.update({
+        where: { id: reservation.unitId },
+        data: { status: 'AVAILABLE' }
+      })
+    }
 
     revalidatePath("/reservations")
     revalidatePath("/dashboard")

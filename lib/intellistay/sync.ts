@@ -171,6 +171,16 @@ export async function syncBookings() {
 
           // EVENT: Booking Updated / Checked In / Cancelled
           if (existingRes.status !== updatedRes.status) {
+            
+            // Sync unit status automatically
+            if (updatedRes.status === 'CHECKED_IN') {
+              await prisma.unit.update({ where: { id: unitId }, data: { status: 'OCCUPIED' } }).catch(() => {})
+            } else if (updatedRes.status === 'CHECKED_OUT') {
+              await prisma.unit.update({ where: { id: unitId }, data: { status: 'DIRTY' } }).catch(() => {})
+            } else if (updatedRes.status === 'CANCELLED') {
+              await prisma.unit.update({ where: { id: unitId }, data: { status: 'AVAILABLE' } }).catch(() => {})
+            }
+
             if (updatedRes.status === 'CANCELLED') {
               await eventBus.emit('BOOKING_CANCELLED', { reservationId: updatedRes.id, guestId: guest.id, propertyId: property.id, intellistayBookingId, status: updatedRes.status, checkIn: checkInDate, checkOut: checkOutDate });
             } else if (updatedRes.status === 'CHECKED_IN') {

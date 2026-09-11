@@ -28,7 +28,7 @@ export default async function DashboardPage() {
           gte: today,
           lt: tomorrow
         },
-        status: { not: 'CANCELLED' }
+        status: 'CONFIRMED'
       },
       include: {
         guest: true,
@@ -61,7 +61,7 @@ export default async function DashboardPage() {
           gte: today,
           lt: tomorrow
         },
-        status: { not: 'CANCELLED' }
+        status: 'CHECKED_IN'
       },
       include: {
         guest: true,
