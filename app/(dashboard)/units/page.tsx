@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma"
 import { UnitsClient } from "@/components/units/units-client"
 
+export const dynamic = 'force-dynamic'
+
 export default async function UnitsPage() {
   const units = await prisma.unit.findMany({
     include: {

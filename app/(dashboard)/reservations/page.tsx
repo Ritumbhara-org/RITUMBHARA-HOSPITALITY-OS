@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma"
 import { ReservationsClient } from "@/components/reservations/reservations-client"
 
+export const dynamic = 'force-dynamic'
+
 export default async function ReservationsPage() {
   const reservations = await prisma.reservation.findMany({
     include: {

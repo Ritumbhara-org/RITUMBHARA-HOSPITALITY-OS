@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma"
 import { OperationsClient } from "@/components/operations/operations-client"
 
+export const dynamic = 'force-dynamic'
+
 export default async function OperationsPage() {
   const tickets = await prisma.ticket.findMany({
     include: {
