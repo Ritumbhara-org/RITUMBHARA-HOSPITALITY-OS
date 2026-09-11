@@ -59,7 +59,7 @@ export function DashboardClient({ data }: { data: DashboardData }) {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-        className="relative shrink-0 overflow-hidden rounded-2xl bg-gradient-to-br from-[#1a1333] via-[#231a4a] to-[#1e1040] px-6 py-6 sm:px-8 border border-white/[0.08]"
+        className="relative shrink-0 overflow-hidden rounded-2xl bg-gradient-to-br from-[#4a0518] via-[#5c0a20] to-[#3a0312] px-6 py-6 sm:px-8 border border-white/[0.08]"
       >
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-rose-500/10 via-transparent to-transparent" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-red-500/5 via-transparent to-transparent" />
