@@ -47,7 +47,7 @@ export function Sidebar() {
               className={`group relative flex items-center rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
                 isActive
                   ? 'bg-white/[0.1] text-white shadow-sm'
-                  : 'text-slate-400 hover:text-white hover:bg-white/[0.05]'
+                  : 'text-rose-100/70 hover:text-white hover:bg-white/[0.05]'
               }`}
             >
               {isActive && (
@@ -62,7 +62,7 @@ export function Sidebar() {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.04, duration: 0.25 }}
                 className={`mr-3 flex items-center justify-center transition-colors duration-200 ${
-                  isActive ? 'text-rose-400' : 'text-slate-500 group-hover:text-slate-300'
+                  isActive ? 'text-rose-300' : 'text-rose-200/50 group-hover:text-rose-100/90'
                 }`}
               >
                 <item.icon className="h-[18px] w-[18px] flex-shrink-0" aria-hidden="true" />
@@ -84,9 +84,9 @@ export function Sidebar() {
         })}
       </nav>
       <div className="mx-3 mb-4 rounded-xl bg-gradient-to-br from-rose-500/10 to-red-500/10 border border-rose-500/10 p-4">
-        <p className="text-[11px] font-medium text-slate-300">Need help?</p>
-        <p className="text-[10px] text-slate-500 mt-1">Contact support for assistance with your account.</p>
-        <a href="mailto:ritumbharahotel@gmail.com" className="text-[10px] font-medium text-rose-400 hover:text-rose-300 mt-2 inline-block transition-colors">ritumbharahotel@gmail.com</a>
+        <p className="text-[11px] font-medium text-rose-100">Need help?</p>
+        <p className="text-[10px] text-rose-200/60 mt-1">Contact support for assistance with your account.</p>
+        <a href="mailto:ritumbharahotel@gmail.com" className="text-[10px] font-medium text-white/80 hover:text-white mt-2 inline-block transition-colors">ritumbharahotel@gmail.com</a>
       </div>
     </div>
   )

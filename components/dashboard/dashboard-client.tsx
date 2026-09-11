@@ -77,9 +77,9 @@ export function DashboardClient({ data }: { data: DashboardData }) {
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
-              className="mt-1.5 text-sm text-slate-400"
+              className="mt-1.5 text-sm text-rose-100/70"
             >
-              System is running smoothly. <span className="text-rose-300 font-medium">{data.arrivals.length} check-ins</span> arriving today.
+              System is running smoothly. <span className="text-white font-medium">{data.arrivals.length} check-ins</span> arriving today.
             </motion.p>
           </div>
           <motion.div 
@@ -91,7 +91,7 @@ export function DashboardClient({ data }: { data: DashboardData }) {
              <p suppressHydrationWarning className="text-sm font-semibold text-white/90">
                {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
              </p>
-             <p className="text-xs text-slate-500 mt-0.5">Wonder Megacity</p>
+             <p className="text-xs text-rose-200/50 mt-0.5">Wonder Megacity</p>
           </motion.div>
         </div>
       </motion.div>
