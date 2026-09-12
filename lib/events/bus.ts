@@ -40,3 +40,7 @@ class EventBus {
 }
 
 export const eventBus = new EventBus();
+
+// Initialize listeners
+import { initWhatsAppListeners } from '../whatsapp/listeners';
+initWhatsAppListeners();
