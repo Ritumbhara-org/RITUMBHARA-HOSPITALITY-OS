@@ -70,7 +70,9 @@ export async function createReservation(formData: FormData) {
     });
 
     if (overlapping) {
-      throw new Error("This unit is already booked for the selected dates.");
+      const start = overlapping.checkIn.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+      const end = overlapping.checkOut.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+      throw new Error(`Sorry, this unit is already reserved from ${start} to ${end}. Please choose other dates or select a different unit.`);
     }
 
     await prisma.reservation.create({
