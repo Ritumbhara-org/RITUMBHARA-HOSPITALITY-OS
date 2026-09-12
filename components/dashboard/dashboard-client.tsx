@@ -79,7 +79,7 @@ export function DashboardClient({ data }: { data: DashboardData }) {
               transition={{ duration: 0.5, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
               className="mt-1.5 text-sm text-rose-100/70"
             >
-              System is running smoothly. <span className="text-white font-medium">{data.arrivals.length} check-ins</span> arriving today.
+              System is running smoothly. <span className="text-white font-medium">{data.todayArrivals} check-ins</span> arriving today.
             </motion.p>
           </div>
           <motion.div 

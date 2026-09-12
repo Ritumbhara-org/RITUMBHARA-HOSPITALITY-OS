@@ -15,6 +15,7 @@ export default async function DashboardPage() {
     dirtyUnitsCount,
     activeGuestsCount,
     todayArrivals,
+    totalTodayCheckinsCount,
     pendingTickets,
     yesterdayArrivalsCount,
     todayDepartures,
@@ -37,6 +38,15 @@ export default async function DashboardPage() {
         unit: true
       },
       orderBy: { checkIn: 'asc' }
+    }),
+    prisma.reservation.count({
+      where: {
+        checkIn: {
+          gte: today,
+          lt: tomorrow
+        },
+        status: { in: ['CONFIRMED', 'CHECKED_IN'] }
+      }
     }),
     prisma.ticket.findMany({
       where: {
@@ -84,12 +94,12 @@ export default async function DashboardPage() {
     ? Math.round(((totalUnits - availableUnitsCount) / totalUnits) * 100) 
     : 0
 
-  const arrivalsTrend = todayArrivals.length >= yesterdayArrivalsCount
-    ? `+${todayArrivals.length - yesterdayArrivalsCount} from yesterday`
-    : `${todayArrivals.length - yesterdayArrivalsCount} from yesterday`
+  const arrivalsTrend = totalTodayCheckinsCount >= yesterdayArrivalsCount
+    ? `+${totalTodayCheckinsCount - yesterdayArrivalsCount} from yesterday`
+    : `${totalTodayCheckinsCount - yesterdayArrivalsCount} from yesterday`
 
   const dashboardData = {
-    todayArrivals: todayArrivals.length.toString(),
+    todayArrivals: totalTodayCheckinsCount.toString(),
     arrivalsTrend,
     availableUnits: availableUnitsCount.toString(),
     unitsTrend: `${dirtyUnitsCount} dirty, ${totalUnits - availableUnitsCount - dirtyUnitsCount} occupied`,
