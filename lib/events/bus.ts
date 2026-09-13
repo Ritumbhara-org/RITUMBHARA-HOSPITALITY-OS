@@ -43,4 +43,7 @@ export const eventBus = new EventBus();
 
 // Initialize listeners
 import { initWhatsAppListeners } from '../whatsapp/listeners';
+import { initHousekeepingListeners } from '../housekeeping/listeners';
+
 initWhatsAppListeners();
+initHousekeepingListeners();
