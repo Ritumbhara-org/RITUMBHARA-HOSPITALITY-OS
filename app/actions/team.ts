@@ -25,7 +25,7 @@ export async function createTeamMember(data: {
       },
     });
 
-    revalidatePath("/dashboard/team");
+    revalidatePath("/team");
     return { success: true, teamMember };
   } catch (error: any) {
     console.error("[Team Action Error - Create]", error);
@@ -50,7 +50,7 @@ export async function updateTeamMember(
       data,
     });
 
-    revalidatePath("/dashboard/team");
+    revalidatePath("/team");
     return { success: true, teamMember };
   } catch (error: any) {
     console.error("[Team Action Error - Update]", error);
