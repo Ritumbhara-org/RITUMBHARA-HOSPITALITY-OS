@@ -2,13 +2,14 @@ import { prisma } from "@/lib/prisma";
 
 export async function handleWhatsAppAction(senderPhone: string, messageText: string): Promise<string> {
   try {
-    // 1. Identify the Team Member by their WhatsApp number
-    const teamMember = await prisma.teamMember.findFirst({
-      where: {
-        whatsappNumber: senderPhone,
-        isActive: true,
-      },
+    // 1. Identify the Team Member by their WhatsApp number (ignoring spaces)
+    const members = await prisma.teamMember.findMany({
+      where: { isActive: true },
     });
+    
+    const teamMember = members.find(m => 
+      m.whatsappNumber.replace(/\s+/g, '') === senderPhone
+    );
 
     if (!teamMember) {
       return "You are not registered as an active team member in Ritumbhara OS.";
