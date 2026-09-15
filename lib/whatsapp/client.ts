@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import twilio from "twilio";
 
 export async function sendWhatsAppMessage(
   toPhone: string,
@@ -8,46 +9,31 @@ export async function sendWhatsAppMessage(
   relatedEntityType?: string,
   relatedEntityId?: string
 ) {
-  const token = process.env.WHATSAPP_ACCESS_TOKEN;
-  const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+  const accountSid = process.env.TWILIO_ACCOUNT_SID;
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
+  const fromNumber = process.env.TWILIO_WHATSAPP_NUMBER;
 
   let deliveryStatus = 'PENDING';
-  let apiResponse = null;
 
   try {
-    if (!token || !phoneNumberId) {
-      console.log(`[WhatsApp Sandbox] Sending ${messageType} to ${toPhone}: ${content}`);
+    if (!accountSid || !authToken || !fromNumber) {
+      console.log(`[WhatsApp Sandbox Fallback] Missing Twilio credentials. Mock sending to ${toPhone}: ${content}`);
       deliveryStatus = 'SANDBOX_DELIVERED';
     } else {
-      // Build Meta API payload
-      const payload = {
-        messaging_product: 'whatsapp',
-        to: toPhone.replace(/\D/g, ''), // Strip non-numeric characters
-        type: messageType,
-        ...(messageType === 'text' && {
-          text: { body: content }
-        }),
-        ...(messageType === 'template' && {
-          template: {
-            name: templateName,
-            language: { code: 'en_US' }
-          }
-        })
-      };
+      const client = twilio(accountSid, authToken);
 
-      const res = await fetch(`https://graph.facebook.com/v17.0/${phoneNumberId}/messages`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
+      const formattedTo = `whatsapp:${toPhone.startsWith('+') ? toPhone : '+' + toPhone.replace(/\D/g, '')}`;
+      const formattedFrom = `whatsapp:${fromNumber.startsWith('+') ? fromNumber : '+' + fromNumber.replace(/\D/g, '')}`;
+
+      const messageBody = content || `Template: ${templateName}`;
+
+      const message = await client.messages.create({
+        body: messageBody,
+        from: formattedFrom,
+        to: formattedTo
       });
 
-      apiResponse = await res.json();
-      if (!res.ok) {
-        throw new Error(`Meta API Error: ${JSON.stringify(apiResponse)}`);
-      }
+      console.log(`[Twilio Success] Message sent to ${formattedTo}. SID: ${message.sid}`);
       deliveryStatus = 'DELIVERED';
     }
   } catch (error: any) {
@@ -60,7 +46,7 @@ export async function sendWhatsAppMessage(
     await prisma.whatsAppMessage.create({
       data: {
         direction: 'OUTBOUND',
-        from: 'SYSTEM',
+        from: fromNumber || 'SYSTEM',
         to: toPhone,
         messageType,
         content,

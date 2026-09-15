@@ -1,20 +1,20 @@
 import { sendWhatsAppMessage } from "./client";
 
 async function runTest() {
-  console.log("Initiating WhatsApp Sandbox Test...");
+  console.log("Initiating Twilio WhatsApp Test...");
 
-  const testPhone = "+918260057716"; // Replace with actual test number if using real API
+  const testPhone = "+918260057716"; // User's verified phone number
   
   const result = await sendWhatsAppMessage(
     testPhone,
-    "template",
-    "", // Content is empty for template
-    "hello_world",
+    "text",
+    "Your appointment is coming up on July 21 at 3PM",
+    undefined,
     "Test",
-    "test_id_123"
+    "test_twilio_123"
   );
 
-  console.log("WhatsApp Test Result:", result);
+  console.log("Twilio Test Result:", result);
 }
 
 runTest().catch(console.error);
