@@ -36,14 +36,14 @@ export function TeamClient({ initialMembers }: TeamClientProps) {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 tracking-tight flex items-center gap-3">
-            <Users className="w-8 h-8 text-brand-600" />
+            <Users className="w-8 h-8 text-rose-600" />
             Team Management
           </h1>
           <p className="text-gray-500 mt-1">Manage staff, roles, and WhatsApp automation numbers.</p>
         </div>
         <button
           onClick={handleAddNew}
-          className="flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-sm"
+          className="flex items-center gap-2 bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-sm"
         >
           <Plus className="w-5 h-5" />
           Add Team Member
@@ -104,7 +104,7 @@ export function TeamClient({ initialMembers }: TeamClientProps) {
                       <div className="flex justify-end gap-2">
                         <button
                           onClick={() => handleEdit(member)}
-                          className="p-2 text-gray-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors"
+                          className="p-2 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
                           title="Edit"
                         >
                           <Edit2 className="w-4 h-4" />

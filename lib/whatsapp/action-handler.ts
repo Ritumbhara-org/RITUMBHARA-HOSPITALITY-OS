@@ -33,7 +33,7 @@ export async function handleWhatsAppAction(senderPhone: string, messageText: str
     // 3. Process the action based on keywords
     if (messageText.includes("ACCEPT")) {
       if (activeTask.status !== "PENDING") {
-        return `Task for Room ${activeTask.unit.number} is already accepted. Send START when you begin cleaning.`;
+        return `Task for Room ${activeTask.unit.name} is already accepted. Send START when you begin cleaning.`;
       }
       
       await prisma.housekeepingTask.update({
@@ -44,12 +44,12 @@ export async function handleWhatsAppAction(senderPhone: string, messageText: str
         }
       });
       
-      return `✅ Task Accepted! You are now assigned to clean Room ${activeTask.unit.number}. Send COMPLETE when finished.`;
+      return `✅ Task Accepted! You are now assigned to clean Room ${activeTask.unit.name}. Send COMPLETE when finished.`;
     } 
     
     if (messageText.includes("COMPLETE")) {
       if (activeTask.status === "PENDING") {
-        return `Please ACCEPT the task for Room ${activeTask.unit.number} first before completing it.`;
+        return `Please ACCEPT the task for Room ${activeTask.unit.name} first before completing it.`;
       }
 
       // Mark task as completed
@@ -67,11 +67,11 @@ export async function handleWhatsAppAction(senderPhone: string, messageText: str
         data: { status: "READY" }
       });
 
-      return `🌟 Amazing work, ${teamMember.name}! Room ${activeTask.unit.number} is now marked as READY in the system.`;
+      return `🌟 Amazing work, ${teamMember.name}! Room ${activeTask.unit.name} is now marked as READY in the system.`;
     }
 
     // Default Fallback
-    return `Hello ${teamMember.name}! You have a pending task for Room ${activeTask.unit.number}.\nReply ACCEPT to assign it to yourself.\nReply COMPLETE when finished.`;
+    return `Hello ${teamMember.name}! You have a pending task for Room ${activeTask.unit.name}.\nReply ACCEPT to assign it to yourself.\nReply COMPLETE when finished.`;
 
   } catch (error) {
     console.error("[Action Handler Error]", error);

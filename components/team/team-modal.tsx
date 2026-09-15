@@ -79,7 +79,7 @@ export function TeamModal({ isOpen, onClose, member }: TeamModalProps) {
               name="name"
               required
               defaultValue={member?.name}
-              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors"
+              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-colors"
               placeholder="e.g. Rahul Sharma"
             />
           </div>
@@ -94,7 +94,7 @@ export function TeamModal({ isOpen, onClose, member }: TeamModalProps) {
                 name="phone"
                 required
                 defaultValue={member?.phone}
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors"
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-colors"
                 placeholder="+91..."
               />
             </div>
@@ -107,7 +107,7 @@ export function TeamModal({ isOpen, onClose, member }: TeamModalProps) {
                 name="whatsappNumber"
                 required
                 defaultValue={member?.whatsappNumber}
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors"
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-colors"
                 placeholder="+91..."
               />
             </div>
@@ -122,7 +122,7 @@ export function TeamModal({ isOpen, onClose, member }: TeamModalProps) {
                 name="role"
                 required
                 defaultValue={member?.role || "STAFF"}
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors bg-white"
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-colors bg-white"
               >
                 <option value="STAFF">Staff</option>
                 <option value="MANAGER">Manager</option>
@@ -137,7 +137,7 @@ export function TeamModal({ isOpen, onClose, member }: TeamModalProps) {
                 name="department"
                 required
                 defaultValue={member?.department || "HOUSEKEEPING"}
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors bg-white"
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-colors bg-white"
               >
                 <option value="HOUSEKEEPING">Housekeeping</option>
                 <option value="MAINTENANCE">Maintenance</option>
@@ -153,7 +153,7 @@ export function TeamModal({ isOpen, onClose, member }: TeamModalProps) {
               id="isActive"
               name="isActive"
               defaultChecked={member ? member.isActive : true}
-              className="w-4 h-4 text-brand-600 rounded border-gray-300 focus:ring-brand-500"
+              className="w-4 h-4 text-rose-600 rounded border-gray-300 focus:ring-rose-500"
             />
             <label htmlFor="isActive" className="text-sm text-gray-700">
               Active Member
@@ -171,7 +171,7 @@ export function TeamModal({ isOpen, onClose, member }: TeamModalProps) {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 px-4 py-2 text-white bg-brand-600 hover:bg-brand-700 rounded-lg font-medium transition-colors disabled:opacity-50"
+              className="flex-1 px-4 py-2 text-white bg-rose-600 hover:bg-rose-700 rounded-lg font-medium transition-colors disabled:opacity-50"
             >
               {isSubmitting ? "Saving..." : member ? "Update Member" : "Add Member"}
             </button>
