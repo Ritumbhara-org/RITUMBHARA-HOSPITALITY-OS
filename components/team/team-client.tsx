@@ -43,7 +43,7 @@ export function TeamClient({ initialMembers }: TeamClientProps) {
         </div>
         <button
           onClick={handleAddNew}
-          className="flex items-center gap-2 bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-sm"
+          className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm shadow-primary/20 transition-all duration-200 hover:bg-primary/90 hover:shadow-md hover:shadow-primary/25 active:scale-[0.98]"
         >
           <Plus className="w-5 h-5" />
           Add Team Member
