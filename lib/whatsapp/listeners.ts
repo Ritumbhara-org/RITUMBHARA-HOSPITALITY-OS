@@ -71,5 +71,51 @@ export function initWhatsAppListeners() {
     }
   });
 
+  // 4. Pre-arrival Instructions
+  eventBus.on<BookingEventPayload>('UPCOMING_CHECK_IN', async (payload) => {
+    try {
+      const guest = await prisma.guest.findUnique({ where: { id: payload.guestId } });
+      const unit = await prisma.reservation.findUnique({ 
+        where: { id: payload.reservationId },
+        include: { unit: true }
+      });
+      if (!guest?.phone) return;
+
+      const messageContent = `Hi ${guest.name}, we are excited to welcome you tomorrow for your stay in ${unit?.unit.name}! Please remember to bring a valid government ID for check-in. Here is our location pin: [Google Maps Link]`;
+
+      await sendWhatsAppMessage(
+        guest.phone,
+        'text',
+        messageContent,
+        'pre_arrival_instructions',
+        'Reservation',
+        payload.reservationId
+      );
+    } catch (error) {
+      console.error("[WhatsApp Listener Error - UPCOMING_CHECK_IN]", error);
+    }
+  });
+
+  // 5. Checkout Instructions
+  eventBus.on<BookingEventPayload>('UPCOMING_CHECK_OUT', async (payload) => {
+    try {
+      const guest = await prisma.guest.findUnique({ where: { id: payload.guestId } });
+      if (!guest?.phone) return;
+
+      const messageContent = `Good morning, ${guest.name}! We hope you enjoyed your stay. Friendly reminder that checkout is at 11:00 AM today. Please leave the keys on the counter. Safe travels!`;
+
+      await sendWhatsAppMessage(
+        guest.phone,
+        'text',
+        messageContent,
+        'checkout_instructions',
+        'Reservation',
+        payload.reservationId
+      );
+    } catch (error) {
+      console.error("[WhatsApp Listener Error - UPCOMING_CHECK_OUT]", error);
+    }
+  });
+
   console.log("[WhatsApp Listeners] Successfully initialized.");
 }

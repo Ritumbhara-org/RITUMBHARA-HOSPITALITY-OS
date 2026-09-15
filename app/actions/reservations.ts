@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
+import { eventBus } from "@/lib/events/bus"
 
 export async function updateReservationStatus(reservationId: string, status: string) {
   try {
@@ -15,11 +16,29 @@ export async function updateReservationStatus(reservationId: string, status: str
         where: { id: reservation.unitId },
         data: { status: 'OCCUPIED' }
       })
+      await eventBus.emit('GUEST_CHECKED_IN', { 
+        reservationId: reservation.id, 
+        guestId: reservation.guestId, 
+        propertyId: reservation.propertyId, 
+        intellistayBookingId: reservation.intellistayBookingId || "direct", 
+        status: reservation.status, 
+        checkIn: reservation.checkIn, 
+        checkOut: reservation.checkOut 
+      });
     } else if (status === 'CHECKED_OUT') {
       await prisma.unit.update({
         where: { id: reservation.unitId },
         data: { status: 'DIRTY' }
       })
+      await eventBus.emit('GUEST_CHECKED_OUT', { 
+        reservationId: reservation.id, 
+        guestId: reservation.guestId, 
+        propertyId: reservation.propertyId, 
+        intellistayBookingId: reservation.intellistayBookingId || "direct", 
+        status: reservation.status, 
+        checkIn: reservation.checkIn, 
+        checkOut: reservation.checkOut 
+      });
     } else if (status === 'CANCELLED') {
       // Basic fallback to AVAILABLE if cancelled, though might need more robust checks
       await prisma.unit.update({
@@ -75,7 +94,7 @@ export async function createReservation(formData: FormData) {
       throw new Error(`Sorry, this unit is already reserved from ${start} to ${end}. Please choose other dates or select a different unit.`);
     }
 
-    await prisma.reservation.create({
+    const reservation = await prisma.reservation.create({
       data: {
         guestId,
         unitId,
@@ -88,6 +107,16 @@ export async function createReservation(formData: FormData) {
         bookingNotes: bookingNotes || null
       }
     })
+
+    await eventBus.emit('BOOKING_CREATED', { 
+      reservationId: reservation.id, 
+      guestId: reservation.guestId, 
+      propertyId: reservation.propertyId, 
+      intellistayBookingId: "direct", 
+      status: reservation.status, 
+      checkIn: reservation.checkIn, 
+      checkOut: reservation.checkOut 
+    });
 
     revalidatePath("/reservations")
     revalidatePath("/dashboard")

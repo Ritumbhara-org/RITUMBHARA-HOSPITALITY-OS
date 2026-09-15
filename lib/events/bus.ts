@@ -14,7 +14,9 @@ export type EventType =
   | 'BOOKING_CREATED'
   | 'BOOKING_UPDATED'
   | 'BOOKING_CANCELLED'
+  | 'UPCOMING_CHECK_IN'
   | 'GUEST_CHECKED_IN'
+  | 'UPCOMING_CHECK_OUT'
   | 'GUEST_CHECKED_OUT';
 
 class EventBus {
