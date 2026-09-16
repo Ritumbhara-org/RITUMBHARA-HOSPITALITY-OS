@@ -22,8 +22,12 @@ export async function sendWhatsAppMessage(
     } else {
       const client = twilio(accountSid, authToken);
 
-      const formattedTo = `whatsapp:${toPhone.startsWith('+') ? toPhone : '+' + toPhone.replace(/\D/g, '')}`;
-      const formattedFrom = `whatsapp:${fromNumber.startsWith('+') ? fromNumber : '+' + fromNumber.replace(/\D/g, '')}`;
+      // Always strip spaces and non-numeric characters (except leading +)
+      const cleanToPhone = '+' + toPhone.replace(/\D/g, '');
+      const cleanFromPhone = '+' + fromNumber.replace(/\D/g, '');
+      
+      const formattedTo = `whatsapp:${cleanToPhone}`;
+      const formattedFrom = `whatsapp:${cleanFromPhone}`;
 
       const messageBody = content || `Template: ${templateName}`;
 
