@@ -18,7 +18,8 @@ export default async function DashboardPage() {
     pendingTickets,
     yesterdayArrivalsCount,
     todayDepartures,
-    unitStatusCounts
+    unitStatusCounts,
+    lowInventoryItems
   ] = await Promise.all([
     prisma.unit.count(),
     prisma.unit.count({ where: { status: 'AVAILABLE' } }),
@@ -76,6 +77,12 @@ export default async function DashboardPage() {
       _count: {
         id: true
       }
+    }),
+    prisma.inventoryItem.findMany({
+      where: {
+        quantity: { lt: prisma.inventoryItem.fields.minThreshold }
+      },
+      take: 5
     })
   ])
 
@@ -98,7 +105,8 @@ export default async function DashboardPage() {
     arrivals: todayArrivals,
     pendingOperations: pendingTickets,
     departures: todayDepartures,
-    unitStatuses: unitStatusCounts
+    unitStatuses: unitStatusCounts,
+    lowInventory: lowInventoryItems
   }
 
   return <DashboardClient data={dashboardData} />

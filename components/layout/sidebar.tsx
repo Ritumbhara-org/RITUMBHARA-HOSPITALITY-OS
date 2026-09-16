@@ -12,7 +12,8 @@ import {
   MessageSquare,
   Globe,
   Sparkles,
-  ShieldCheck
+  ShieldCheck,
+  Package
 } from 'lucide-react'
 
 const navigation = [
@@ -21,6 +22,7 @@ const navigation = [
   { name: 'Guests', href: '/guests', icon: Users },
   { name: 'Units', href: '/units', icon: BedDouble },
   { name: 'Operations', href: '/operations', icon: Wrench },
+  { name: 'Inventory', href: '/inventory', icon: Package },
   { name: 'Team', href: '/team', icon: ShieldCheck },
   { name: 'WhatsApp', href: '/whatsapp', icon: MessageSquare },
   { name: 'SEO Tools', href: '/seo', icon: Globe },

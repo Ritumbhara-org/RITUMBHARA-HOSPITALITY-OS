@@ -14,6 +14,7 @@ type DashboardData = {
   departures: any[];
   pendingOperations: any[];
   unitStatuses: any[];
+  lowInventory: any[];
 }
 
 export function DashboardClient({ data }: { data: DashboardData }) {
@@ -289,6 +290,49 @@ export function DashboardClient({ data }: { data: DashboardData }) {
                 </div>
               )
             })}
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Row 3: Low Inventory */}
+      <motion.div 
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        className="grid gap-4 flex-1 min-h-0"
+      >
+        <div className="flex flex-col rounded-2xl border bg-card p-5 shadow-sm min-h-0">
+          <div className="flex items-center justify-between mb-4 shrink-0">
+            <div className="flex items-center gap-2">
+              <div className="rounded-lg bg-red-50 dark:bg-red-500/10 p-1.5">
+                <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+              </div>
+              <h3 className="text-sm font-semibold tracking-tight">Low Inventory Alerts</h3>
+            </div>
+            <span className="text-xs font-medium text-muted-foreground bg-muted/50 px-2 py-1 rounded-lg">{data.lowInventory?.length || 0} items</span>
+          </div>
+          <div className="space-y-2 overflow-y-auto flex-1 min-h-0 pr-1">
+            {data.lowInventory?.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-6 text-muted-foreground">
+                <CheckCircle2 className="h-8 w-8 mb-2 opacity-30" />
+                <p className="text-sm">All stock levels healthy.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {data.lowInventory?.map((item: any) => (
+                  <div key={item.id} className="flex items-center justify-between rounded-xl p-3 border bg-red-50/50 border-red-200/50 dark:bg-red-900/10 dark:border-red-900/30">
+                    <div>
+                      <p className="text-sm font-semibold text-red-900 dark:text-red-300">{item.name}</p>
+                      <p className="text-xs text-red-700/70 dark:text-red-400/70">{item.category}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-lg font-bold text-red-600 dark:text-red-400">{item.quantity} <span className="text-xs font-normal opacity-70">{item.unit}</span></p>
+                      <p className="text-[10px] text-red-600/70 dark:text-red-400/70 uppercase font-semibold">Min: {item.minThreshold}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </motion.div>
