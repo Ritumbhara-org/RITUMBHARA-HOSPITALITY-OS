@@ -20,7 +20,7 @@ export async function updateReservationStatus(reservationId: string, status: str
         reservationId: reservation.id, 
         guestId: reservation.guestId, 
         propertyId: reservation.propertyId, 
-        intellistayBookingId: reservation.intellistayBookingId || "direct", 
+        intellistayBookingId: reservation.intellistayReservationId || "direct", 
         status: reservation.status, 
         checkIn: reservation.checkIn, 
         checkOut: reservation.checkOut 
@@ -34,7 +34,7 @@ export async function updateReservationStatus(reservationId: string, status: str
         reservationId: reservation.id, 
         guestId: reservation.guestId, 
         propertyId: reservation.propertyId, 
-        intellistayBookingId: reservation.intellistayBookingId || "direct", 
+        intellistayBookingId: reservation.intellistayReservationId || "direct", 
         status: reservation.status, 
         checkIn: reservation.checkIn, 
         checkOut: reservation.checkOut 

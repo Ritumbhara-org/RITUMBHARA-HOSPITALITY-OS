@@ -11,6 +11,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { createTicket } from "@/app/actions/operations"
 
+import { TicketDetailsModal } from "./ticket-details-modal"
+
 type OperationStats = {
   total: number
   open: number
@@ -21,15 +23,17 @@ type OperationStats = {
 export function OperationsClient({ 
   initialData, 
   stats,
-  units 
+  units,
+  teamMembers
 }: { 
   initialData: any[],
   stats: OperationStats,
-  units: { id: string, name: string }[]
+  units: { id: string, name: string }[],
+  teamMembers: any[]
 }) {
   return (
     <Suspense fallback={<div className="flex items-center justify-center h-64 text-muted-foreground">Loading operations...</div>}>
-      <OperationsClientContent initialData={initialData} stats={stats} units={units} />
+      <OperationsClientContent initialData={initialData} stats={stats} units={units} teamMembers={teamMembers} />
     </Suspense>
   )
 }
@@ -37,17 +41,20 @@ export function OperationsClient({
 function OperationsClientContent({ 
   initialData, 
   stats,
-  units 
+  units,
+  teamMembers
 }: { 
   initialData: any[],
   stats: OperationStats,
-  units: { id: string, name: string }[]
+  units: { id: string, name: string }[],
+  teamMembers: any[]
 }) {
   const [searchTerm, setSearchTerm] = useState("")
   const [filterCategory, setFilterCategory] = useState("ALL")
   const [viewMode, setViewMode] = useState<'board' | 'list'>('board')
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [selectedTicket, setSelectedTicket] = useState<any | null>(null)
 
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -85,7 +92,11 @@ function OperationsClientContent({
   }
 
   const renderTicketCard = (ticket: any) => (
-    <div key={ticket.id} className="p-3.5 mb-2.5 bg-card border border-border/60 rounded-xl shadow-sm cursor-pointer hover:shadow-md hover:border-border transition-all duration-200 group">
+    <div 
+      key={ticket.id} 
+      onClick={() => setSelectedTicket(ticket)}
+      className="p-3.5 mb-2.5 bg-card border border-border/60 rounded-xl shadow-sm cursor-pointer hover:shadow-md hover:border-border transition-all duration-200 group"
+    >
       <div className="flex justify-between items-start mb-2">
         <span className={`px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-lg ${getPriorityColor(ticket.priority)}`}>
           {ticket.priority}
@@ -152,6 +163,19 @@ function OperationsClientContent({
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
+                    <Label htmlFor="reporterType">Reporter</Label>
+                    <Select name="reporterType" defaultValue="TEAM">
+                      <SelectTrigger className="rounded-xl">
+                        <SelectValue placeholder="Reporter" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="GUEST">Guest</SelectItem>
+                        <SelectItem value="TEAM">Team Member</SelectItem>
+                        <SelectItem value="MANAGEMENT">Management</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-2">
                     <Label htmlFor="unitId">Location / Unit</Label>
                     <Select name="unitId" defaultValue="property">
                       <SelectTrigger className="rounded-xl">
@@ -165,6 +189,8 @@ function OperationsClientContent({
                       </SelectContent>
                     </Select>
                   </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="category">Category</Label>
                     <Select name="category" defaultValue="MAINTENANCE">
@@ -336,6 +362,13 @@ function OperationsClientContent({
           </div>
         </div>
       </motion.div>
+
+      <TicketDetailsModal 
+        ticket={selectedTicket} 
+        isOpen={!!selectedTicket} 
+        onClose={() => setSelectedTicket(null)} 
+        teamMembers={teamMembers} 
+      />
     </div>
   )
 }

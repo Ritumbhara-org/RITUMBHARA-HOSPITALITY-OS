@@ -18,13 +18,15 @@ export default async function OperationsPage() {
 
   // Fetch all units so they can be selected when creating a ticket
   const units = await prisma.unit.findMany({
-    orderBy: {
-      name: 'asc'
-    },
-    select: {
-      id: true,
-      name: true
-    }
+    orderBy: { name: 'asc' },
+    select: { id: true, name: true }
+  })
+
+  // Fetch team members for assignment
+  const teamMembers = await prisma.teamMember.findMany({
+    where: { isActive: true },
+    orderBy: { name: 'asc' },
+    select: { id: true, name: true, role: true }
   })
 
   // Calculate stats
@@ -40,5 +42,5 @@ export default async function OperationsPage() {
     resolved
   }
 
-  return <OperationsClient initialData={tickets} stats={stats} units={units} />
+  return <OperationsClient initialData={tickets} stats={stats} units={units} teamMembers={teamMembers} />
 }

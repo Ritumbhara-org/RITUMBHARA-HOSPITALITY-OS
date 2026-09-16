@@ -30,7 +30,7 @@ export async function processDailyAutomations() {
       reservationId: res.id,
       guestId: res.guestId,
       propertyId: res.propertyId,
-      intellistayBookingId: res.intellistayBookingId || "direct",
+      intellistayBookingId: res.intellistayReservationId || "direct",
       status: res.status,
       checkIn: res.checkIn,
       checkOut: res.checkOut
@@ -54,7 +54,7 @@ export async function processDailyAutomations() {
       reservationId: res.id,
       guestId: res.guestId,
       propertyId: res.propertyId,
-      intellistayBookingId: res.intellistayBookingId || "direct",
+      intellistayBookingId: res.intellistayReservationId || "direct",
       status: res.status,
       checkIn: res.checkIn,
       checkOut: res.checkOut

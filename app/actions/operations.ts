@@ -2,63 +2,143 @@
 
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
+import { TicketCategory, TicketPriority, ReporterType, TicketStatus } from "@prisma/client"
 
 export async function createTicket(formData: FormData) {
   try {
-    const title = formData.get("title") as string // We'll map this to subcategory or append to description
+    const title = formData.get("title") as string 
     const description = formData.get("description") as string
-    const category = formData.get("category") as string
-    const priority = formData.get("priority") as string
+    const category = formData.get("category") as TicketCategory
+    const priority = formData.get("priority") as TicketPriority
+    const reporterType = formData.get("reporterType") as ReporterType || "TEAM"
     
-    // In a real app, these would come from the auth session
+    // In a real app, reporterId comes from the auth session.
     let defaultProperty = await prisma.property.findFirst()
-    if (!defaultProperty) {
-      defaultProperty = await prisma.property.create({
-        data: { name: "Default Property", slug: "default", address: "System Generated", city: "System", state: "SYS", country: "SYS", phone: "000", email: "sys@sys.com", timezone: "UTC" }
-      })
-    }
+    if (!defaultProperty) throw new Error("No property found")
 
-    let defaultTeamMember = await prisma.teamMember.findFirst()
-    if (!defaultTeamMember) {
-      defaultTeamMember = await prisma.teamMember.create({
-        data: { name: "Admin User", department: "MANAGEMENT", role: "MANAGER", phone: "0000000000", whatsappNumber: "0000000000", propertyId: defaultProperty.id }
-      })
+    let reporterId = ""
+    let guestId = null
+
+    if (reporterType === "GUEST") {
+      const guest = await prisma.guest.findFirst()
+      if (!guest) throw new Error("No guest found to act as reporter")
+      reporterId = guest.id
+      guestId = guest.id
+    } else {
+      let teamMember = await prisma.teamMember.findFirst({ where: { role: "MANAGER" } })
+      if (!teamMember) {
+         teamMember = await prisma.teamMember.findFirst()
+      }
+      if (!teamMember) throw new Error("No team member found to act as reporter")
+      reporterId = teamMember.id
     }
 
     const unitId = formData.get("unitId") as string
 
-    // Combine title and description since the schema doesn't have a title field
     const fullDescription = `[${title}] ${description}`
 
-    // Calculate SLA deadline based on priority
+    // Calculate SLA deadline based on priority (Day 19 rules)
     const slaDeadline = new Date()
     switch(priority) {
-      case 'CRITICAL': slaDeadline.setHours(slaDeadline.getHours() + 1); break;
-      case 'HIGH': slaDeadline.setHours(slaDeadline.getHours() + 4); break;
-      case 'MEDIUM': slaDeadline.setHours(slaDeadline.getHours() + 24); break;
-      case 'LOW': slaDeadline.setHours(slaDeadline.getHours() + 72); break;
+      case 'CRITICAL': slaDeadline.setMinutes(slaDeadline.getMinutes() + 30); break; // 30 min resolution
+      case 'HIGH': slaDeadline.setHours(slaDeadline.getHours() + 1); break; // 60 min resolution
+      case 'MEDIUM': slaDeadline.setHours(slaDeadline.getHours() + 2); break; // 2 hrs resolution
+      case 'LOW': slaDeadline.setHours(slaDeadline.getHours() + 24); break; // 24 hrs resolution
     }
 
     const ticket = await prisma.ticket.create({
       data: {
         description: fullDescription,
-        category: category as any,
-        priority: priority as any,
+        category: category,
+        priority: priority,
         propertyId: defaultProperty.id,
-        reporterId: defaultTeamMember.id,
-        reporterType: "TEAM",
+        reporterId: reporterId,
+        reporterType: reporterType,
+        guestId: guestId,
         status: "OPEN",
         slaDeadline: slaDeadline,
-        unitId: unitId === 'property' ? null : unitId
+        unitId: (!unitId || unitId === 'property') ? null : unitId,
+        auditLogs: {
+          create: {
+            action: "TICKET_CREATED",
+            actorId: reporterId,
+            actorType: reporterType,
+            toStatus: "OPEN"
+          }
+        }
       }
     })
 
     revalidatePath("/operations")
     revalidatePath("/dashboard")
-    revalidatePath("/")
     return { success: true, ticket }
   } catch (error: any) {
     console.error("Failed to create ticket:", error)
+    return { success: false, error: error.message }
+  }
+}
+
+export async function assignTicket(ticketId: string, teamMemberId: string) {
+  try {
+    // In real app, actorId is from session
+    const actor = await prisma.teamMember.findFirst({ where: { role: "MANAGER" } })
+    
+    await prisma.ticket.update({
+      where: { id: ticketId },
+      data: {
+        assignedToId: teamMemberId,
+        status: "ASSIGNED",
+        auditLogs: {
+          create: {
+            action: "TICKET_ASSIGNED",
+            actorId: actor?.id || "system",
+            actorType: "MANAGEMENT",
+            toStatus: "ASSIGNED",
+            notes: `Assigned to team member ${teamMemberId}`
+          }
+        }
+      }
+    })
+    
+    revalidatePath("/operations")
+    return { success: true }
+  } catch (error: any) {
+    return { success: false, error: error.message }
+  }
+}
+
+export async function updateTicketStatus(ticketId: string, newStatus: TicketStatus, notes?: string) {
+  try {
+    // In real app, actorId is from session
+    const actor = await prisma.teamMember.findFirst()
+    
+    const updateData: any = {
+      status: newStatus,
+      auditLogs: {
+        create: {
+          action: `STATUS_CHANGED_TO_${newStatus}`,
+          actorId: actor?.id || "system",
+          actorType: "TEAM",
+          toStatus: newStatus,
+          notes: notes
+        }
+      }
+    }
+
+    if (newStatus === "RESOLVED") {
+      updateData.resolvedAt = new Date()
+    } else if (newStatus === "CLOSED") {
+      updateData.closedAt = new Date()
+    }
+
+    await prisma.ticket.update({
+      where: { id: ticketId },
+      data: updateData
+    })
+    
+    revalidatePath("/operations")
+    return { success: true }
+  } catch (error: any) {
     return { success: false, error: error.message }
   }
 }
