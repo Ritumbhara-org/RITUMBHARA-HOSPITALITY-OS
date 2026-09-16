@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { processDailyAutomations } from "@/lib/events/cron";
+import { processDailyAutomations, checkSlaBreaches } from "@/lib/events/cron";
 
 export async function GET(request: Request) {
   try {
@@ -10,10 +10,11 @@ export async function GET(request: Request) {
     // }
 
     const results = await processDailyAutomations();
+    await checkSlaBreaches();
     
     return NextResponse.json({
       success: true,
-      message: "Daily automations processed successfully",
+      message: "Daily automations & SLA checks processed successfully",
       data: results
     });
   } catch (error: any) {

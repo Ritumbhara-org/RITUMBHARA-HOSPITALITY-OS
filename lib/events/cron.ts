@@ -67,3 +67,54 @@ export async function processDailyAutomations() {
     checkouts: upcomingCheckOuts.length
   };
 }
+
+export async function checkSlaBreaches() {
+  console.log("Checking for SLA breaches...");
+  
+  try {
+    const now = new Date();
+    
+    // Find tickets that are not resolved, completed, or already escalated, and the deadline has passed
+    const breachedTickets = await prisma.ticket.findMany({
+      where: {
+        status: { notIn: ["RESOLVED", "COMPLETED", "ESCALATED"] },
+        slaDeadline: { lt: now }
+      },
+      include: {
+        unit: true
+      }
+    });
+
+    console.log(`[Cron] Found ${breachedTickets.length} breached tickets`);
+
+    for (const ticket of breachedTickets) {
+      await prisma.ticket.update({
+        where: { id: ticket.id },
+        data: {
+          status: "ESCALATED",
+          auditLogs: {
+            create: {
+              action: "TICKET_ESCALATED",
+              actorId: "system",
+              actorType: "MANAGEMENT",
+              toStatus: "ESCALATED",
+              notes: "Automated SLA breach escalation"
+            }
+          }
+        }
+      });
+
+      await eventBus.emit('SLA_BREACHED', {
+        ticketId: ticket.id,
+        description: ticket.description,
+        priority: ticket.priority,
+        assignedToId: ticket.assignedToId,
+        unitId: ticket.unitId,
+        slaDeadline: ticket.slaDeadline
+      });
+    }
+
+  } catch (error) {
+    console.error("[Cron Error] Error checking SLA breaches:", error);
+  }
+}

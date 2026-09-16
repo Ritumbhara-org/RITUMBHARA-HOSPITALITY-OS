@@ -19,15 +19,25 @@ export type EventType =
   | 'UPCOMING_CHECK_OUT'
   | 'GUEST_CHECKED_OUT'
   | 'TICKET_ASSIGNED'
-  | 'TICKET_UPDATED';
+  | 'TICKET_UPDATED'
+  | 'SLA_BREACHED';
 
 export interface TicketEventPayload {
   ticketId: string;
-  assignedToId?: string;
+  assignedToId?: string | null;
   propertyId: string;
   unitId?: string | null;
   priority: string;
   status: string;
+}
+
+export interface SlaBreachPayload {
+  ticketId: string;
+  description: string;
+  priority: string;
+  assignedToId?: string | null;
+  unitId?: string | null;
+  slaDeadline: Date;
 }
 
 class EventBus {

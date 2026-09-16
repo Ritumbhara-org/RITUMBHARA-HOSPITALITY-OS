@@ -146,5 +146,43 @@ export function initWhatsAppListeners() {
     }
   });
 
+  // 7. SLA Breaches (Escalations)
+  eventBus.on<any>('SLA_BREACHED', async (payload) => {
+    try {
+      const managers = await prisma.teamMember.findMany({
+        where: { role: { in: ["MANAGER", "ADMIN"] }, isActive: true }
+      });
+
+      let assigneeName = "Unassigned";
+      if (payload.assignedToId) {
+        const assignee = await prisma.teamMember.findUnique({ where: { id: payload.assignedToId } });
+        if (assignee) assigneeName = assignee.name;
+      }
+
+      const unit = payload.unitId 
+        ? await prisma.unit.findUnique({ where: { id: payload.unitId } }) 
+        : null;
+      
+      const location = unit?.name || 'Property';
+
+      for (const manager of managers) {
+        if (!manager.whatsappNumber) continue;
+
+        const messageContent = `🚨 SLA BREACH ALERT 🚨\n\nTicket: ${payload.description}\nPriority: ${payload.priority}\nLocation: ${location}\nAssigned To: ${assigneeName}\n\nThis ticket has breached its SLA deadline! Immediate management intervention required.`;
+
+        await sendWhatsAppMessage(
+          manager.whatsappNumber,
+          'text',
+          messageContent,
+          'sla_breach_alert',
+          'Ticket',
+          payload.ticketId
+        );
+      }
+    } catch (error) {
+      console.error("[WhatsApp Listener Error - SLA_BREACHED]", error);
+    }
+  });
+
   console.log("[WhatsApp Listeners] Successfully initialized.");
 }
