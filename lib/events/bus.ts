@@ -17,7 +17,18 @@ export type EventType =
   | 'UPCOMING_CHECK_IN'
   | 'GUEST_CHECKED_IN'
   | 'UPCOMING_CHECK_OUT'
-  | 'GUEST_CHECKED_OUT';
+  | 'GUEST_CHECKED_OUT'
+  | 'TICKET_ASSIGNED'
+  | 'TICKET_UPDATED';
+
+export interface TicketEventPayload {
+  ticketId: string;
+  assignedToId?: string;
+  propertyId: string;
+  unitId?: string | null;
+  priority: string;
+  status: string;
+}
 
 class EventBus {
   private handlers: Map<EventType, EventHandler[]> = new Map();

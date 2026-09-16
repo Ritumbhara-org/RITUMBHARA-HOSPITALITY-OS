@@ -117,5 +117,34 @@ export function initWhatsAppListeners() {
     }
   });
 
+  // 6. Ticket Assignments
+  eventBus.on<any>('TICKET_ASSIGNED', async (payload) => {
+    try {
+      if (!payload.assignedToId) return;
+      
+      const teamMember = await prisma.teamMember.findUnique({ where: { id: payload.assignedToId } });
+      const ticket = await prisma.ticket.findUnique({ 
+        where: { id: payload.ticketId },
+        include: { unit: true }
+      });
+      
+      if (!teamMember?.whatsappNumber || !ticket) return;
+
+      const priorityLabel = ticket.priority === 'CRITICAL' || ticket.priority === 'HIGH' ? `[${ticket.priority}] ` : '';
+      const messageContent = `🔧 NEW TICKET ${priorityLabel}\nLocation: ${ticket.unit?.name || 'Property'}\nIssue: ${ticket.description}\n\nReply 'ACCEPT' to acknowledge.`;
+
+      await sendWhatsAppMessage(
+        teamMember.whatsappNumber,
+        'text',
+        messageContent,
+        'ticket_assigned',
+        'Ticket',
+        payload.ticketId
+      );
+    } catch (error) {
+      console.error("[WhatsApp Listener Error - TICKET_ASSIGNED]", error);
+    }
+  });
+
   console.log("[WhatsApp Listeners] Successfully initialized.");
 }

@@ -15,7 +15,45 @@ export async function handleWhatsAppAction(senderPhone: string, messageText: str
       return "You are not registered as an active team member in Ritumbhara OS.";
     }
 
-    // 2. Find their most recent pending or in-progress Housekeeping Task
+    // 2. Look for active TICKETS first
+    const activeTicket = await prisma.ticket.findFirst({
+      where: {
+        assignedToId: teamMember.id,
+        status: { in: ["ASSIGNED", "ACKNOWLEDGED", "IN_PROGRESS"] }
+      },
+      orderBy: { updatedAt: 'desc' },
+      include: { unit: true }
+    });
+
+    if (activeTicket) {
+      if (messageText.includes("ACCEPT")) {
+        await prisma.ticket.update({
+          where: { id: activeTicket.id },
+          data: { status: "ACKNOWLEDGED" }
+        });
+        return `✅ Ticket Acknowledged! Reply 'START' when you begin working on it.`;
+      }
+      
+      if (messageText.includes("START")) {
+        await prisma.ticket.update({
+          where: { id: activeTicket.id },
+          data: { status: "IN_PROGRESS" }
+        });
+        return `✅ Ticket In Progress. Reply 'RESOLVE' when the issue is fixed.`;
+      }
+
+      if (messageText.includes("RESOLVE") || messageText.includes("COMPLETE")) {
+        await prisma.ticket.update({
+          where: { id: activeTicket.id },
+          data: { status: "RESOLVED", resolvedAt: new Date() }
+        });
+        return `🌟 Great job, ${teamMember.name}! The ticket has been resolved.`;
+      }
+
+      return `You have an active ticket: ${activeTicket.description}\nReply ACCEPT, START, or RESOLVE.`;
+    }
+
+    // 3. Fallback to Housekeeping Tasks
     const activeTask = await prisma.housekeepingTask.findFirst({
       where: {
         OR: [
@@ -28,13 +66,13 @@ export async function handleWhatsAppAction(senderPhone: string, messageText: str
     });
 
     if (!activeTask) {
-      return `Hello ${teamMember.name}! You currently have no active tasks. Enjoy your break!`;
+      return `Hello ${teamMember.name}! You currently have no active tasks or tickets. Enjoy your break!`;
     }
 
-    // 3. Process the action based on keywords
+    // 4. Process Housekeeping Actions
     if (messageText.includes("ACCEPT")) {
       if (activeTask.status !== "PENDING") {
-        return `Task for Room ${activeTask.unit.name} is already accepted. Send START when you begin cleaning.`;
+        return `Task for Room ${activeTask.unit.name} is already accepted. Send COMPLETE when finished.`;
       }
       
       await prisma.housekeepingTask.update({
@@ -48,7 +86,7 @@ export async function handleWhatsAppAction(senderPhone: string, messageText: str
       return `✅ Task Accepted! You are now assigned to clean Room ${activeTask.unit.name}. Send COMPLETE when finished.`;
     } 
     
-    if (messageText.includes("COMPLETE")) {
+    if (messageText.includes("COMPLETE") || messageText.includes("RESOLVE")) {
       if (activeTask.status === "PENDING") {
         return `Please ACCEPT the task for Room ${activeTask.unit.name} first before completing it.`;
       }

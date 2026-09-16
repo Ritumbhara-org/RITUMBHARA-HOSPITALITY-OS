@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { TicketCategory, TicketPriority, ReporterType, TicketStatus } from "@prisma/client"
+import { eventBus } from "@/lib/events/bus"
 
 export async function createTicket(formData: FormData) {
   try {
@@ -83,7 +84,7 @@ export async function assignTicket(ticketId: string, teamMemberId: string) {
     // In real app, actorId is from session
     const actor = await prisma.teamMember.findFirst({ where: { role: "MANAGER" } })
     
-    await prisma.ticket.update({
+    const ticket = await prisma.ticket.update({
       where: { id: ticketId },
       data: {
         assignedToId: teamMemberId,
@@ -100,6 +101,15 @@ export async function assignTicket(ticketId: string, teamMemberId: string) {
       }
     })
     
+    await eventBus.emit('TICKET_ASSIGNED', {
+      ticketId: ticket.id,
+      assignedToId: teamMemberId,
+      propertyId: ticket.propertyId,
+      unitId: ticket.unitId,
+      priority: ticket.priority,
+      status: ticket.status
+    })
+
     revalidatePath("/operations")
     return { success: true }
   } catch (error: any) {
@@ -131,11 +141,20 @@ export async function updateTicketStatus(ticketId: string, newStatus: TicketStat
       updateData.closedAt = new Date()
     }
 
-    await prisma.ticket.update({
+    const ticket = await prisma.ticket.update({
       where: { id: ticketId },
       data: updateData
     })
     
+    await eventBus.emit('TICKET_UPDATED', {
+      ticketId: ticket.id,
+      assignedToId: ticket.assignedToId || undefined,
+      propertyId: ticket.propertyId,
+      unitId: ticket.unitId,
+      priority: ticket.priority,
+      status: ticket.status
+    })
+
     revalidatePath("/operations")
     return { success: true }
   } catch (error: any) {
