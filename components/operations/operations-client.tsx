@@ -163,15 +163,18 @@ function OperationsClientContent({
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="reporterType">Reporter</Label>
-                    <Select name="reporterType" defaultValue="TEAM">
+                    <Label htmlFor="assigneeId">Assign To (Optional)</Label>
+                    <Select name="assigneeId" defaultValue="unassigned">
                       <SelectTrigger className="rounded-xl">
-                        <SelectValue placeholder="Reporter" />
+                        <SelectValue placeholder="Select Assignee" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="GUEST">Guest</SelectItem>
-                        <SelectItem value="TEAM">Team Member</SelectItem>
-                        <SelectItem value="MANAGEMENT">Management</SelectItem>
+                        <SelectItem value="unassigned">Unassigned</SelectItem>
+                        {teamMembers.map((member) => (
+                          <SelectItem key={member.id} value={member.id}>
+                            {member.name} ({member.role})
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>

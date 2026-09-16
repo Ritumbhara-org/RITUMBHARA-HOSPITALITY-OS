@@ -11,40 +11,32 @@ export async function createTicket(formData: FormData) {
     const description = formData.get("description") as string
     const category = formData.get("category") as TicketCategory
     const priority = formData.get("priority") as TicketPriority
-    const reporterType = formData.get("reporterType") as ReporterType || "TEAM"
     
-    // In a real app, reporterId comes from the auth session.
+    // We removed reporterType from the form, default it to TEAM
+    const reporterType: ReporterType = "TEAM"
+    
     let defaultProperty = await prisma.property.findFirst()
     if (!defaultProperty) throw new Error("No property found")
 
-    let reporterId = ""
-    let guestId = null
-
-    if (reporterType === "GUEST") {
-      const guest = await prisma.guest.findFirst()
-      if (!guest) throw new Error("No guest found to act as reporter")
-      reporterId = guest.id
-      guestId = guest.id
-    } else {
-      let teamMember = await prisma.teamMember.findFirst({ where: { role: "MANAGER" } })
-      if (!teamMember) {
-         teamMember = await prisma.teamMember.findFirst()
-      }
-      if (!teamMember) throw new Error("No team member found to act as reporter")
-      reporterId = teamMember.id
+    let teamMember = await prisma.teamMember.findFirst({ where: { role: "MANAGER" } })
+    if (!teamMember) {
+       teamMember = await prisma.teamMember.findFirst()
     }
+    if (!teamMember) throw new Error("No team member found to act as reporter")
+    const reporterId = teamMember.id
 
     const unitId = formData.get("unitId") as string
+    const assigneeId = formData.get("assigneeId") as string
+    const isAssigned = assigneeId && assigneeId !== "unassigned"
 
     const fullDescription = `[${title}] ${description}`
 
-    // Calculate SLA deadline based on priority (Day 19 rules)
     const slaDeadline = new Date()
     switch(priority) {
-      case 'CRITICAL': slaDeadline.setMinutes(slaDeadline.getMinutes() + 30); break; // 30 min resolution
-      case 'HIGH': slaDeadline.setHours(slaDeadline.getHours() + 1); break; // 60 min resolution
-      case 'MEDIUM': slaDeadline.setHours(slaDeadline.getHours() + 2); break; // 2 hrs resolution
-      case 'LOW': slaDeadline.setHours(slaDeadline.getHours() + 24); break; // 24 hrs resolution
+      case 'CRITICAL': slaDeadline.setMinutes(slaDeadline.getMinutes() + 30); break;
+      case 'HIGH': slaDeadline.setHours(slaDeadline.getHours() + 1); break;
+      case 'MEDIUM': slaDeadline.setHours(slaDeadline.getHours() + 2); break;
+      case 'LOW': slaDeadline.setHours(slaDeadline.getHours() + 24); break;
     }
 
     const ticket = await prisma.ticket.create({
@@ -55,20 +47,32 @@ export async function createTicket(formData: FormData) {
         propertyId: defaultProperty.id,
         reporterId: reporterId,
         reporterType: reporterType,
-        guestId: guestId,
-        status: "OPEN",
+        status: isAssigned ? "ASSIGNED" : "OPEN",
+        assignedToId: isAssigned ? assigneeId : null,
         slaDeadline: slaDeadline,
         unitId: (!unitId || unitId === 'property') ? null : unitId,
         auditLogs: {
           create: {
-            action: "TICKET_CREATED",
+            action: isAssigned ? "TICKET_ASSIGNED" : "TICKET_CREATED",
             actorId: reporterId,
             actorType: reporterType,
-            toStatus: "OPEN"
+            toStatus: isAssigned ? "ASSIGNED" : "OPEN",
+            notes: isAssigned ? `Created and instantly assigned to team member ${assigneeId}` : undefined
           }
         }
       }
     })
+
+    if (isAssigned) {
+      await eventBus.emit('TICKET_ASSIGNED', {
+        ticketId: ticket.id,
+        assignedToId: assigneeId,
+        propertyId: ticket.propertyId,
+        unitId: ticket.unitId,
+        priority: ticket.priority,
+        status: ticket.status
+      })
+    }
 
     revalidatePath("/operations")
     revalidatePath("/dashboard")
