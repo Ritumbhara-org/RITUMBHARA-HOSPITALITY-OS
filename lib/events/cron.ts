@@ -74,10 +74,9 @@ export async function checkSlaBreaches() {
   try {
     const now = new Date();
     
-    // Find tickets that are not resolved, completed, or already escalated, and the deadline has passed
     const breachedTickets = await prisma.ticket.findMany({
       where: {
-        status: { notIn: ["RESOLVED", "COMPLETED", "ESCALATED"] },
+        status: { notIn: ["RESOLVED", "CLOSED", "ESCALATED"] },
         slaDeadline: { lt: now }
       },
       include: {

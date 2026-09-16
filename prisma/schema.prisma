@@ -46,6 +46,7 @@ enum TicketStatus {
   VERIFIED
   CLOSED
   REOPENED
+  ESCALATED
 }
 
 enum ReporterType {
