@@ -14,11 +14,12 @@ export function initWhatsAppListeners() {
 
       if (!guest?.phone) return;
 
+      // MUST EXACTLY MATCH TEMPLATE 1
       const messageContent = `Hi ${guest.name}, your booking for ${unit?.unit.name} is confirmed from ${payload.checkIn.toLocaleDateString()} to ${payload.checkOut.toLocaleDateString()}. We look forward to hosting you!`;
 
       await sendWhatsAppMessage(
         guest.phone,
-        'text', // Assuming text for sandbox, would be 'template' in prod
+        'template',
         messageContent,
         'booking_confirmation',
         'Reservation',
@@ -35,11 +36,12 @@ export function initWhatsAppListeners() {
       const guest = await prisma.guest.findUnique({ where: { id: payload.guestId } });
       if (!guest?.phone) return;
 
+      // MUST EXACTLY MATCH TEMPLATE 2
       const messageContent = `Welcome to Ritumbhara, ${guest.name}! You are now checked in. If you need anything during your stay, please reply to this message or contact the front desk. Enjoy your stay!`;
 
       await sendWhatsAppMessage(
         guest.phone,
-        'text',
+        'template',
         messageContent,
         'check_in_welcome',
         'Reservation',
@@ -60,7 +62,7 @@ export function initWhatsAppListeners() {
 
       await sendWhatsAppMessage(
         guest.phone,
-        'text',
+        'template',
         messageContent,
         'post_stay_thank_you',
         'Reservation',
@@ -81,11 +83,12 @@ export function initWhatsAppListeners() {
       });
       if (!guest?.phone) return;
 
-      const messageContent = `Hi ${guest.name}, we are excited to welcome you tomorrow for your stay in ${unit?.unit.name}! Please remember to bring a valid government ID for check-in. Here is our location pin: [Google Maps Link]`;
+      // MUST EXACTLY MATCH TEMPLATE 3
+      const messageContent = `Hi ${guest.name}, we are excited to welcome you tomorrow for your stay in ${unit?.unit.name}! Please remember to bring a valid government ID for check-in.`;
 
       await sendWhatsAppMessage(
         guest.phone,
-        'text',
+        'template',
         messageContent,
         'pre_arrival_instructions',
         'Reservation',
@@ -106,7 +109,7 @@ export function initWhatsAppListeners() {
 
       await sendWhatsAppMessage(
         guest.phone,
-        'text',
+        'template',
         messageContent,
         'checkout_instructions',
         'Reservation',
@@ -130,12 +133,12 @@ export function initWhatsAppListeners() {
       
       if (!teamMember?.whatsappNumber || !ticket) return;
 
-      const priorityLabel = ticket.priority === 'CRITICAL' || ticket.priority === 'HIGH' ? `[${ticket.priority}] ` : '';
-      const messageContent = `🔧 NEW TICKET ${priorityLabel}\nLocation: ${ticket.unit?.name || 'Property'}\nIssue: ${ticket.description}\n\nReply 'ACCEPT' to acknowledge.`;
+      // MUST EXACTLY MATCH TEMPLATE 4
+      const messageContent = `NEW TICKET\nLocation: ${ticket.unit?.name || 'Property'}\nIssue: ${ticket.description}\nPriority: ${ticket.priority}\n\nReply ACCEPT to acknowledge.`;
 
       await sendWhatsAppMessage(
         teamMember.whatsappNumber,
-        'text',
+        'template',
         messageContent,
         'ticket_assigned',
         'Ticket',
@@ -168,11 +171,12 @@ export function initWhatsAppListeners() {
       for (const manager of managers) {
         if (!manager.whatsappNumber) continue;
 
-        const messageContent = `🚨 SLA BREACH ALERT 🚨\n\nTicket: ${payload.description}\nPriority: ${payload.priority}\nLocation: ${location}\nAssigned To: ${assigneeName}\n\nThis ticket has breached its SLA deadline! Immediate management intervention required.`;
+        // MUST EXACTLY MATCH TEMPLATE 5
+        const messageContent = `SLA BREACH ALERT\nTicket: ${payload.description}\nPriority: ${payload.priority}\nLocation: ${location}\nAssigned To: ${assigneeName}\n\nImmediate management intervention required.`;
 
         await sendWhatsAppMessage(
           manager.whatsappNumber,
-          'text',
+          'template',
           messageContent,
           'sla_breach_alert',
           'Ticket',
