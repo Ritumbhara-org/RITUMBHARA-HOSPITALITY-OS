@@ -22,9 +22,20 @@ export async function sendWhatsAppMessage(
     } else {
       const client = twilio(accountSid, authToken);
 
-      // Always strip spaces and non-numeric characters (except leading +)
-      const cleanToPhone = '+' + toPhone.replace(/\D/g, '');
-      const cleanFromPhone = '+' + fromNumber.replace(/\D/g, '');
+      // Clean non-numeric characters
+      let numericToPhone = toPhone.replace(/\D/g, '');
+      let numericFromPhone = fromNumber.replace(/\D/g, '');
+
+      // Assume Indian country code (+91) if it's exactly 10 digits
+      if (numericToPhone.length === 10) {
+        numericToPhone = '91' + numericToPhone;
+      }
+      if (numericFromPhone.length === 10) {
+        numericFromPhone = '91' + numericFromPhone;
+      }
+
+      const cleanToPhone = '+' + numericToPhone;
+      const cleanFromPhone = '+' + numericFromPhone;
       
       const formattedTo = `whatsapp:${cleanToPhone}`;
       const formattedFrom = `whatsapp:${cleanFromPhone}`;
