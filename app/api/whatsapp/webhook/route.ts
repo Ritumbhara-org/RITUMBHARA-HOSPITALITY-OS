@@ -22,12 +22,30 @@ export async function POST(req: Request) {
 
     console.log(`[Twilio Webhook] Received message from ${senderPhone}: ${messageText}`);
 
+    // Log the inbound message
+    await prisma.whatsAppMessage.create({
+      data: {
+        direction: 'INBOUND',
+        from: from, // Keep original from
+        to: process.env.TWILIO_WHATSAPP_NUMBER || 'SYSTEM',
+        messageType: 'text',
+        content: messageText,
+        status: 'RECEIVED'
+      }
+    });
+
     // Process the action (ACCEPT, START, COMPLETE)
     const responseMessage = await handleWhatsAppAction(senderPhone, messageText);
 
+    // If no response is needed (e.g., standard guest chat), return an empty response
+    if (!responseMessage) {
+      return new NextResponse("<Response></Response>", {
+        status: 200,
+        headers: { "Content-Type": "text/xml" },
+      });
+    }
+
     // Twilio allows us to respond directly to the webhook using TwiML (XML)
-    // This perfectly bypasses any API session issues because Twilio guarantees
-    // synchronous webhook replies are authorized!
     const twimlResponse = `
       <Response>
         <Message>${responseMessage}</Message>

@@ -12,7 +12,8 @@ export async function handleWhatsAppAction(senderPhone: string, messageText: str
     );
 
     if (!teamMember) {
-      return "You are not registered as an active team member in Ritumbhara OS.";
+      // Return null so we don't spam regular guests with an error message
+      return null;
     }
 
     // 2. Look for active TICKETS first
@@ -50,7 +51,11 @@ export async function handleWhatsAppAction(senderPhone: string, messageText: str
         return `🌟 Great job, ${teamMember.name}! The ticket has been resolved.`;
       }
 
-      return `You have an active ticket: ${activeTicket.description}\nReply ACCEPT, START, or RESOLVE.`;
+      const isActionCommand = ["ACCEPT", "START", "RESOLVE", "COMPLETE"].some(cmd => messageText.includes(cmd));
+      if (isActionCommand) {
+        return `You have an active ticket: ${activeTicket.description}\nReply ACCEPT, START, or RESOLVE.`;
+      }
+      return null;
     }
 
     // 3. Fallback to Housekeeping Tasks
@@ -66,7 +71,13 @@ export async function handleWhatsAppAction(senderPhone: string, messageText: str
     });
 
     if (!activeTask) {
-      return `Hello ${teamMember.name}! You currently have no active tasks or tickets. Enjoy your break!`;
+      // If they explicitly typed a command, we can tell them they have no tasks.
+      // Otherwise, return null so they can chat normally as a guest.
+      const isActionCommand = ["ACCEPT", "START", "RESOLVE", "COMPLETE"].some(cmd => messageText.includes(cmd));
+      if (isActionCommand) {
+        return `Hello ${teamMember.name}! You currently have no active tasks or tickets. Enjoy your break!`;
+      }
+      return null;
     }
 
     // 4. Process Housekeeping Actions
@@ -109,11 +120,20 @@ export async function handleWhatsAppAction(senderPhone: string, messageText: str
       return `🌟 Amazing work, ${teamMember.name}! Room ${activeTask.unit.name} is now marked as READY in the system.`;
     }
 
-    // Default Fallback
-    return `Hello ${teamMember.name}! You have a pending task for Room ${activeTask.unit.name}.\nReply ACCEPT to assign it to yourself.\nReply COMPLETE when finished.`;
+    // 5. Default Fallback
+    // Only send the fallback if they sent an unrecognized command that might have been a typo,
+    // or just return null to ignore normal chat messages so they can chat as a guest.
+    const isActionCommand = ["ACCEPT", "START", "RESOLVE", "COMPLETE"].some(cmd => messageText.includes(cmd));
+    
+    if (isActionCommand) {
+       return `Command not recognized for your current task status. Please check your active task.`;
+    }
+
+    // Return null to ignore regular text messages (allows them to act as a guest)
+    return null;
 
   } catch (error) {
     console.error("[Action Handler Error]", error);
-    return "An error occurred while processing your request. Please contact the front desk.";
+    return null;
   }
 }
