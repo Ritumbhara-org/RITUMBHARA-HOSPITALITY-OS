@@ -76,6 +76,17 @@ export function initWhatsAppListeners() {
   // 4. Pre-arrival Instructions
   eventBus.on<BookingEventPayload>('UPCOMING_CHECK_IN', async (payload) => {
     try {
+      // Check if message already sent
+      const existingMsg = await prisma.whatsAppMessage.findFirst({
+        where: {
+          templateName: 'pre_arrival_instructions',
+          relatedEntityId: payload.reservationId,
+          status: { not: 'FAILED' } // If it failed previously, we might want to retry, otherwise skip
+        }
+      });
+      
+      if (existingMsg) return;
+
       const guest = await prisma.guest.findUnique({ where: { id: payload.guestId } });
       const unit = await prisma.reservation.findUnique({ 
         where: { id: payload.reservationId },
@@ -84,7 +95,7 @@ export function initWhatsAppListeners() {
       if (!guest?.phone) return;
 
       // MUST EXACTLY MATCH TEMPLATE 3
-      const messageContent = `Hi ${guest.name}, we are excited to welcome you tomorrow for your stay in ${unit?.unit.name}! Please remember to bring a valid government ID for check-in.`;
+      const messageContent = `Hi ${guest.name}, we are excited to welcome you tomorrow for your stay in ${unit?.unit?.name || 'our property'}! Please remember to bring a valid government ID for check-in.`;
 
       await sendWhatsAppMessage(
         guest.phone,
@@ -102,6 +113,17 @@ export function initWhatsAppListeners() {
   // 5. Checkout Instructions
   eventBus.on<BookingEventPayload>('UPCOMING_CHECK_OUT', async (payload) => {
     try {
+      // Check if message already sent
+      const existingMsg = await prisma.whatsAppMessage.findFirst({
+        where: {
+          templateName: 'checkout_instructions',
+          relatedEntityId: payload.reservationId,
+          status: { not: 'FAILED' }
+        }
+      });
+      
+      if (existingMsg) return;
+
       const guest = await prisma.guest.findUnique({ where: { id: payload.guestId } });
       if (!guest?.phone) return;
 
