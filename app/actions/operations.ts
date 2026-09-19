@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { TicketCategory, TicketPriority, ReporterType, TicketStatus } from "@prisma/client"
 import { eventBus } from "@/lib/events/bus"
+import { assignTicketRoundRobin } from "@/lib/operations/round-robin"
+import { sendWhatsAppMessage } from "@/lib/whatsapp/client"
 
 export async function createTicket(formData: FormData) {
   try {
@@ -27,7 +29,7 @@ export async function createTicket(formData: FormData) {
 
     const unitId = formData.get("unitId") as string
     const assigneeId = formData.get("assigneeId") as string
-    const isAssigned = assigneeId && assigneeId !== "unassigned"
+    const isManuallyAssigned = assigneeId && assigneeId !== "unassigned"
 
     const fullDescription = `[${title}] ${description}`
 
@@ -47,23 +49,35 @@ export async function createTicket(formData: FormData) {
         propertyId: defaultProperty.id,
         reporterId: reporterId,
         reporterType: reporterType,
-        status: isAssigned ? "ASSIGNED" : "OPEN",
-        assignedToId: isAssigned ? assigneeId : null,
+        status: isManuallyAssigned ? "ASSIGNED" : "OPEN", // Will be updated if round-robin assigns it
+        assignedToId: isManuallyAssigned ? assigneeId : null,
         slaDeadline: slaDeadline,
         unitId: (!unitId || unitId === 'property') ? null : unitId,
         auditLogs: {
           create: {
-            action: isAssigned ? "TICKET_ASSIGNED" : "TICKET_CREATED",
+            action: isManuallyAssigned ? "TICKET_ASSIGNED" : "TICKET_CREATED",
             actorId: reporterId,
             actorType: reporterType,
-            toStatus: isAssigned ? "ASSIGNED" : "OPEN",
-            notes: isAssigned ? `Created and instantly assigned to team member ${assigneeId}` : undefined
+            toStatus: isManuallyAssigned ? "ASSIGNED" : "OPEN",
+            notes: isManuallyAssigned ? `Created and manually assigned to team member ${assigneeId}` : undefined
           }
         }
       }
     })
 
-    if (isAssigned) {
+    if (isManuallyAssigned) {
+      const assignedMember = await prisma.teamMember.findUnique({ where: { id: assigneeId } });
+      if (assignedMember) {
+        await sendWhatsAppMessage(
+          assignedMember.whatsappNumber,
+          'text',
+          `🚨 *New Task Assigned* 🚨\n\n*Ticket:* ${ticket.description}\n*Location:* ${ticket.unitId || 'Property'}\n\nReply *ACCEPT* to acknowledge.`,
+          undefined,
+          'ticket',
+          ticket.id
+        );
+      }
+
       await eventBus.emit('TICKET_ASSIGNED', {
         ticketId: ticket.id,
         assignedToId: assigneeId,
@@ -72,6 +86,9 @@ export async function createTicket(formData: FormData) {
         priority: ticket.priority,
         status: ticket.status
       })
+    } else {
+      // Auto-assign via Round Robin if no specific assignee was selected
+      await assignTicketRoundRobin(ticket.id);
     }
 
     revalidatePath("/operations")
@@ -88,22 +105,35 @@ export async function assignTicket(ticketId: string, teamMemberId: string) {
     // In real app, actorId is from session
     const actor = await prisma.teamMember.findFirst({ where: { role: "MANAGER" } })
     
+    const assignedMember = await prisma.teamMember.findUnique({ where: { id: teamMemberId } });
+    if (!assignedMember) throw new Error("Team member not found");
+
     const ticket = await prisma.ticket.update({
       where: { id: ticketId },
       data: {
         assignedToId: teamMemberId,
         status: "ASSIGNED",
+        updatedAt: new Date(),
         auditLogs: {
           create: {
             action: "TICKET_ASSIGNED",
             actorId: actor?.id || "system",
             actorType: "MANAGEMENT",
             toStatus: "ASSIGNED",
-            notes: `Assigned to team member ${teamMemberId}`
+            notes: `Manually reassigned to ${assignedMember.name}`
           }
         }
       }
     })
+
+    await sendWhatsAppMessage(
+      assignedMember.whatsappNumber,
+      'text',
+      `🚨 *Ticket Reassigned To You* 🚨\n\n*Ticket:* ${ticket.description}\n*Location:* ${ticket.unitId || 'Property'}\n\nReply *ACCEPT* to acknowledge.`,
+      undefined,
+      'ticket',
+      ticket.id
+    );
     
     await eventBus.emit('TICKET_ASSIGNED', {
       ticketId: ticket.id,

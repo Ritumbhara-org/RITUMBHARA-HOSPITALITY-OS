@@ -9,7 +9,10 @@ export default async function OperationsPage() {
       property: true,
       unit: true,
       guest: true,
-      assignedTo: true
+      assignedTo: true,
+      auditLogs: {
+        orderBy: { createdAt: 'desc' }
+      }
     },
     orderBy: {
       createdAt: 'desc'
@@ -22,11 +25,11 @@ export default async function OperationsPage() {
     select: { id: true, name: true }
   })
 
-  // Fetch team members for assignment
+  // Fetch team members for assignment (need propertyId and department for round-robin/filtering)
   const teamMembers = await prisma.teamMember.findMany({
     where: { isActive: true },
     orderBy: { name: 'asc' },
-    select: { id: true, name: true, role: true }
+    select: { id: true, name: true, role: true, propertyId: true, department: true }
   })
 
   // Calculate stats

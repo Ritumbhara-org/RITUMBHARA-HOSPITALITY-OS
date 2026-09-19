@@ -2,9 +2,24 @@ import { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { updateTicketStatus, assignTicket } from "@/app/actions/operations"
-import { formatDistanceToNow, isPast } from "date-fns"
-import { AlertCircle, Clock, CheckCircle2, User, Wrench, Building } from "lucide-react"
+import { formatDistanceToNow, isPast, addMinutes, differenceInMinutes } from "date-fns"
+import { AlertCircle, Clock, CheckCircle2, User, Wrench, Building, History, TimerReset } from "lucide-react"
 import { TicketStatus } from "@prisma/client"
+import { format } from "date-fns"
+
+function mapCategoryToDepartment(category: string): string {
+  switch (category) {
+    case "HOUSEKEEPING": return "Housekeeping";
+    case "MAINTENANCE": return "Maintenance";
+    case "GUEST_REQUEST": return "Front Desk";
+    case "GUEST_COMPLAINT": return "Management";
+    case "INVENTORY": return "Inventory";
+    case "IT_SYSTEM": return "IT";
+    case "PROPERTY": return "Property";
+    case "SAFETY": return "Security";
+    default: return "General";
+  }
+}
 
 export function TicketDetailsModal({ 
   ticket, 
@@ -45,9 +60,24 @@ export function TicketDetailsModal({
     }
   }
 
+  // Filter team members by property and department
+  const expectedDepartment = mapCategoryToDepartment(ticket.category);
+  const eligibleMembers = teamMembers.filter(m => 
+    m.propertyId === ticket.propertyId && 
+    m.department?.toLowerCase() === expectedDepartment.toLowerCase()
+  );
+
+  // Calculate timeout for ASSIGNED status
+  let timeoutMinutesLeft = 0;
+  if (ticket.status === 'ASSIGNED' && ticket.updatedAt) {
+     const assignedAt = new Date(ticket.updatedAt);
+     const timeoutAt = addMinutes(assignedAt, 10);
+     timeoutMinutesLeft = differenceInMinutes(timeoutAt, new Date());
+  }
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[600px] rounded-2xl">
+      <DialogContent className="sm:max-w-[700px] max-h-[85vh] overflow-y-auto rounded-2xl">
         <DialogHeader>
           <div className="flex justify-between items-start pr-6">
             <div>
@@ -56,6 +86,19 @@ export function TicketDetailsModal({
                   {ticket.priority}
                 </span>
                 <span className="text-xs text-muted-foreground font-mono">#{ticket.id.substring(ticket.id.length - 4)}</span>
+                
+                {ticket.status === 'ASSIGNED' && timeoutMinutesLeft > 0 && (
+                  <span className="flex items-center gap-1 px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider rounded-lg border bg-amber-500/10 text-amber-600 border-amber-500/20">
+                    <TimerReset className="w-3.5 h-3.5" />
+                    Timeout in {timeoutMinutesLeft}m
+                  </span>
+                )}
+                {ticket.status === 'ASSIGNED' && timeoutMinutesLeft <= 0 && (
+                  <span className="flex items-center gap-1 px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider rounded-lg border bg-red-500/10 text-red-600 border-red-500/20">
+                    <TimerReset className="w-3.5 h-3.5" />
+                    Escalating Soon
+                  </span>
+                )}
               </div>
               <DialogTitle className="text-xl font-bold">{ticket.description.match(/\[(.*?)\]/)?.[1] || ticket.category}</DialogTitle>
             </div>
@@ -93,16 +136,21 @@ export function TicketDetailsModal({
             <h4 className="font-semibold text-sm">Ticket Management</h4>
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <label className="text-xs font-medium text-muted-foreground">Assignee</label>
+                <label className="text-xs font-medium text-muted-foreground">
+                  Assignee <span className="italic opacity-60">({expectedDepartment})</span>
+                </label>
                 <Select disabled={isUpdating} value={ticket.assignedToId || "unassigned"} onValueChange={handleAssignmentChange}>
                   <SelectTrigger className="rounded-xl">
                     <SelectValue placeholder="Select team member" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="unassigned" className="text-muted-foreground italic">Unassigned</SelectItem>
-                    {teamMembers.map((member) => (
+                    {eligibleMembers.map((member) => (
                       <SelectItem key={member.id} value={member.id}>{member.name} ({member.role})</SelectItem>
                     ))}
+                    {eligibleMembers.length === 0 && (
+                      <div className="px-2 py-2 text-xs text-muted-foreground italic">No members found in {expectedDepartment}</div>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -126,6 +174,36 @@ export function TicketDetailsModal({
               </div>
             </div>
           </div>
+          
+          {/* Audit Logs Timeline */}
+          {ticket.auditLogs && ticket.auditLogs.length > 0 && (
+            <div className="pt-4 border-t border-border/40">
+              <h4 className="font-semibold text-sm flex items-center gap-2 mb-4">
+                <History className="w-4 h-4 text-muted-foreground" />
+                History & Audit Logs
+              </h4>
+              <div className="space-y-4 pl-2 border-l-2 border-muted relative">
+                {ticket.auditLogs.map((log: any, idx: number) => (
+                  <div key={log.id} className="relative pl-4">
+                    {/* Timeline dot */}
+                    <div className="absolute -left-[21px] top-1.5 w-2 h-2 rounded-full bg-primary ring-4 ring-background" />
+                    
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-medium">{log.action.replace(/_/g, ' ')}</span>
+                        <span className="text-muted-foreground">{format(new Date(log.createdAt), 'MMM d, h:mm a')}</span>
+                      </div>
+                      {log.notes && (
+                        <p className="text-xs text-muted-foreground bg-muted/40 p-2 rounded-md mt-1">
+                          {log.notes}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           
           <div className="pt-2 border-t border-border/40">
              <div className="flex items-center gap-2 text-xs text-muted-foreground">
