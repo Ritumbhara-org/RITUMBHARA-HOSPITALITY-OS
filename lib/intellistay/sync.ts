@@ -137,7 +137,20 @@ export async function syncBookings() {
           where: { intellistayReservationId: intellistayBookingId }
         });
 
+        // Determine if we should update the status based on progression
+        let finalStatus = status;
+        
         if (existingRes) {
+          const currentStatus = existingRes.status;
+          
+          // Prevent regression from local advanced states (CHECKED_IN / CHECKED_OUT) back to CONFIRMED
+          if (
+            (currentStatus === 'CHECKED_IN' || currentStatus === 'CHECKED_OUT') &&
+            status === 'CONFIRMED'
+          ) {
+            finalStatus = currentStatus; // Keep local status
+          }
+
           const updatedRes = await prisma.reservation.update({
             where: { id: existingRes.id },
             data: {
@@ -145,7 +158,7 @@ export async function syncBookings() {
               unitId,
               checkIn: checkInDate,
               checkOut: checkOutDate,
-              status,
+              status: finalStatus,
               totalAmount,
               bookingNotes
             }
