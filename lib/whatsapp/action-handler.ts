@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 
-export async function handleWhatsAppAction(senderPhone: string, messageText: string): Promise<string> {
+export async function handleWhatsAppAction(senderPhone: string, messageText: string): Promise<string | null> {
   try {
     // 1. Identify the Team Member by their WhatsApp number (ignoring spaces)
     const members = await prisma.teamMember.findMany({
