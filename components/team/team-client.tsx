@@ -1,18 +1,27 @@
 "use client";
 
-import { useState } from "react";
-import { TeamMember } from "@prisma/client";
-import { Users, Plus, Edit2, Trash2 } from "lucide-react";
+import { useState, useMemo } from "react";
+import { TeamMember, Property } from "@prisma/client";
+import { Users, Plus, Edit2, Trash2, MapPin } from "lucide-react";
 import { TeamModal } from "./team-modal";
 import { deleteTeamMember } from "@/app/actions/team";
 
+type TeamMemberWithProperty = TeamMember & { property?: Property };
+
 interface TeamClientProps {
-  initialMembers: TeamMember[];
+  initialMembers: TeamMemberWithProperty[];
+  properties: Property[];
 }
 
-export function TeamClient({ initialMembers }: TeamClientProps) {
+export function TeamClient({ initialMembers, properties }: TeamClientProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
+  const [locationFilter, setLocationFilter] = useState<string>("ALL");
+
+  const filteredMembers = useMemo(() => {
+    if (locationFilter === "ALL") return initialMembers;
+    return initialMembers.filter(m => m.propertyId === locationFilter);
+  }, [initialMembers, locationFilter]);
 
   const handleEdit = (member: TeamMember) => {
     setSelectedMember(member);
@@ -41,13 +50,28 @@ export function TeamClient({ initialMembers }: TeamClientProps) {
           </h1>
           <p className="text-gray-500 mt-1">Manage staff, roles, and WhatsApp automation numbers.</p>
         </div>
-        <button
-          onClick={handleAddNew}
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm shadow-primary/20 transition-all duration-200 hover:bg-primary/90 hover:shadow-md hover:shadow-primary/25 active:scale-[0.98]"
-        >
-          <Plus className="w-5 h-5" />
-          Add Team Member
-        </button>
+        <div className="flex items-center gap-4">
+          <div className="relative">
+            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <select
+              value={locationFilter}
+              onChange={(e) => setLocationFilter(e.target.value)}
+              className="pl-9 pr-8 py-2 rounded-xl border border-gray-200 bg-white text-sm font-medium focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 outline-none appearance-none"
+            >
+              <option value="ALL">All Locations</option>
+              {properties.map(p => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+          </div>
+          <button
+            onClick={handleAddNew}
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm shadow-primary/20 transition-all duration-200 hover:bg-primary/90 hover:shadow-md hover:shadow-primary/25 active:scale-[0.98]"
+          >
+            <Plus className="w-5 h-5" />
+            Add Team Member
+          </button>
+        </div>
       </div>
 
       {/* Data Table */}
@@ -57,6 +81,7 @@ export function TeamClient({ initialMembers }: TeamClientProps) {
             <thead className="bg-gray-50 text-gray-600 font-medium border-b border-gray-100">
               <tr>
                 <th className="px-6 py-4">Name</th>
+                <th className="px-6 py-4">Location</th>
                 <th className="px-6 py-4">Department & Role</th>
                 <th className="px-6 py-4">WhatsApp Number</th>
                 <th className="px-6 py-4">Status</th>
@@ -64,17 +89,20 @@ export function TeamClient({ initialMembers }: TeamClientProps) {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {initialMembers.length === 0 ? (
+              {filteredMembers.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
-                    No team members found. Click "Add Team Member" to create one.
+                  <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                    No team members found for this location.
                   </td>
                 </tr>
               ) : (
-                initialMembers.map((member) => (
+                filteredMembers.map((member) => (
                   <tr key={member.id} className="hover:bg-gray-50/50 transition-colors">
                     <td className="px-6 py-4 font-medium text-gray-900">
                       {member.name}
+                    </td>
+                    <td className="px-6 py-4 text-gray-600 font-medium">
+                      {member.property?.name || "Unassigned"}
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-col">
@@ -131,6 +159,7 @@ export function TeamClient({ initialMembers }: TeamClientProps) {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         member={selectedMember}
+        properties={properties}
       />
     </div>
   );

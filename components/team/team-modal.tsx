@@ -1,182 +1,222 @@
 "use client";
 
-import { useState } from "react";
-import { TeamMember } from "@prisma/client";
+import { useState, useRef, useEffect } from "react";
+import { TeamMember, Property } from "@prisma/client";
+import { X, Loader2 } from "lucide-react";
 import { createTeamMember, updateTeamMember } from "@/app/actions/team";
-import { X } from "lucide-react";
 
 interface TeamModalProps {
   isOpen: boolean;
   onClose: () => void;
   member?: TeamMember | null;
+  properties: Property[];
 }
 
-export function TeamModal({ isOpen, onClose, member }: TeamModalProps) {
-  const [isSubmitting, setIsSubmitting] = useState(false);
+export function TeamModal({ isOpen, onClose, member, properties }: TeamModalProps) {
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    if (isOpen) setError(null);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
-  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setIsSubmitting(true);
+    setIsLoading(true);
     setError(null);
 
     const formData = new FormData(e.currentTarget);
-    const data = {
-      name: formData.get("name") as string,
-      phone: formData.get("phone") as string,
-      whatsappNumber: formData.get("whatsappNumber") as string,
-      role: formData.get("role") as string,
-      department: formData.get("department") as string,
-      isActive: formData.get("isActive") === "on",
-    };
+    
+    // Convert boolean value
+    formData.set("isActive", formData.get("isActive") === "true" ? "true" : "false");
 
-    let result;
+    let res;
     if (member) {
-      result = await updateTeamMember(member.id, data);
+      res = await updateTeamMember(member.id, formData);
     } else {
-      result = await createTeamMember(data);
+      res = await createTeamMember(formData);
     }
 
-    setIsSubmitting(false);
+    setIsLoading(false);
 
-    if (result.success) {
-      onClose();
+    if (!res.success) {
+      setError(res.error || "Failed to save team member");
     } else {
-      setError(result.error);
+      onClose();
     }
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="w-full max-w-md bg-white rounded-xl shadow-2xl overflow-hidden">
-        <div className="flex items-center justify-between p-6 border-b border-gray-100">
-          <h2 className="text-xl font-semibold text-gray-900">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm transition-all duration-300">
+      <div 
+        className="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-200"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex justify-between items-center px-8 py-6 border-b border-gray-100 bg-white/50">
+          <h2 className="text-xl font-bold text-gray-900 tracking-tight">
             {member ? "Edit Team Member" : "Add Team Member"}
           </h2>
-          <button
+          <button 
             onClick={onClose}
-            className="p-2 text-gray-400 hover:text-gray-600 transition-colors rounded-lg hover:bg-gray-100"
+            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors active:scale-95"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={onSubmit} className="p-6 space-y-4">
+        <div className="overflow-y-auto flex-1 p-8">
           {error && (
-            <div className="p-3 text-sm text-red-600 bg-red-50 rounded-lg">
-              {error}
+            <div className="mb-6 p-4 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100 flex items-start gap-3">
+              <div className="p-1 bg-red-100 rounded-full">
+                <X className="w-3 h-3 text-red-600" />
+              </div>
+              <p className="pt-0.5 leading-tight">{error}</p>
             </div>
           )}
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Full Name
-            </label>
-            <input
-              type="text"
-              name="name"
-              required
-              defaultValue={member?.name}
-              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-colors"
-              placeholder="e.g. Rahul Sharma"
-            />
-          </div>
+          <form ref={formRef} id="teamForm" onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid grid-cols-2 gap-6">
+              <div className="col-span-2">
+                <label htmlFor="name" className="block text-sm font-semibold text-gray-700 mb-2">
+                  Full Name
+                </label>
+                <input
+                  type="text"
+                  name="name"
+                  id="name"
+                  required
+                  defaultValue={member?.name}
+                  placeholder="e.g. John Doe"
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 transition-all outline-none text-gray-900 placeholder:text-gray-400 font-medium"
+                />
+              </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Phone Number
-              </label>
-              <input
-                type="text"
-                name="phone"
-                required
-                defaultValue={member?.phone}
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-colors"
-                placeholder="+91..."
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                WhatsApp Number
-              </label>
-              <input
-                type="text"
-                name="whatsappNumber"
-                required
-                defaultValue={member?.whatsappNumber}
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-colors"
-                placeholder="+91..."
-              />
-            </div>
-          </div>
+              <div>
+                <label htmlFor="phone" className="block text-sm font-semibold text-gray-700 mb-2">
+                  Phone Number
+                </label>
+                <input
+                  type="tel"
+                  name="phone"
+                  id="phone"
+                  required
+                  defaultValue={member?.phone}
+                  placeholder="+91..."
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 transition-all outline-none text-gray-900 placeholder:text-gray-400"
+                />
+              </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Role
-              </label>
-              <select
-                name="role"
-                required
-                defaultValue={member?.role || "STAFF"}
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-colors bg-white"
-              >
-                <option value="STAFF">Staff</option>
-                <option value="MANAGER">Manager</option>
-                <option value="ADMIN">Admin</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Department
-              </label>
-              <select
-                name="department"
-                required
-                defaultValue={member?.department || "HOUSEKEEPING"}
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-colors bg-white"
-              >
-                <option value="HOUSEKEEPING">Housekeeping</option>
-                <option value="MAINTENANCE">Maintenance</option>
-                <option value="FRONT_DESK">Front Desk</option>
-                <option value="MANAGEMENT">Management</option>
-              </select>
-            </div>
-          </div>
+              <div>
+                <label htmlFor="whatsappNumber" className="block text-sm font-semibold text-gray-700 mb-2">
+                  WhatsApp Number
+                </label>
+                <input
+                  type="tel"
+                  name="whatsappNumber"
+                  id="whatsappNumber"
+                  required
+                  defaultValue={member?.whatsappNumber}
+                  placeholder="+91..."
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 transition-all outline-none text-gray-900 placeholder:text-gray-400 font-mono text-sm"
+                />
+              </div>
 
-          <div className="flex items-center gap-2 pt-2">
-            <input
-              type="checkbox"
-              id="isActive"
-              name="isActive"
-              defaultChecked={member ? member.isActive : true}
-              className="w-4 h-4 text-rose-600 rounded border-gray-300 focus:ring-rose-500"
-            />
-            <label htmlFor="isActive" className="text-sm text-gray-700">
-              Active Member
-            </label>
-          </div>
+              <div className="col-span-2">
+                <label htmlFor="propertyId" className="block text-sm font-semibold text-gray-700 mb-2">
+                  Assigned Location / Property
+                </label>
+                <select
+                  name="propertyId"
+                  id="propertyId"
+                  required
+                  defaultValue={member?.propertyId || ""}
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 transition-all outline-none text-gray-900 appearance-none"
+                >
+                  <option value="" disabled>Select a location...</option>
+                  {properties.map(p => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
 
-          <div className="pt-4 flex gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2 text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-lg font-medium transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="flex-1 px-4 py-2 text-white bg-rose-600 hover:bg-rose-700 rounded-lg font-medium transition-colors disabled:opacity-50"
-            >
-              {isSubmitting ? "Saving..." : member ? "Update Member" : "Add Member"}
-            </button>
-          </div>
-        </form>
+              <div>
+                <label htmlFor="department" className="block text-sm font-semibold text-gray-700 mb-2">
+                  Department
+                </label>
+                <select
+                  name="department"
+                  id="department"
+                  required
+                  defaultValue={member?.department || "HOUSEKEEPING"}
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 transition-all outline-none text-gray-900 appearance-none"
+                >
+                  <option value="HOUSEKEEPING">Housekeeping</option>
+                  <option value="MAINTENANCE">Maintenance</option>
+                  <option value="FRONT_DESK">Front Desk</option>
+                  <option value="MANAGEMENT">Management</option>
+                  <option value="IT">IT Support</option>
+                </select>
+              </div>
+
+              <div>
+                <label htmlFor="role" className="block text-sm font-semibold text-gray-700 mb-2">
+                  Role
+                </label>
+                <select
+                  name="role"
+                  id="role"
+                  required
+                  defaultValue={member?.role || "STAFF"}
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 transition-all outline-none text-gray-900 appearance-none"
+                >
+                  <option value="STAFF">Staff</option>
+                  <option value="SUPERVISOR">Supervisor</option>
+                  <option value="MANAGER">Manager</option>
+                  <option value="ADMIN">Admin</option>
+                </select>
+              </div>
+
+              <div className="col-span-2">
+                <label htmlFor="isActive" className="block text-sm font-semibold text-gray-700 mb-2">
+                  Status
+                </label>
+                <select
+                  name="isActive"
+                  id="isActive"
+                  required
+                  defaultValue={member ? (member.isActive ? "true" : "false") : "true"}
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 transition-all outline-none text-gray-900 appearance-none"
+                >
+                  <option value="true">Active (Receives Tickets)</option>
+                  <option value="false">Inactive (Off Duty)</option>
+                </select>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <div className="p-6 border-t border-gray-100 bg-gray-50/80 flex justify-end gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-6 py-2.5 text-sm font-semibold text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-colors active:scale-95"
+            disabled={isLoading}
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            form="teamForm"
+            disabled={isLoading}
+            className="inline-flex items-center justify-center gap-2 px-6 py-2.5 text-sm font-semibold text-white bg-gray-900 rounded-xl hover:bg-gray-800 transition-all active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed shadow-sm hover:shadow"
+          >
+            {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+            {member ? "Save Changes" : "Add Member"}
+          </button>
+        </div>
       </div>
     </div>
   );

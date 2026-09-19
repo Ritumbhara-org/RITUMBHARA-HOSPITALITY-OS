@@ -9,15 +9,10 @@ export async function createUnit(formData: FormData) {
     const type = formData.get("type") as string
     const floor = formData.get("floor") as string
     const capacityStr = formData.get("capacity") as string
+    const propertyId = formData.get("propertyId") as string
     
-    if (!name || !type) {
-      throw new Error("Name and Type are required fields.")
-    }
-
-    // In a real app, this would come from auth context
-    const defaultProperty = await prisma.property.findFirst()
-    if (!defaultProperty) {
-      throw new Error("System not fully initialized (missing property).")
+    if (!name || !type || !propertyId) {
+      throw new Error("Location, Name and Type are required fields.")
     }
 
     const unit = await prisma.unit.create({
@@ -27,7 +22,7 @@ export async function createUnit(formData: FormData) {
         floor: floor || "1",
         capacity: parseInt(capacityStr) || 2,
         status: "AVAILABLE",
-        propertyId: defaultProperty.id
+        propertyId
       }
     })
 

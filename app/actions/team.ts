@@ -3,26 +3,24 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
-export async function createTeamMember(data: {
-  name: string;
-  phone: string;
-  whatsappNumber: string;
-  role: string;
-  department: string;
-  isActive: boolean;
-}) {
+export async function createTeamMember(formData: FormData) {
   try {
-    // For V1, we auto-assign to the first property found
-    const property = await prisma.property.findFirst();
-    if (!property) {
-      throw new Error("No property exists in the system yet. Please create a property first.");
+    const data = {
+      name: formData.get("name") as string,
+      phone: formData.get("phone") as string,
+      whatsappNumber: formData.get("whatsappNumber") as string,
+      role: formData.get("role") as string,
+      department: formData.get("department") as string,
+      isActive: formData.get("isActive") === "true",
+      propertyId: formData.get("propertyId") as string,
+    }
+
+    if (!data.propertyId) {
+      throw new Error("Location/Property is required.");
     }
 
     const teamMember = await prisma.teamMember.create({
-      data: {
-        ...data,
-        propertyId: property.id,
-      },
+      data,
     });
 
     revalidatePath("/team");
@@ -33,18 +31,22 @@ export async function createTeamMember(data: {
   }
 }
 
-export async function updateTeamMember(
-  id: string,
-  data: {
-    name: string;
-    phone: string;
-    whatsappNumber: string;
-    role: string;
-    department: string;
-    isActive: boolean;
-  }
-) {
+export async function updateTeamMember(id: string, formData: FormData) {
   try {
+    const data = {
+      name: formData.get("name") as string,
+      phone: formData.get("phone") as string,
+      whatsappNumber: formData.get("whatsappNumber") as string,
+      role: formData.get("role") as string,
+      department: formData.get("department") as string,
+      isActive: formData.get("isActive") === "true",
+      propertyId: formData.get("propertyId") as string,
+    }
+
+    if (!data.propertyId) {
+      throw new Error("Location/Property is required.");
+    }
+
     const teamMember = await prisma.teamMember.update({
       where: { id },
       data,
@@ -64,7 +66,7 @@ export async function deleteTeamMember(id: string) {
       where: { id },
     });
 
-    revalidatePath("/dashboard/team");
+    revalidatePath("/team");
     return { success: true };
   } catch (error: any) {
     console.error("[Team Action Error - Delete]", error);

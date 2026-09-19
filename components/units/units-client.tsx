@@ -1,8 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { motion } from "framer-motion"
-import { Search, Filter, Key, CheckCircle2, AlertTriangle, PenTool, LayoutGrid, List, Plus } from "lucide-react"
+import { Search, Filter, Key, CheckCircle2, AlertTriangle, PenTool, LayoutGrid, List, Plus, MapPin } from "lucide-react"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -19,23 +19,31 @@ type UnitStats = {
 
 export function UnitsClient({ 
   initialData, 
-  stats 
+  stats,
+  properties
 }: { 
   initialData: any[],
-  stats: UnitStats
+  stats: UnitStats,
+  properties: any[]
 }) {
   const [searchTerm, setSearchTerm] = useState("")
   const [filterStatus, setFilterStatus] = useState("ALL")
+  const [filterLocation, setFilterLocation] = useState("ALL")
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const filteredData = initialData.filter((unit: any) => {
-    const matchesSearch = unit.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      unit.type.toLowerCase().includes(searchTerm.toLowerCase())
-    if (filterStatus === "ALL") return matchesSearch;
-    return matchesSearch && unit.status === filterStatus;
-  })
+  const filteredData = useMemo(() => {
+    return initialData.filter((unit: any) => {
+      const matchesSearch = unit.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        unit.type.toLowerCase().includes(searchTerm.toLowerCase())
+      
+      const matchesStatus = filterStatus === "ALL" || unit.status === filterStatus;
+      const matchesLocation = filterLocation === "ALL" || unit.propertyId === filterLocation;
+
+      return matchesSearch && matchesStatus && matchesLocation;
+    })
+  }, [initialData, searchTerm, filterStatus, filterLocation])
 
   const getStatusColor = (status: string) => {
     switch(status) {
@@ -121,6 +129,19 @@ export function UnitsClient({
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                   <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2 col-span-2">
+                      <Label htmlFor="propertyId">Location / Property *</Label>
+                      <Select name="propertyId" required>
+                        <SelectTrigger className="rounded-xl">
+                          <SelectValue placeholder="Select Location" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {properties.map(p => (
+                            <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                     <div className="grid gap-2">
                       <Label htmlFor="name">Unit Name / Number *</Label>
                       <Input id="name" name="name" placeholder="e.g. 101 or Presidential Suite" required className="rounded-xl" />
@@ -204,23 +225,39 @@ export function UnitsClient({
               className="w-full rounded-xl border border-border/60 bg-background py-2.5 pl-9 pr-4 text-sm shadow-sm transition-all placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary/40"
             />
           </div>
-          <Select value={filterStatus} onValueChange={(val) => setFilterStatus(val || "ALL")}>
-            <SelectTrigger className="w-[180px] bg-background rounded-xl">
-              <div className="flex items-center gap-2">
-                <Filter className="h-4 w-4" />
-                <span>{filterStatus === 'ALL' ? 'All Status' : filterStatus}</span>
-              </div>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">All Status</SelectItem>
-              <SelectItem value="AVAILABLE">Available</SelectItem>
-              <SelectItem value="OCCUPIED">Occupied</SelectItem>
-              <SelectItem value="DIRTY">Dirty</SelectItem>
-              <SelectItem value="CLEANING">Cleaning</SelectItem>
-              <SelectItem value="READY">Ready</SelectItem>
-              <SelectItem value="MAINTENANCE">Maintenance</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-3">
+            <Select value={filterLocation} onValueChange={(val) => setFilterLocation(val || "ALL")}>
+              <SelectTrigger className="w-[180px] bg-background rounded-xl">
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4" />
+                  <span className="truncate">{filterLocation === 'ALL' ? 'All Locations' : properties.find(p => p.id === filterLocation)?.name || 'Unknown'}</span>
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All Locations</SelectItem>
+                {properties.map(p => (
+                  <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={filterStatus} onValueChange={(val) => setFilterStatus(val || "ALL")}>
+              <SelectTrigger className="w-[180px] bg-background rounded-xl">
+                <div className="flex items-center gap-2">
+                  <Filter className="h-4 w-4" />
+                  <span>{filterStatus === 'ALL' ? 'All Status' : filterStatus}</span>
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All Status</SelectItem>
+                <SelectItem value="AVAILABLE">Available</SelectItem>
+                <SelectItem value="OCCUPIED">Occupied</SelectItem>
+                <SelectItem value="DIRTY">Dirty</SelectItem>
+                <SelectItem value="CLEANING">Cleaning</SelectItem>
+                <SelectItem value="READY">Ready</SelectItem>
+                <SelectItem value="MAINTENANCE">Maintenance</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         <div className="flex-1 overflow-auto p-4 bg-muted/10">

@@ -41,5 +41,9 @@ export default async function UnitsPage() {
     maintenance
   }
 
-  return <UnitsClient initialData={units} stats={stats} />
+  const properties = await prisma.property.findMany({
+    orderBy: { name: 'asc' }
+  })
+
+  return <UnitsClient initialData={units} stats={stats} properties={properties} />
 }

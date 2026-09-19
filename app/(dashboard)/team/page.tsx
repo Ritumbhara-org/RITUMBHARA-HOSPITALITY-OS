@@ -7,9 +7,14 @@ export const metadata = {
 };
 
 export default async function TeamPage() {
-  const members = await prisma.teamMember.findMany({
-    orderBy: { createdAt: 'desc' }
+  const teamMembers = await prisma.teamMember.findMany({
+    orderBy: { createdAt: "desc" },
+    include: { property: true }
   });
 
-  return <TeamClient initialMembers={members} />;
+  const properties = await prisma.property.findMany({
+    orderBy: { name: "asc" },
+  });
+
+  return <TeamClient initialMembers={teamMembers} properties={properties} />;
 }

@@ -31,16 +31,6 @@ function parseIstDate(dateString: string): Date {
 export async function syncBookings() {
   console.log("Starting Intellistay Booking Sync...");
   
-  // Get fallback property (in a real multi-tenant app, this would be passed in)
-  const property = await prisma.property.findFirst();
-  if (!property) {
-    console.error("No properties found in database.");
-    return { success: false, error: "No properties found" };
-  }
-
-  // Get fallback unit in case a booking has no rooms
-  const defaultUnit = await prisma.unit.findFirst({ where: { propertyId: property.id }});
-
   // Create initial SyncLog record
   const syncLog = await prisma.syncLog.create({
     data: {
@@ -106,37 +96,30 @@ export async function syncBookings() {
           }
         });
 
-        // --- UNIT MAPPING ---
-        // Extract room details
-        let unitId = defaultUnit?.id;
+        // --- UNIT & PROPERTY MAPPING ---
+        // Extract room details to find the correct Property
+        let unitId = null;
+        let propertyId = null;
         
         if (booking.roomDetails && Array.isArray(booking.roomDetails) && booking.roomDetails.length > 0) {
           const roomNumber = String(booking.roomDetails[0].roomNo || booking.roomDetails[0].roomId || 'Unassigned');
           
-          // Try to find the unit locally, or create it dynamically if it doesn't exist
+          // Strict Match: Admin must have created this exact unit name in the UI
           const localUnit = await prisma.unit.findFirst({
-            where: { propertyId: property.id, name: roomNumber }
+            where: { name: roomNumber }
           });
           
           if (localUnit) {
             unitId = localUnit.id;
+            propertyId = localUnit.propertyId;
           } else {
-            console.log(`Dynamically creating new Unit: ${roomNumber}`);
-            const newUnit = await prisma.unit.create({
-              data: {
-                propertyId: property.id,
-                name: roomNumber,
-                type: "SYNCED_ROOM",
-                capacity: 2,
-                status: "AVAILABLE",
-                floor: "1"
-              }
-            });
-            unitId = newUnit.id;
+            throw new Error(`Unit '${roomNumber}' not found in local inventory. Please create it manually in the Locations/Units UI to sync this booking.`);
           }
         }
 
-        if (!unitId) continue; // Skip if absolutely no unit is available
+        if (!unitId || !propertyId) {
+           throw new Error(`Booking missing valid room details, unable to map to a Location.`);
+        }
 
         // --- RESERVATION UPSERT ---
         const checkInDate = parseIstDate(booking.checkInDate);
@@ -182,13 +165,13 @@ export async function syncBookings() {
             }
 
             if (updatedRes.status === 'CANCELLED') {
-              await eventBus.emit('BOOKING_CANCELLED', { reservationId: updatedRes.id, guestId: guest.id, propertyId: property.id, intellistayBookingId, status: updatedRes.status, checkIn: checkInDate, checkOut: checkOutDate });
+              await eventBus.emit('BOOKING_CANCELLED', { reservationId: updatedRes.id, guestId: guest.id, propertyId, intellistayBookingId, status: updatedRes.status, checkIn: checkInDate, checkOut: checkOutDate });
             } else if (updatedRes.status === 'CHECKED_IN') {
-              await eventBus.emit('GUEST_CHECKED_IN', { reservationId: updatedRes.id, guestId: guest.id, propertyId: property.id, intellistayBookingId, status: updatedRes.status, checkIn: checkInDate, checkOut: checkOutDate });
+              await eventBus.emit('GUEST_CHECKED_IN', { reservationId: updatedRes.id, guestId: guest.id, propertyId, intellistayBookingId, status: updatedRes.status, checkIn: checkInDate, checkOut: checkOutDate });
             } else if (updatedRes.status === 'CHECKED_OUT') {
-              await eventBus.emit('GUEST_CHECKED_OUT', { reservationId: updatedRes.id, guestId: guest.id, propertyId: property.id, intellistayBookingId, status: updatedRes.status, checkIn: checkInDate, checkOut: checkOutDate });
+              await eventBus.emit('GUEST_CHECKED_OUT', { reservationId: updatedRes.id, guestId: guest.id, propertyId, intellistayBookingId, status: updatedRes.status, checkIn: checkInDate, checkOut: checkOutDate });
             } else {
-              await eventBus.emit('BOOKING_UPDATED', { reservationId: updatedRes.id, guestId: guest.id, propertyId: property.id, intellistayBookingId, status: updatedRes.status, checkIn: checkInDate, checkOut: checkOutDate });
+              await eventBus.emit('BOOKING_UPDATED', { reservationId: updatedRes.id, guestId: guest.id, propertyId, intellistayBookingId, status: updatedRes.status, checkIn: checkInDate, checkOut: checkOutDate });
             }
           }
 
@@ -196,7 +179,7 @@ export async function syncBookings() {
           const newRes = await prisma.reservation.create({
             data: {
               intellistayReservationId: intellistayBookingId,
-              propertyId: property.id,
+              propertyId,
               guestId: guest.id,
               unitId,
               checkIn: checkInDate,
@@ -210,7 +193,7 @@ export async function syncBookings() {
           newCount++;
 
           // EVENT: New Booking Created
-          await eventBus.emit('BOOKING_CREATED', { reservationId: newRes.id, guestId: guest.id, propertyId: property.id, intellistayBookingId, status: newRes.status, checkIn: checkInDate, checkOut: checkOutDate });
+          await eventBus.emit('BOOKING_CREATED', { reservationId: newRes.id, guestId: guest.id, propertyId, intellistayBookingId, status: newRes.status, checkIn: checkInDate, checkOut: checkOutDate });
         }
         
         successCount++;

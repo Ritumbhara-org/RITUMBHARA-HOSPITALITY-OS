@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
 import {
   LayoutDashboard,
+  MapPin,
   CalendarCheck,
   Users,
   BedDouble,
@@ -18,6 +19,7 @@ import {
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'Locations', href: '/locations', icon: MapPin },
   { name: 'Reservations', href: '/reservations', icon: CalendarCheck },
   { name: 'Guests', href: '/guests', icon: Users },
   { name: 'Units', href: '/units', icon: BedDouble },
