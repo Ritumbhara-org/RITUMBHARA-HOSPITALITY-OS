@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma"
 import { intellistay } from "./client"
 import { eventBus } from "../events/bus"
+import { normalizePhoneNumber } from "@/lib/utils/phone"
 
 // Helper function to map Intellistay status IDs to our statuses
 function mapBookingStatus(statusId: number | string): string {
@@ -74,7 +75,8 @@ export async function syncBookings() {
         
         // --- GUEST UPSERT ---
         const customer = booking.customerDetails && booking.customerDetails.length > 0 ? booking.customerDetails[0] : null;
-        const customerPhone = customer?.mobile ? String(customer.mobile) : "0000000000";
+        let customerPhone = customer?.mobile ? String(customer.mobile) : "0000000000";
+        customerPhone = normalizePhoneNumber(customerPhone);
         const customerEmail = customer?.email || null;
         const customerName = customer?.customerName || "Unknown Guest";
         

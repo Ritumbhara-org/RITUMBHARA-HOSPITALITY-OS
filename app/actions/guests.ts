@@ -2,12 +2,13 @@
 
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
+import { normalizePhoneNumber } from "@/lib/utils/phone"
 
 export async function createGuest(formData: FormData) {
   try {
     const name = formData.get("name") as string
     const email = formData.get("email") as string
-    const phone = formData.get("phone") as string
+    let phone = formData.get("phone") as string
     const idType = formData.get("idType") as string
     const idNumber = formData.get("idNumber") as string
     const assignMembership = formData.get("assignMembership") === "true"
@@ -15,6 +16,8 @@ export async function createGuest(formData: FormData) {
     if (!name || !phone) {
       throw new Error("Name and Phone are required fields.")
     }
+    
+    phone = normalizePhoneNumber(phone);
 
     const guest = await prisma.guest.create({
       data: {
@@ -46,13 +49,15 @@ export async function updateGuest(guestId: string, formData: FormData) {
   try {
     const name = formData.get("name") as string
     const email = formData.get("email") as string
-    const phone = formData.get("phone") as string
+    let phone = formData.get("phone") as string
     const idType = formData.get("idType") as string
     const idNumber = formData.get("idNumber") as string
     
     if (!name || !phone) {
       throw new Error("Name and Phone are required fields.")
     }
+    
+    phone = normalizePhoneNumber(phone);
 
     const guest = await prisma.guest.update({
       where: { id: guestId },

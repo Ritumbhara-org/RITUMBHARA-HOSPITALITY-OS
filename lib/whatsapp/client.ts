@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import twilio from "twilio";
+import { normalizePhoneNumber } from "@/lib/utils/phone";
 
 export async function sendWhatsAppMessage(
   toPhone: string,
@@ -22,20 +23,8 @@ export async function sendWhatsAppMessage(
     } else {
       const client = twilio(accountSid, authToken);
 
-      // Clean non-numeric characters
-      let numericToPhone = toPhone.replace(/\D/g, '');
-      let numericFromPhone = fromNumber.replace(/\D/g, '');
-
-      // Assume Indian country code (+91) if it's exactly 10 digits
-      if (numericToPhone.length === 10) {
-        numericToPhone = '91' + numericToPhone;
-      }
-      if (numericFromPhone.length === 10) {
-        numericFromPhone = '91' + numericFromPhone;
-      }
-
-      const cleanToPhone = '+' + numericToPhone;
-      const cleanFromPhone = '+' + numericFromPhone;
+      const cleanToPhone = normalizePhoneNumber(toPhone);
+      const cleanFromPhone = normalizePhoneNumber(fromNumber);
       
       const formattedTo = `whatsapp:${cleanToPhone}`;
       const formattedFrom = `whatsapp:${cleanFromPhone}`;

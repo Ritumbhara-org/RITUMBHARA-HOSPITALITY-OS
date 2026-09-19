@@ -2,13 +2,14 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { normalizePhoneNumber } from "@/lib/utils/phone";
 
 export async function createTeamMember(formData: FormData) {
   try {
     const data = {
       name: formData.get("name") as string,
-      phone: formData.get("phone") as string,
-      whatsappNumber: formData.get("whatsappNumber") as string,
+      phone: normalizePhoneNumber(formData.get("phone") as string),
+      whatsappNumber: normalizePhoneNumber(formData.get("whatsappNumber") as string),
       role: formData.get("role") as string,
       department: formData.get("department") as string,
       isActive: formData.get("isActive") === "true",
@@ -35,8 +36,8 @@ export async function updateTeamMember(id: string, formData: FormData) {
   try {
     const data = {
       name: formData.get("name") as string,
-      phone: formData.get("phone") as string,
-      whatsappNumber: formData.get("whatsappNumber") as string,
+      phone: normalizePhoneNumber(formData.get("phone") as string),
+      whatsappNumber: normalizePhoneNumber(formData.get("whatsappNumber") as string),
       role: formData.get("role") as string,
       department: formData.get("department") as string,
       isActive: formData.get("isActive") === "true",
