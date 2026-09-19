@@ -19,9 +19,10 @@ export async function GET(request: Request) {
     const result = await syncBookings();
 
     if (!result.success) {
+      // Return 200 OK to prevent cron-job.org from deactivating the job due to upstream API failures
       return NextResponse.json(
-        { status: "error", message: result.error }, 
-        { status: 500 }
+        { status: "skipped", reason: result.error || "Intellistay API in maintenance" }, 
+        { status: 200 }
       );
     }
 
@@ -37,9 +38,10 @@ export async function GET(request: Request) {
 
   } catch (error: any) {
     console.error("Cron sync endpoint error:", error);
+    // Return 200 OK to prevent cron-job.org from deactivating the job due to internal/upstream errors
     return NextResponse.json({
-      status: "error",
-      message: error.message
-    }, { status: 500 });
+      status: "skipped",
+      reason: error.message || "Internal error during sync"
+    }, { status: 200 });
   }
 }
