@@ -19,9 +19,10 @@ export async function POST(req: Request) {
 
     // Clean the phone number (remove "whatsapp:" prefix)
     const senderPhone = from.replace("whatsapp:", "");
-    const messageText = body.trim().toUpperCase();
+    const originalText = body.trim();
+    const commandText = originalText.toUpperCase();
 
-    console.log(`[Twilio Webhook] Received message from ${senderPhone}: ${messageText}`);
+    console.log(`[Twilio Webhook] Received message from ${senderPhone}: ${originalText}`);
 
     // Log the inbound message
     await prisma.whatsAppMessage.create({
@@ -30,17 +31,17 @@ export async function POST(req: Request) {
         from: from, // Keep original from
         to: process.env.TWILIO_WHATSAPP_NUMBER || 'SYSTEM',
         messageType: 'text',
-        content: messageText,
+        content: originalText,
         status: 'RECEIVED'
       }
     });
 
     // Process the action (ACCEPT, START, COMPLETE)
-    const responseMessage = await handleWhatsAppAction(senderPhone, messageText);
+    const responseMessage = await handleWhatsAppAction(senderPhone, commandText);
 
     // If no response is needed (e.g., standard guest chat), forward to AI!
     if (!responseMessage) {
-      await handleGuestAIChat(senderPhone, messageText);
+      await handleGuestAIChat(senderPhone, originalText);
       return new NextResponse("<Response></Response>", {
         status: 200,
         headers: { "Content-Type": "text/xml" },
