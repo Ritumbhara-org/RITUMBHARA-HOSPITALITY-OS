@@ -150,3 +150,89 @@ export async function assignTicketRoundRobin(ticketId: string, excludeMemberId?:
     return { success: false, error: error.message };
   }
 }
+
+export async function assignHousekeepingTaskRoundRobin(taskId: string) {
+  try {
+    // 1. Fetch the task
+    const task = await prisma.housekeepingTask.findUnique({
+      where: { id: taskId },
+      include: { property: true, unit: true }
+    });
+
+    if (!task || task.status === 'COMPLETED') {
+      return { success: false, error: "Task not found or already completed." };
+    }
+
+    // 2. Fetch eligible active team members in that location and Housekeeping department
+    let eligibleMembers = await prisma.teamMember.findMany({
+      where: {
+        propertyId: task.propertyId,
+        isActive: true,
+        department: { equals: "Housekeeping", mode: "insensitive" }
+      },
+      orderBy: { id: 'asc' }
+    });
+
+    // Fallback: If no one in Housekeeping, find ANY active member in that location
+    if (eligibleMembers.length === 0) {
+      eligibleMembers = await prisma.teamMember.findMany({
+        where: {
+          propertyId: task.propertyId,
+          isActive: true
+        },
+        orderBy: { id: 'asc' }
+      });
+    }
+
+    if (eligibleMembers.length === 0) {
+      return { success: false, error: "No active team members available in this location." };
+    }
+
+    // 3. Determine the "Next" member
+    const lastAssignedTask = await prisma.housekeepingTask.findFirst({
+      where: {
+        propertyId: task.propertyId,
+        assignedToId: { not: null },
+        id: { not: taskId }
+      },
+      orderBy: { updatedAt: 'desc' } 
+    });
+
+    let nextAssignee = eligibleMembers[0]; // Default to first
+
+    if (lastAssignedTask && lastAssignedTask.assignedToId) {
+      const lastIndex = eligibleMembers.findIndex(m => m.id === lastAssignedTask.assignedToId);
+      if (lastIndex !== -1) {
+        const nextIndex = (lastIndex + 1) % eligibleMembers.length;
+        nextAssignee = eligibleMembers[nextIndex];
+      }
+    }
+
+    // 4. Update the task
+    const updatedTask = await prisma.housekeepingTask.update({
+      where: { id: task.id },
+      data: {
+        assignedToId: nextAssignee.id,
+        status: "PENDING"
+      }
+    });
+
+    // 5. Notify via WhatsApp
+    const messageContent = `🧹 *NEW HOUSEKEEPING TASK*\nProperty: ${task.property.name}\nUnit: ${task.unit.name}\nPriority: HIGH\n\nReply ACCEPT to assign it to yourself. Reply COMPLETE when finished.`;
+    
+    await sendWhatsAppMessage(
+      nextAssignee.whatsappNumber,
+      'text',
+      messageContent,
+      undefined,
+      'task',
+      task.id
+    );
+
+    return { success: true, assignee: nextAssignee };
+
+  } catch (error: any) {
+    console.error("[Housekeeping Round Robin Assignment Error]", error);
+    return { success: false, error: error.message };
+  }
+}

@@ -44,10 +44,21 @@ export async function handleWhatsAppAction(senderPhone: string, messageText: str
       }
 
       if (messageText.includes("RESOLVE") || messageText.includes("COMPLETE")) {
-        await prisma.ticket.update({
+        const resolvedTicket = await prisma.ticket.update({
           where: { id: activeTicket.id },
           data: { status: "RESOLVED", resolvedAt: new Date() }
         });
+        
+        // Import eventBus dynamically or statically at top
+        const { eventBus } = await import("@/lib/events/bus");
+        await eventBus.emit('TICKET_RESOLVED', {
+          ticketId: resolvedTicket.id,
+          propertyId: resolvedTicket.propertyId,
+          unitId: resolvedTicket.unitId,
+          priority: resolvedTicket.priority,
+          status: resolvedTicket.status
+        });
+
         return `🌟 Great job, ${teamMember.name}! The ticket has been resolved.`;
       }
 

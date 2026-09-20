@@ -21,6 +21,7 @@ export type EventType =
   | 'GUEST_CHECKED_OUT'
   | 'TICKET_ASSIGNED'
   | 'TICKET_UPDATED'
+  | 'TICKET_RESOLVED'
   | 'SLA_BREACHED';
 
 export interface TicketEventPayload {

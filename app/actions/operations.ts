@@ -189,6 +189,16 @@ export async function updateTicketStatus(ticketId: string, newStatus: TicketStat
       status: ticket.status
     })
 
+    if (newStatus === "RESOLVED") {
+      await eventBus.emit('TICKET_RESOLVED', {
+        ticketId: ticket.id,
+        propertyId: ticket.propertyId,
+        unitId: ticket.unitId,
+        priority: ticket.priority,
+        status: ticket.status
+      })
+    }
+
     revalidatePath("/operations")
     return { success: true }
   } catch (error: any) {

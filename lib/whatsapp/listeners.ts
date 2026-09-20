@@ -208,6 +208,46 @@ export function initWhatsAppListeners() {
     }
   });
 
+  // 7. Ticket Resolution Guest Notification
+  eventBus.on<TicketEventPayload>('TICKET_RESOLVED', async (payload) => {
+    try {
+      const ticket = await prisma.ticket.findUnique({
+        where: { id: payload.ticketId },
+        include: { guest: true }
+      });
+
+      // Only notify if the ticket was raised by a GUEST and we have their phone
+      if (ticket?.reporterType === 'GUEST' && ticket.guest?.phone) {
+        
+        // Prevent duplicate sending if already notified
+        const existingMsg = await prisma.whatsAppMessage.findFirst({
+          where: {
+            templateName: 'ticket_resolved',
+            relatedEntityId: ticket.id,
+            status: { not: 'FAILED' }
+          }
+        });
+
+        if (existingMsg) return;
+
+        // Message MUST exactly match template configured in Meta
+        const messageContent = `Hi ${ticket.guest.name}, your request "${ticket.description}" has been resolved by our team. Please let us know if you need anything else!`;
+
+        await sendWhatsAppMessage(
+          ticket.guest.phone,
+          'template',
+          messageContent,
+          'ticket_resolved',
+          'Ticket',
+          ticket.id
+        );
+        console.log(`[WhatsApp Listener] Sent ticket_resolved notification to guest ${ticket.guest.name} for ticket ${ticket.id}`);
+      }
+    } catch (error) {
+      console.error("[WhatsApp Listener Error - TICKET_RESOLVED]", error);
+    }
+  });
+
   // 7. SLA Breaches (Escalations)
   eventBus.on<any>('SLA_BREACHED', async (payload) => {
     try {

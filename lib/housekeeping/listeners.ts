@@ -1,5 +1,6 @@
 import { eventBus, BookingEventPayload } from "@/lib/events/bus";
 import { prisma } from "@/lib/prisma";
+import { assignHousekeepingTaskRoundRobin } from "@/lib/operations/round-robin";
 
 export function initHousekeepingListeners() {
   eventBus.on<BookingEventPayload>('GUEST_CHECKED_OUT', async (payload) => {
@@ -38,7 +39,7 @@ export function initHousekeepingListeners() {
       }
 
       // 4. Create the structured Housekeeping Task
-      await prisma.housekeepingTask.create({
+      const task = await prisma.housekeepingTask.create({
         data: {
           unitId: reservation.unitId,
           propertyId: reservation.propertyId,
@@ -49,6 +50,10 @@ export function initHousekeepingListeners() {
         }
       });
       console.log(`[Housekeeping Listener] CHECKOUT_CLEAN Task created successfully for Unit ${reservation.unitId}.`);
+
+      // 5. Automatically assign via round-robin and notify team
+      await assignHousekeepingTaskRoundRobin(task.id);
+      console.log(`[Housekeeping Listener] Task ${task.id} pushed to round-robin assignment.`);
 
     } catch (error) {
       console.error("[Housekeeping Listener Error - GUEST_CHECKED_OUT]", error);
