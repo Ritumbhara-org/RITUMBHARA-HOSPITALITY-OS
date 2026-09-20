@@ -4,7 +4,11 @@ import { prisma } from "@/lib/prisma"
 import { getInventoryItems } from "@/app/actions/inventory"
 import { InventoryClient } from "@/components/inventory/inventory-client"
 
-export default async function InventoryPage() {
+export default async function InventoryPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+}) {
   const cookieStore = await cookies()
   const token = cookieStore.get("auth-token")
   
@@ -12,17 +16,36 @@ export default async function InventoryPage() {
     redirect("/login")
   }
 
-  // Get current user and property
+  // Get current user
   const user = await prisma.teamMember.findUnique({
-    where: { id: token.value },
-    include: { property: true }
+    where: { id: token.value }
   });
 
-  if (!user || !user.propertyId) {
+  if (!user) {
     redirect("/login")
   }
 
-  const items = await getInventoryItems(user.propertyId)
+  // Fetch all properties available
+  const properties = await prisma.property.findMany({
+    orderBy: { name: 'asc' }
+  });
+
+  if (properties.length === 0) {
+    return <div className="p-8">No properties found. Please create a property first.</div>
+  }
+
+  // Resolve searchParams promise for Next.js 15
+  const resolvedParams = await searchParams;
+  const paramPropertyId = resolvedParams?.propertyId as string | undefined;
+
+  // Determine which property to show: 
+  // 1. The one selected in the URL
+  // 2. The user's assigned property
+  // 3. The first property in the database
+  const activePropertyId = paramPropertyId || user.propertyId || properties[0].id;
+  
+  // Fetch items for the active property
+  const items = await getInventoryItems(activePropertyId)
 
   return (
     <div className="flex-1 space-y-4 p-8 pt-6">
@@ -31,7 +54,8 @@ export default async function InventoryPage() {
       </div>
       <InventoryClient 
         initialItems={items} 
-        propertyId={user.propertyId} 
+        activePropertyId={activePropertyId}
+        properties={properties}
         reporterId={user.id} 
       />
     </div>
