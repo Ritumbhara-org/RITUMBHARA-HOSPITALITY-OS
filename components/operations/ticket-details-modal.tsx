@@ -159,7 +159,9 @@ export function TicketDetailsModal({
                   <SelectContent>
                     <SelectItem value="unassigned" className="text-muted-foreground italic">Unassigned</SelectItem>
                     {eligibleMembers.map((member) => (
-                      <SelectItem key={member.id} value={member.id}>{member.name} ({member.role})</SelectItem>
+                      <SelectItem key={member.id} value={member.id}>
+                        {member.name.split(' ')[0]} ({member.id.substring(member.id.length - 4)})
+                      </SelectItem>
                     ))}
                     {eligibleMembers.length === 0 && (
                       <div className="px-2 py-2 text-xs text-muted-foreground italic">No members found in {expectedDepartment}</div>
