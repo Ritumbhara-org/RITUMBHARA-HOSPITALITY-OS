@@ -101,7 +101,14 @@ If intent is ESCALATE_ISSUE, replyText should assure the guest that our team has
          parsed.replyText
       );
     }
-  } catch (error) {
-    console.error("[AI Chat Handler Error]", error);
+  } catch (error: any) {
+    console.error("[AI Chat Handler Error]", error.message);
+    
+    // Fallback response for the demo if Gemini API is blocked or fails
+    await sendWhatsAppMessage(
+       senderPhone,
+       'text',
+       "Hello! I am your AI assistant. (Note: My AI brain is currently disconnected due to an API key restriction, but our human team is here for you!)"
+    );
   }
 }
