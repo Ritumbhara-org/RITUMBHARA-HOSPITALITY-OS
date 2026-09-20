@@ -45,7 +45,8 @@ export function initWhatsAppListeners() {
         messageContent,
         'check_in_welcome',
         'Reservation',
-        payload.reservationId
+        payload.reservationId,
+        { '1': guest.name }
       );
     } catch (error) {
       console.error("[WhatsApp Listener Error - GUEST_CHECKED_IN]", error);

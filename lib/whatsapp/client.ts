@@ -8,7 +8,8 @@ export async function sendWhatsAppMessage(
   content: string,
   templateName?: string,
   relatedEntityType?: string,
-  relatedEntityId?: string
+  relatedEntityId?: string,
+  templateVariables?: Record<string, string>
 ) {
   const accountSid = process.env.TWILIO_ACCOUNT_SID;
   const authToken = process.env.TWILIO_AUTH_TOKEN;
@@ -29,13 +30,28 @@ export async function sendWhatsAppMessage(
       const formattedTo = `whatsapp:${cleanToPhone}`;
       const formattedFrom = `whatsapp:${cleanFromPhone}`;
 
-      const messageBody = content || `Template: ${templateName}`;
+      // Mapping of your Template Names to Twilio Content API SIDs
+      const contentSidMap: Record<string, string> = {
+         'check_in_welcome': 'HX1b87a07d01ab079c329395cbaa039ee1',
+         // TODO: Add other SIDs here as you create them in Twilio!
+         // 'booking_confirmation': 'HX...',
+      };
 
-      const message = await client.messages.create({
-        body: messageBody,
+      let createParams: any = {
         from: formattedFrom,
         to: formattedTo
-      });
+      };
+
+      if (messageType === 'template' && templateName && contentSidMap[templateName]) {
+        createParams.contentSid = contentSidMap[templateName];
+        if (templateVariables) {
+          createParams.contentVariables = JSON.stringify(templateVariables);
+        }
+      } else {
+        createParams.body = content || `Template: ${templateName}`;
+      }
+
+      const message = await client.messages.create(createParams);
 
       console.log(`[Twilio Success] Message sent to ${formattedTo}. SID: ${message.sid}`);
       deliveryStatus = 'DELIVERED';
