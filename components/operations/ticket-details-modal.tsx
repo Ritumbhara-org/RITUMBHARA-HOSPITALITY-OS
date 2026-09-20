@@ -163,7 +163,12 @@ export function TicketDetailsModal({
                         {member.name.split(' ')[0]} ({member.id.substring(member.id.length - 4)})
                       </SelectItem>
                     ))}
-                    {eligibleMembers.length === 0 && (
+                    {ticket.assignedToId && ticket.assignedTo && !eligibleMembers.find(m => m.id === ticket.assignedToId) && (
+                      <SelectItem value={ticket.assignedToId}>
+                        {ticket.assignedTo.name.split(' ')[0]} ({ticket.assignedToId.substring(ticket.assignedToId.length - 4)})
+                      </SelectItem>
+                    )}
+                    {eligibleMembers.length === 0 && !ticket.assignedToId && (
                       <div className="px-2 py-2 text-xs text-muted-foreground italic">No members found in {expectedDepartment}</div>
                     )}
                   </SelectContent>
