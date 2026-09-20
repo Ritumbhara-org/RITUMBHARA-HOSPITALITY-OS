@@ -72,10 +72,8 @@ export async function handleWhatsAppAction(senderPhone: string, messageText: str
     // 3. Fallback to Housekeeping Tasks
     const activeTask = await prisma.housekeepingTask.findFirst({
       where: {
-        OR: [
-          { status: "PENDING" },
-          { status: "IN_PROGRESS", assignedToId: teamMember.id }
-        ]
+        assignedToId: teamMember.id,
+        status: { in: ["PENDING", "IN_PROGRESS"] }
       },
       orderBy: { createdAt: 'asc' },
       include: { unit: true }

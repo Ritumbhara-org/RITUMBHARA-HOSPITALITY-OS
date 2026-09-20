@@ -47,6 +47,7 @@ export default async function OperationsPage() {
       unit: task.unit,
       guest: null,
       assignedTo: task.assignedTo,
+      assignedToId: task.assignedToId,
       createdAt: task.createdAt,
       updatedAt: task.updatedAt,
       isAutoTask: true
