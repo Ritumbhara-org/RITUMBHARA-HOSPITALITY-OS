@@ -222,11 +222,16 @@ export async function assignHousekeepingTaskRoundRobin(taskId: string) {
     
     await sendWhatsAppMessage(
       nextAssignee.whatsappNumber,
-      'text',
+      'template',
       messageContent,
-      undefined,
+      'team_new_task',
       'task',
-      task.id
+      task.id,
+      {
+        '1': task.property.name,
+        '2': task.unit.name,
+        '3': 'HIGH'
+      }
     );
 
     return { success: true, assignee: nextAssignee };

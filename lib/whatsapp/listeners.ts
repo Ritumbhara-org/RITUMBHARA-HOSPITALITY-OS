@@ -23,7 +23,13 @@ export function initWhatsAppListeners() {
         messageContent,
         'booking_confirmation',
         'Reservation',
-        payload.reservationId
+        payload.reservationId,
+        {
+          '1': guest.name,
+          '2': unit?.unit.name || 'our property',
+          '3': payload.checkIn.toLocaleDateString(),
+          '4': payload.checkOut.toLocaleDateString()
+        }
       );
     } catch (error) {
       console.error("[WhatsApp Listener Error - BOOKING_CREATED]", error);
@@ -67,7 +73,8 @@ export function initWhatsAppListeners() {
         messageContent,
         'post_stay_thank_you',
         'Reservation',
-        payload.reservationId
+        payload.reservationId,
+        { '1': guest.name }
       );
     } catch (error) {
       console.error("[WhatsApp Listener Error - GUEST_CHECKED_OUT]", error);
@@ -104,7 +111,11 @@ export function initWhatsAppListeners() {
         messageContent,
         'pre_arrival_instructions',
         'Reservation',
-        payload.reservationId
+        payload.reservationId,
+        {
+          '1': guest.name,
+          '2': unit?.unit?.name || 'our property'
+        }
       );
     } catch (error) {
       console.error("[WhatsApp Listener Error - UPCOMING_CHECK_IN]", error);
@@ -141,7 +152,12 @@ export function initWhatsAppListeners() {
         messageContent,
         'day_of_arrival_reminder',
         'Reservation',
-        payload.reservationId
+        payload.reservationId,
+        {
+          '1': guest.name,
+          '2': unit?.unit?.property?.name || 'our property',
+          '3': unit?.unit?.name || ''
+        }
       );
     } catch (error) {
       console.error("[WhatsApp Listener Error - TODAY_CHECK_IN]", error);
@@ -173,7 +189,8 @@ export function initWhatsAppListeners() {
         messageContent,
         'checkout_instructions',
         'Reservation',
-        payload.reservationId
+        payload.reservationId,
+        { '1': guest.name }
       );
     } catch (error) {
       console.error("[WhatsApp Listener Error - UPCOMING_CHECK_OUT]", error);
@@ -202,7 +219,12 @@ export function initWhatsAppListeners() {
         messageContent,
         'ticket_assigned',
         'Ticket',
-        payload.ticketId
+        payload.ticketId,
+        {
+          '1': ticket.unit?.name || 'Property',
+          '2': ticket.description,
+          '3': ticket.priority
+        }
       );
     } catch (error) {
       console.error("[WhatsApp Listener Error - TICKET_ASSIGNED]", error);
@@ -240,7 +262,11 @@ export function initWhatsAppListeners() {
           messageContent,
           'ticket_resolved',
           'Ticket',
-          ticket.id
+          ticket.id,
+          {
+            '1': ticket.guest.name,
+            '2': ticket.description
+          }
         );
         console.log(`[WhatsApp Listener] Sent ticket_resolved notification to guest ${ticket.guest.name} for ticket ${ticket.id}`);
       }
@@ -280,7 +306,13 @@ export function initWhatsAppListeners() {
           messageContent,
           'sla_breach_alert',
           'Ticket',
-          payload.ticketId
+          payload.ticketId,
+          {
+            '1': payload.description,
+            '2': payload.priority,
+            '3': location,
+            '4': assigneeName
+          }
         );
       }
     } catch (error) {
