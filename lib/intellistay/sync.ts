@@ -141,11 +141,11 @@ export async function syncBookings() {
         if (existingRes) {
           const currentStatus = existingRes.status;
           
-          if (
-            (currentStatus === 'CHECKED_IN' || currentStatus === 'CHECKED_OUT') &&
-            status === 'CONFIRMED'
-          ) {
-            finalStatus = currentStatus;
+          // As requested: if the booking is already processed (checked in, checked out, cancelled)
+          // in our local database, we DO NOT process it again from Intellistay to prevent overwriting.
+          if (currentStatus !== 'CONFIRMED') {
+            console.log(`Booking ${intellistayBookingId} is already ${currentStatus} locally. Skipping sync overwrite.`);
+            continue;
           }
 
           const updatedRes = await prisma.reservation.update({
@@ -182,6 +182,7 @@ export async function syncBookings() {
               eventPromises.push(eventBus.emit('BOOKING_UPDATED', { reservationId: updatedRes.id, guestId: guest.id, propertyId, intellistayBookingId, status: updatedRes.status, checkIn: checkInDate, checkOut: checkOutDate }));
             }
           }
+
         } else {
           const newRes = await prisma.reservation.create({
             data: {
