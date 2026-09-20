@@ -44,6 +44,7 @@ export async function syncBookings() {
   let newCount = 0;
   let updateCount = 0;
   let errorMessages: string[] = [];
+  const eventPromises: Promise<void>[] = [];
 
   try {
     // 1. Fetch bookings from Intellistay
@@ -99,14 +100,12 @@ export async function syncBookings() {
         });
 
         // --- UNIT & PROPERTY MAPPING ---
-        // Extract room details to find the correct Property
         let unitId = null;
         let propertyId = null;
         
         if (booking.roomDetails && Array.isArray(booking.roomDetails) && booking.roomDetails.length > 0) {
           const roomNumber = String(booking.roomDetails[0].roomNo || booking.roomDetails[0].roomId || 'Unassigned');
           
-          // Strict Match: Admin must have created this exact unit name in the UI
           const localUnit = await prisma.unit.findFirst({
             where: { name: roomNumber }
           });
@@ -115,7 +114,7 @@ export async function syncBookings() {
             unitId = localUnit.id;
             propertyId = localUnit.propertyId;
           } else {
-            throw new Error(`Unit '${roomNumber}' not found in local inventory. Please create it manually in the Locations/Units UI to sync this booking.`);
+            throw new Error(`Unit '${roomNumber}' not found in local inventory.`);
           }
         }
 
@@ -129,28 +128,24 @@ export async function syncBookings() {
         const status = mapBookingStatus(booking.bookingStatusId || booking.status);
         const totalAmount = parseFloat(booking.grandTotal) || 0;
         
-        // Construct detailed notes
         const specialRequest = booking.specialRequest ? `Special Request: ${booking.specialRequest}\n` : '';
         const paymentInfo = `Payment Status: ${booking.paymentStatus || 'Unknown'}\nPaid: ${booking.totalPaidAmount || 0}`;
         const bookingNotes = `${specialRequest}${paymentInfo}`;
 
-        // Upsert the reservation
         const existingRes = await prisma.reservation.findUnique({
           where: { intellistayReservationId: intellistayBookingId }
         });
 
-        // Determine if we should update the status based on progression
         let finalStatus = status;
         
         if (existingRes) {
           const currentStatus = existingRes.status;
           
-          // Prevent regression from local advanced states (CHECKED_IN / CHECKED_OUT) back to CONFIRMED
           if (
             (currentStatus === 'CHECKED_IN' || currentStatus === 'CHECKED_OUT') &&
             status === 'CONFIRMED'
           ) {
-            finalStatus = currentStatus; // Keep local status
+            finalStatus = currentStatus;
           }
 
           const updatedRes = await prisma.reservation.update({
@@ -165,31 +160,28 @@ export async function syncBookings() {
               bookingNotes
             }
           });
-          updateCount++;
-
-          // EVENT: Booking Updated / Checked In / Cancelled
+          
           if (existingRes.status !== updatedRes.status) {
+            updateCount++;
             
-            // Sync unit status automatically
             if (updatedRes.status === 'CHECKED_IN') {
-              await prisma.unit.update({ where: { id: unitId }, data: { status: 'OCCUPIED' } }).catch(() => {})
+              eventPromises.push(prisma.unit.update({ where: { id: unitId }, data: { status: 'OCCUPIED' } }).then(() => {}));
             } else if (updatedRes.status === 'CHECKED_OUT') {
-              await prisma.unit.update({ where: { id: unitId }, data: { status: 'DIRTY' } }).catch(() => {})
+              eventPromises.push(prisma.unit.update({ where: { id: unitId }, data: { status: 'DIRTY' } }).then(() => {}));
             } else if (updatedRes.status === 'CANCELLED') {
-              await prisma.unit.update({ where: { id: unitId }, data: { status: 'AVAILABLE' } }).catch(() => {})
+              eventPromises.push(prisma.unit.update({ where: { id: unitId }, data: { status: 'AVAILABLE' } }).then(() => {}));
             }
 
             if (updatedRes.status === 'CANCELLED') {
-              await eventBus.emit('BOOKING_CANCELLED', { reservationId: updatedRes.id, guestId: guest.id, propertyId, intellistayBookingId, status: updatedRes.status, checkIn: checkInDate, checkOut: checkOutDate });
+              eventPromises.push(eventBus.emit('BOOKING_CANCELLED', { reservationId: updatedRes.id, guestId: guest.id, propertyId, intellistayBookingId, status: updatedRes.status, checkIn: checkInDate, checkOut: checkOutDate }));
             } else if (updatedRes.status === 'CHECKED_IN') {
-              await eventBus.emit('GUEST_CHECKED_IN', { reservationId: updatedRes.id, guestId: guest.id, propertyId, intellistayBookingId, status: updatedRes.status, checkIn: checkInDate, checkOut: checkOutDate });
+              eventPromises.push(eventBus.emit('GUEST_CHECKED_IN', { reservationId: updatedRes.id, guestId: guest.id, propertyId, intellistayBookingId, status: updatedRes.status, checkIn: checkInDate, checkOut: checkOutDate }));
             } else if (updatedRes.status === 'CHECKED_OUT') {
-              await eventBus.emit('GUEST_CHECKED_OUT', { reservationId: updatedRes.id, guestId: guest.id, propertyId, intellistayBookingId, status: updatedRes.status, checkIn: checkInDate, checkOut: checkOutDate });
+              eventPromises.push(eventBus.emit('GUEST_CHECKED_OUT', { reservationId: updatedRes.id, guestId: guest.id, propertyId, intellistayBookingId, status: updatedRes.status, checkIn: checkInDate, checkOut: checkOutDate }));
             } else {
-              await eventBus.emit('BOOKING_UPDATED', { reservationId: updatedRes.id, guestId: guest.id, propertyId, intellistayBookingId, status: updatedRes.status, checkIn: checkInDate, checkOut: checkOutDate });
+              eventPromises.push(eventBus.emit('BOOKING_UPDATED', { reservationId: updatedRes.id, guestId: guest.id, propertyId, intellistayBookingId, status: updatedRes.status, checkIn: checkInDate, checkOut: checkOutDate }));
             }
           }
-
         } else {
           const newRes = await prisma.reservation.create({
             data: {
@@ -207,8 +199,7 @@ export async function syncBookings() {
           });
           newCount++;
 
-          // EVENT: New Booking Created
-          await eventBus.emit('BOOKING_CREATED', { reservationId: newRes.id, guestId: guest.id, propertyId, intellistayBookingId, status: newRes.status, checkIn: checkInDate, checkOut: checkOutDate });
+          eventPromises.push(eventBus.emit('BOOKING_CREATED', { reservationId: newRes.id, guestId: guest.id, propertyId, intellistayBookingId, status: newRes.status, checkIn: checkInDate, checkOut: checkOutDate }));
         }
         
         successCount++;
@@ -217,6 +208,9 @@ export async function syncBookings() {
         errorMessages.push(`Booking ${booking.bookingId}: ${err.message}`);
       }
     }
+    
+    // Await all concurrent side-effects (WhatsApp msgs, unit updates) together at the end
+    await Promise.allSettled(eventPromises);
 
     console.log(`Sync Complete. Total Processed: ${successCount}. New: ${newCount}. Updated: ${updateCount}.`);
 
@@ -237,8 +231,6 @@ export async function syncBookings() {
 
   } catch (error: any) {
     console.error("Fatal error during sync:", error);
-    
-    // Attempt to log fatal error if possible
     try {
       await prisma.syncLog.create({
         data: {

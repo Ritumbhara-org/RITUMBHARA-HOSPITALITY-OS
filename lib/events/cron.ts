@@ -25,8 +25,8 @@ export async function processDailyAutomations() {
   });
 
   console.log(`[Cron] Found ${upcomingCheckIns.length} reservations checking in tomorrow.`);
-  for (const res of upcomingCheckIns) {
-    await eventBus.emit('UPCOMING_CHECK_IN', {
+  const checkInPromises = upcomingCheckIns.map(res => 
+    eventBus.emit('UPCOMING_CHECK_IN', {
       reservationId: res.id,
       guestId: res.guestId,
       propertyId: res.propertyId,
@@ -34,8 +34,9 @@ export async function processDailyAutomations() {
       status: res.status,
       checkIn: res.checkIn,
       checkOut: res.checkOut
-    });
-  }
+    })
+  );
+  await Promise.allSettled(checkInPromises);
 
   // 2. Checkout Instructions (Check-out is today)
   const upcomingCheckOuts = await prisma.reservation.findMany({
@@ -49,8 +50,8 @@ export async function processDailyAutomations() {
   });
 
   console.log(`[Cron] Found ${upcomingCheckOuts.length} reservations checking out today.`);
-  for (const res of upcomingCheckOuts) {
-    await eventBus.emit('UPCOMING_CHECK_OUT', {
+  const checkOutPromises = upcomingCheckOuts.map(res => 
+    eventBus.emit('UPCOMING_CHECK_OUT', {
       reservationId: res.id,
       guestId: res.guestId,
       propertyId: res.propertyId,
@@ -58,8 +59,9 @@ export async function processDailyAutomations() {
       status: res.status,
       checkIn: res.checkIn,
       checkOut: res.checkOut
-    });
-  }
+    })
+  );
+  await Promise.allSettled(checkOutPromises);
 
   console.log("[Cron] Daily automations finished.");
   return {
