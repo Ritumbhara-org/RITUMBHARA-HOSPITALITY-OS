@@ -104,7 +104,10 @@ export async function checkSlaBreaches() {
     const breachedTickets = await prisma.ticket.findMany({
       where: {
         status: { notIn: ["RESOLVED", "CLOSED", "ESCALATED"] },
-        slaDeadline: { lt: now }
+        OR: [
+          { slaDeadline: { lt: now } },
+          { responseSlaDeadline: { lt: now }, status: { in: ["OPEN", "TRIAGED", "ASSIGNED"] } }
+        ]
       },
       include: {
         unit: true

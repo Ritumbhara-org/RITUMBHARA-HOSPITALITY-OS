@@ -68,15 +68,28 @@ export async function POST(req: NextRequest) {
 
     // Auto-calculate SLA deadline based on priority
     const slaDeadline = new Date()
+    const responseSlaDeadline = new Date()
     switch (parsed.data.priority) {
-      case "CRITICAL": slaDeadline.setHours(slaDeadline.getHours() + 1); break
-      case "HIGH":     slaDeadline.setHours(slaDeadline.getHours() + 4); break
-      case "MEDIUM":   slaDeadline.setHours(slaDeadline.getHours() + 24); break
-      case "LOW":      slaDeadline.setHours(slaDeadline.getHours() + 72); break
+      case "CRITICAL": 
+        slaDeadline.setHours(slaDeadline.getHours() + 1); 
+        responseSlaDeadline.setMinutes(responseSlaDeadline.getMinutes() + 5);
+        break;
+      case "HIGH":     
+        slaDeadline.setHours(slaDeadline.getHours() + 4); 
+        responseSlaDeadline.setMinutes(responseSlaDeadline.getMinutes() + 10);
+        break;
+      case "MEDIUM":   
+        slaDeadline.setHours(slaDeadline.getHours() + 24); 
+        responseSlaDeadline.setMinutes(responseSlaDeadline.getMinutes() + 30);
+        break;
+      case "LOW":      
+        slaDeadline.setHours(slaDeadline.getHours() + 72); 
+        responseSlaDeadline.setHours(responseSlaDeadline.getHours() + 4);
+        break;
     }
 
     const ticket = await prisma.ticket.create({
-      data: { ...parsed.data, slaDeadline },
+      data: { ...parsed.data, slaDeadline, responseSlaDeadline },
       include: {
         unit: { select: { name: true } },
         assignedTo: { select: { name: true } },

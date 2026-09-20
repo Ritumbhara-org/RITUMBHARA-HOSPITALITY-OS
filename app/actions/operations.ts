@@ -34,11 +34,24 @@ export async function createTicket(formData: FormData) {
     const fullDescription = `[${title}] ${description}`
 
     const slaDeadline = new Date()
-    switch(priority) {
-      case 'CRITICAL': slaDeadline.setMinutes(slaDeadline.getMinutes() + 30); break;
-      case 'HIGH': slaDeadline.setHours(slaDeadline.getHours() + 1); break;
-      case 'MEDIUM': slaDeadline.setHours(slaDeadline.getHours() + 2); break;
-      case 'LOW': slaDeadline.setHours(slaDeadline.getHours() + 24); break;
+    const responseSlaDeadline = new Date()
+    switch (priority) {
+      case 'CRITICAL': 
+        slaDeadline.setMinutes(slaDeadline.getMinutes() + 30); 
+        responseSlaDeadline.setMinutes(responseSlaDeadline.getMinutes() + 5);
+        break;
+      case 'HIGH': 
+        slaDeadline.setHours(slaDeadline.getHours() + 1); 
+        responseSlaDeadline.setMinutes(responseSlaDeadline.getMinutes() + 10);
+        break;
+      case 'MEDIUM': 
+        slaDeadline.setHours(slaDeadline.getHours() + 2); 
+        responseSlaDeadline.setMinutes(responseSlaDeadline.getMinutes() + 30);
+        break;
+      case 'LOW': 
+        slaDeadline.setHours(slaDeadline.getHours() + 24); 
+        responseSlaDeadline.setHours(responseSlaDeadline.getHours() + 4);
+        break;
     }
 
     const ticket = await prisma.ticket.create({

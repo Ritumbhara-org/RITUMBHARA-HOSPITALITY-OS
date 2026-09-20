@@ -197,6 +197,7 @@ model Ticket {
   status          TicketStatus   @default(OPEN)
   assignedToId    String?
   slaDeadline     DateTime
+  responseSlaDeadline DateTime?
   firstResponseAt DateTime?
   resolvedAt      DateTime?
   closedAt        DateTime?

@@ -1,4 +1,4 @@
-import { eventBus, BookingEventPayload } from "@/lib/events/bus";
+import { eventBus, BookingEventPayload, TicketEventPayload } from "@/lib/events/bus";
 import { sendWhatsAppMessage } from "./client";
 import { prisma } from "@/lib/prisma";
 
