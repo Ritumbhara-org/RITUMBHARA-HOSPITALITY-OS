@@ -38,6 +38,31 @@ export async function processDailyAutomations() {
   );
   await Promise.allSettled(checkInPromises);
 
+  // 1.5. Day of Arrival messages (Check-in is today)
+  const todayCheckIns = await prisma.reservation.findMany({
+    where: {
+      status: "CONFIRMED",
+      checkIn: {
+        gte: today,
+        lt: tomorrow
+      }
+    }
+  });
+
+  console.log(`[Cron] Found ${todayCheckIns.length} reservations checking in today.`);
+  const todayCheckInPromises = todayCheckIns.map(res => 
+    eventBus.emit('TODAY_CHECK_IN', {
+      reservationId: res.id,
+      guestId: res.guestId,
+      propertyId: res.propertyId,
+      intellistayBookingId: res.intellistayReservationId || "direct",
+      status: res.status,
+      checkIn: res.checkIn,
+      checkOut: res.checkOut
+    })
+  );
+  await Promise.allSettled(todayCheckInPromises);
+
   // 2. Checkout Instructions (Check-out is today)
   const upcomingCheckOuts = await prisma.reservation.findMany({
     where: {

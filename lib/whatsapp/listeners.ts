@@ -110,6 +110,43 @@ export function initWhatsAppListeners() {
     }
   });
 
+  // 4.5. Day of Arrival Instructions
+  eventBus.on<BookingEventPayload>('TODAY_CHECK_IN', async (payload) => {
+    try {
+      // Check if message already sent
+      const existingMsg = await prisma.whatsAppMessage.findFirst({
+        where: {
+          templateName: 'day_of_arrival_reminder',
+          relatedEntityId: payload.reservationId,
+          status: { not: 'FAILED' } 
+        }
+      });
+      
+      if (existingMsg) return;
+
+      const guest = await prisma.guest.findUnique({ where: { id: payload.guestId } });
+      const unit = await prisma.reservation.findUnique({ 
+        where: { id: payload.reservationId },
+        include: { unit: { include: { property: true } } }
+      });
+      if (!guest?.phone) return;
+
+      // This text MUST exactly match the new template you create in Meta Business Manager
+      const messageContent = `Hi ${guest.name}, we are looking forward to your arrival today at ${unit?.unit?.property?.name || 'our property'}! Your room ${unit?.unit?.name || ''} will be ready for you. If you need directions, please reply to this message.`;
+
+      await sendWhatsAppMessage(
+        guest.phone,
+        'template',
+        messageContent,
+        'day_of_arrival_reminder',
+        'Reservation',
+        payload.reservationId
+      );
+    } catch (error) {
+      console.error("[WhatsApp Listener Error - TODAY_CHECK_IN]", error);
+    }
+  });
+
   // 5. Checkout Instructions
   eventBus.on<BookingEventPayload>('UPCOMING_CHECK_OUT', async (payload) => {
     try {
