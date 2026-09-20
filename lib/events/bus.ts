@@ -66,9 +66,8 @@ class EventBus {
 
 export const eventBus = new EventBus();
 
-// Initialize listeners
-import { initWhatsAppListeners } from '../whatsapp/listeners';
-import { initHousekeepingListeners } from '../housekeeping/listeners';
-
-initWhatsAppListeners();
-initHousekeepingListeners();
+if (typeof window === 'undefined') {
+  // Server-side only: dynamically import to prevent circular dependencies
+  import('../whatsapp/listeners').then(m => m.initWhatsAppListeners()).catch(console.error);
+  import('../housekeeping/listeners').then(m => m.initHousekeepingListeners()).catch(console.error);
+}

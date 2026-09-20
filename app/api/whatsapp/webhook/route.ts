@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { handleWhatsAppAction } from "@/lib/whatsapp/action-handler";
+import { handleGuestAIChat } from "@/lib/whatsapp/ai-handler";
 
 export async function POST(req: Request) {
   try {
@@ -37,8 +38,9 @@ export async function POST(req: Request) {
     // Process the action (ACCEPT, START, COMPLETE)
     const responseMessage = await handleWhatsAppAction(senderPhone, messageText);
 
-    // If no response is needed (e.g., standard guest chat), return an empty response
+    // If no response is needed (e.g., standard guest chat), forward to AI!
     if (!responseMessage) {
+      await handleGuestAIChat(senderPhone, messageText);
       return new NextResponse("<Response></Response>", {
         status: 200,
         headers: { "Content-Type": "text/xml" },
