@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { ai } from "@/lib/ai/gemini";
+import { ai } from "@/lib/ai/groq";
 import { normalizePhoneNumber } from "@/lib/utils/phone";
 import { sendWhatsAppMessage } from "./client";
 import { assignTicketRoundRobin } from "@/lib/operations/round-robin";
@@ -51,16 +51,16 @@ If intent is ESCALATE_ISSUE, replyText should assure the guest that our team has
 `;
 
   try {
-    const result = await ai.models.generateContent({
-      model: "gemini-3.6-flash",
-      contents: messageText,
-      config: {
-        systemInstruction: systemPrompt,
-        responseMimeType: "application/json",
-      }
+    const chatCompletion = await ai.chat.completions.create({
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: messageText }
+      ],
+      model: "openai/gpt-oss-120b",
+      response_format: { type: "json_object" },
     });
 
-    const responseText = result.text;
+    const responseText = chatCompletion.choices[0]?.message?.content;
     if (!responseText) return;
 
     const parsed = JSON.parse(responseText);
