@@ -138,7 +138,7 @@ function OperationsClientContent({
   }
 
   return (
-    <div className="flex flex-col flex-1 w-full gap-5 pb-4">
+    <div className="flex flex-col h-[calc(100vh-100px)] w-full gap-5 pb-4">
       <div className="flex flex-wrap items-center justify-between gap-4 shrink-0">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Operations Hub</h1>
