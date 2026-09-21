@@ -3,8 +3,9 @@
 import { useState, useEffect, Suspense } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { motion } from "framer-motion"
-import { Search, Filter, Wrench, AlertCircle, Clock, CheckCircle2, GripVertical, Plus } from "lucide-react"
+import { Search, Filter, Wrench, AlertCircle, Clock, CheckCircle2, GripVertical, Plus, ChevronDown, ListFilter } from "lucide-react"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -23,17 +24,19 @@ type OperationStats = {
 export function OperationsClient({ 
   initialData, 
   stats,
+  properties,
   units,
   teamMembers
 }: { 
   initialData: any[],
   stats: OperationStats,
-  units: { id: string, name: string }[],
+  properties: { id: string, name: string }[],
+  units: { id: string, name: string, propertyId: string }[],
   teamMembers: any[]
 }) {
   return (
     <Suspense fallback={<div className="flex items-center justify-center h-64 text-muted-foreground">Loading operations...</div>}>
-      <OperationsClientContent initialData={initialData} stats={stats} units={units} teamMembers={teamMembers} />
+      <OperationsClientContent initialData={initialData} stats={stats} properties={properties} units={units} teamMembers={teamMembers} />
     </Suspense>
   )
 }
@@ -41,16 +44,23 @@ export function OperationsClient({
 function OperationsClientContent({ 
   initialData, 
   stats,
+  properties,
   units,
   teamMembers
 }: { 
   initialData: any[],
   stats: OperationStats,
-  units: { id: string, name: string }[],
+  properties: { id: string, name: string }[],
+  units: { id: string, name: string, propertyId: string }[],
   teamMembers: any[]
 }) {
   const [searchTerm, setSearchTerm] = useState("")
   const [filterCategory, setFilterCategory] = useState("ALL")
+  const [filterProperty, setFilterProperty] = useState("ALL")
+  const [filterUnit, setFilterUnit] = useState("ALL")
+  const [filterPriority, setFilterPriority] = useState("ALL")
+  const [filterAssignee, setFilterAssignee] = useState("ALL")
+  const [filterOverdue, setFilterOverdue] = useState(false)
   const [viewMode, setViewMode] = useState<'board' | 'list'>('board')
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -71,11 +81,27 @@ function OperationsClientContent({
   }, [searchParams, router])
 
   const filteredData = initialData.filter((ticket: any) => {
+    // Search
     const matchesSearch = ticket.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       ticket.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       ticket.unit?.name.toLowerCase().includes(searchTerm.toLowerCase())
-    if (filterCategory === "ALL") return matchesSearch;
-    return matchesSearch && ticket.category === filterCategory;
+    if (!matchesSearch) return false;
+
+    // Filters
+    if (filterCategory !== "ALL" && ticket.category !== filterCategory) return false;
+    if (filterProperty !== "ALL" && ticket.propertyId !== filterProperty) return false;
+    if (filterUnit !== "ALL" && ticket.unitId !== filterUnit) return false;
+    if (filterPriority !== "ALL" && ticket.priority !== filterPriority) return false;
+    if (filterAssignee !== "ALL") {
+      if (filterAssignee === "UNASSIGNED" && ticket.assignedToId !== null) return false;
+      if (filterAssignee !== "UNASSIGNED" && ticket.assignedToId !== filterAssignee) return false;
+    }
+    
+    // Overdue Filter
+    const isOverdue = ticket.slaDeadline && new Date(ticket.slaDeadline) < new Date() && ticket.status !== 'RESOLVED' && ticket.status !== 'CLOSED' && ticket.status !== 'VERIFIED';
+    if (filterOverdue && !isOverdue) return false;
+
+    return true;
   })
 
   const openTickets = filteredData.filter((t: any) => t.status === 'OPEN' || t.status === 'TRIAGED')
@@ -91,16 +117,26 @@ function OperationsClientContent({
     }
   }
 
-  const renderTicketCard = (ticket: any) => (
+  const renderTicketCard = (ticket: any) => {
+    const isOverdue = ticket.slaDeadline && new Date(ticket.slaDeadline) < new Date() && ticket.status !== 'RESOLVED' && ticket.status !== 'CLOSED' && ticket.status !== 'VERIFIED';
+    
+    return (
     <div 
       key={ticket.id} 
       onClick={() => setSelectedTicket(ticket)}
-      className="p-3.5 mb-2.5 bg-card border border-border/60 rounded-xl shadow-sm cursor-pointer hover:shadow-md hover:border-border transition-all duration-200 group"
+      className={`p-3.5 mb-2.5 bg-card border rounded-xl shadow-sm cursor-pointer hover:shadow-md transition-all duration-200 group ${isOverdue ? 'border-red-500/50 hover:border-red-500/80' : 'border-border/60 hover:border-border'}`}
     >
       <div className="flex justify-between items-start mb-2">
-        <span className={`px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-lg ${getPriorityColor(ticket.priority)}`}>
-          {ticket.priority}
-        </span>
+        <div className="flex gap-2 items-center">
+          <span className={`px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-lg ${getPriorityColor(ticket.priority)}`}>
+            {ticket.priority}
+          </span>
+          {isOverdue && (
+            <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-lg bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border border-red-200 dark:border-red-800">
+              OVERDUE
+            </span>
+          )}
+        </div>
         <span className="text-[10px] text-muted-foreground font-mono">#{ticket.id.substring(ticket.id.length - 4)}</span>
       </div>
       <h4 className="font-semibold text-sm mb-1 line-clamp-1">{ticket.title || ticket.category}</h4>
@@ -122,7 +158,7 @@ function OperationsClientContent({
         </div>
       </div>
     </div>
-  )
+  )};
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -297,22 +333,112 @@ function OperationsClientContent({
             >
               <GripVertical className="h-4 w-4" />
             </button>
-            <Select value={filterCategory} onValueChange={(val) => setFilterCategory(val || "ALL")}>
-              <SelectTrigger className="w-[180px] bg-background rounded-xl">
-                <div className="flex items-center gap-2">
-                  <Filter className="h-4 w-4" />
-                  <span>{filterCategory === 'ALL' ? 'All Categories' : filterCategory.replace('_', ' ')}</span>
+            <Popover>
+              <PopoverTrigger className="inline-flex items-center justify-center gap-2 rounded-xl border border-border/60 bg-background px-4 py-2.5 text-sm font-medium shadow-sm transition-all hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20">
+                <ListFilter className="h-4 w-4" />
+                Advanced Filters
+                {([filterCategory, filterProperty, filterUnit, filterPriority, filterAssignee].filter(v => v !== "ALL").length > 0 || filterOverdue) && (
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                    {[filterCategory, filterProperty, filterUnit, filterPriority, filterAssignee].filter(v => v !== "ALL").length + (filterOverdue ? 1 : 0)}
+                  </span>
+                )}
+              </PopoverTrigger>
+              <PopoverContent className="w-80 rounded-2xl p-4" align="end">
+                <div className="space-y-4">
+                  <h4 className="font-semibold text-sm">Filter Tickets</h4>
+                  
+                  <div className="grid gap-2">
+                    <Label className="text-xs text-muted-foreground">Category</Label>
+                    <Select value={filterCategory} onValueChange={setFilterCategory}>
+                      <SelectTrigger className="h-8 rounded-lg text-xs"><SelectValue placeholder="All Categories" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ALL">All Categories</SelectItem>
+                        <SelectItem value="MAINTENANCE">Maintenance</SelectItem>
+                        <SelectItem value="HOUSEKEEPING">Housekeeping</SelectItem>
+                        <SelectItem value="GUEST_REQUEST">Guest Request</SelectItem>
+                        <SelectItem value="COMPLAINT">Complaint</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="grid gap-2">
+                    <Label className="text-xs text-muted-foreground">Property</Label>
+                    <Select value={filterProperty} onValueChange={(val) => { setFilterProperty(val); setFilterUnit("ALL"); }}>
+                      <SelectTrigger className="h-8 rounded-lg text-xs"><SelectValue placeholder="All Properties" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ALL">All Properties</SelectItem>
+                        {properties.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {filterProperty !== "ALL" && (
+                    <div className="grid gap-2">
+                      <Label className="text-xs text-muted-foreground">Unit</Label>
+                      <Select value={filterUnit} onValueChange={setFilterUnit}>
+                        <SelectTrigger className="h-8 rounded-lg text-xs"><SelectValue placeholder="All Units" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="ALL">All Units</SelectItem>
+                          {units.filter(u => u.propertyId === filterProperty).map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label className="text-xs text-muted-foreground">Priority</Label>
+                      <Select value={filterPriority} onValueChange={setFilterPriority}>
+                        <SelectTrigger className="h-8 rounded-lg text-xs"><SelectValue placeholder="All" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="ALL">All</SelectItem>
+                          <SelectItem value="CRITICAL">Critical</SelectItem>
+                          <SelectItem value="HIGH">High</SelectItem>
+                          <SelectItem value="MEDIUM">Medium</SelectItem>
+                          <SelectItem value="LOW">Low</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label className="text-xs text-muted-foreground">Assignee</Label>
+                      <Select value={filterAssignee} onValueChange={setFilterAssignee}>
+                        <SelectTrigger className="h-8 rounded-lg text-xs"><SelectValue placeholder="All" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="ALL">All Staff</SelectItem>
+                          <SelectItem value="UNASSIGNED">Unassigned</SelectItem>
+                          {teamMembers.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-2 pt-2 border-t">
+                    <input 
+                      type="checkbox" 
+                      id="overdue-toggle" 
+                      checked={filterOverdue}
+                      onChange={(e) => setFilterOverdue(e.target.checked)}
+                      className="rounded border-gray-300 text-primary focus:ring-primary h-4 w-4"
+                    />
+                    <label htmlFor="overdue-toggle" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                      Show Overdue Only
+                    </label>
+                  </div>
+
+                  <div className="pt-2">
+                    <button 
+                      onClick={() => {
+                        setFilterCategory("ALL"); setFilterProperty("ALL"); setFilterUnit("ALL");
+                        setFilterPriority("ALL"); setFilterAssignee("ALL"); setFilterOverdue(false);
+                      }}
+                      className="w-full text-xs text-center py-1.5 text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      Reset Filters
+                    </button>
+                  </div>
                 </div>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ALL">All Categories</SelectItem>
-                <SelectItem value="MAINTENANCE">Maintenance</SelectItem>
-                <SelectItem value="HOUSEKEEPING">Housekeeping</SelectItem>
-                <SelectItem value="GUEST_REQUEST">Guest Request</SelectItem>
-                <SelectItem value="COMPLAINT">Complaint</SelectItem>
-                <SelectItem value="OTHER">Other</SelectItem>
-              </SelectContent>
-            </Select>
+              </PopoverContent>
+            </Popover>
           </div>
         </div>
 

@@ -58,10 +58,16 @@ export default async function OperationsPage() {
 
   const combinedData = [...tickets, ...formattedTasks].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
 
+  // Fetch all properties so they can be selected in filters
+  const properties = await prisma.property.findMany({
+    orderBy: { name: 'asc' },
+    select: { id: true, name: true }
+  })
+
   // Fetch all units so they can be selected when creating a ticket
   const units = await prisma.unit.findMany({
     orderBy: { name: 'asc' },
-    select: { id: true, name: true }
+    select: { id: true, name: true, propertyId: true }
   })
 
   // Fetch team members for assignment (need propertyId and department for round-robin/filtering)
@@ -84,5 +90,5 @@ export default async function OperationsPage() {
     resolved
   }
 
-  return <OperationsClient initialData={combinedData} stats={stats} units={units} teamMembers={teamMembers} />
+  return <OperationsClient initialData={combinedData} stats={stats} properties={properties} units={units} teamMembers={teamMembers} />
 }
