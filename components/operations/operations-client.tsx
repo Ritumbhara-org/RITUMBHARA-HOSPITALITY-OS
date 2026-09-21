@@ -349,7 +349,7 @@ function OperationsClientContent({
                   
                   <div className="grid gap-2">
                     <Label className="text-xs text-muted-foreground">Category</Label>
-                    <Select value={filterCategory} onValueChange={setFilterCategory}>
+                    <Select value={filterCategory} onValueChange={(val) => setFilterCategory(val || "ALL")}>
                       <SelectTrigger className="h-8 rounded-lg text-xs"><SelectValue placeholder="All Categories" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="ALL">All Categories</SelectItem>
@@ -363,7 +363,7 @@ function OperationsClientContent({
 
                   <div className="grid gap-2">
                     <Label className="text-xs text-muted-foreground">Property</Label>
-                    <Select value={filterProperty} onValueChange={(val) => { setFilterProperty(val); setFilterUnit("ALL"); }}>
+                    <Select value={filterProperty} onValueChange={(val) => { setFilterProperty(val || "ALL"); setFilterUnit("ALL"); }}>
                       <SelectTrigger className="h-8 rounded-lg text-xs"><SelectValue placeholder="All Properties" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="ALL">All Properties</SelectItem>
@@ -375,7 +375,7 @@ function OperationsClientContent({
                   {filterProperty !== "ALL" && (
                     <div className="grid gap-2">
                       <Label className="text-xs text-muted-foreground">Unit</Label>
-                      <Select value={filterUnit} onValueChange={setFilterUnit}>
+                      <Select value={filterUnit} onValueChange={(val) => setFilterUnit(val || "ALL")}>
                         <SelectTrigger className="h-8 rounded-lg text-xs"><SelectValue placeholder="All Units" /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="ALL">All Units</SelectItem>
@@ -388,7 +388,7 @@ function OperationsClientContent({
                   <div className="grid grid-cols-2 gap-4">
                     <div className="grid gap-2">
                       <Label className="text-xs text-muted-foreground">Priority</Label>
-                      <Select value={filterPriority} onValueChange={setFilterPriority}>
+                      <Select value={filterPriority} onValueChange={(val) => setFilterPriority(val || "ALL")}>
                         <SelectTrigger className="h-8 rounded-lg text-xs"><SelectValue placeholder="All" /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="ALL">All</SelectItem>
@@ -401,7 +401,7 @@ function OperationsClientContent({
                     </div>
                     <div className="grid gap-2">
                       <Label className="text-xs text-muted-foreground">Assignee</Label>
-                      <Select value={filterAssignee} onValueChange={setFilterAssignee}>
+                      <Select value={filterAssignee} onValueChange={(val) => setFilterAssignee(val || "ALL")}>
                         <SelectTrigger className="h-8 rounded-lg text-xs"><SelectValue placeholder="All" /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="ALL">All Staff</SelectItem>
