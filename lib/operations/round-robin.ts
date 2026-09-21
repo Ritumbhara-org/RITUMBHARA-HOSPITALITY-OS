@@ -112,11 +112,16 @@ export async function assignTicketRoundRobin(ticketId: string, excludeMemberId?:
     
     await sendWhatsAppMessage(
       nextAssignee.whatsappNumber,
-      'text',
+      'template',
       messageContent,
-      undefined,
+      'ticket_assigned',
       'ticket',
-      ticket.id
+      ticket.id,
+      {
+        '1': ticket.description.substring(0, 30) + '...',
+        '2': ticket.unit ? ticket.unit.name : 'Property',
+        '3': ticket.priority
+      }
     );
 
     // Notify original assignee if it's an escalation
