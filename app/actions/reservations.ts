@@ -70,8 +70,8 @@ export async function createReservation(formData: FormData) {
       throw new Error("Guest, Unit, Check-in and Check-out are required.")
     }
 
-    const defaultProperty = await prisma.property.findFirst()
-    if (!defaultProperty) throw new Error("No property found.")
+    const unit = await prisma.unit.findUnique({ where: { id: unitId } })
+    if (!unit) throw new Error("Unit not found.")
 
     const checkInDate = new Date(checkIn);
     const checkOutDate = new Date(checkOut);
@@ -98,7 +98,7 @@ export async function createReservation(formData: FormData) {
       data: {
         guestId,
         unitId,
-        propertyId: defaultProperty.id,
+        propertyId: unit.propertyId,
         checkIn: new Date(checkIn),
         checkOut: new Date(checkOut),
         status: "CONFIRMED",
