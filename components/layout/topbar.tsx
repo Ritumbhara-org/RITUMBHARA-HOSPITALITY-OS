@@ -31,7 +31,7 @@ export function Topbar() {
         <div className="flex-1 md:flex-initial hidden sm:block">
           <div className="flex items-center gap-2 rounded-xl bg-muted/50 px-3.5 py-2 border border-border/40">
             <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-sm font-medium text-muted-foreground">Wonder Megacity, Bhubaneswar</span>
+            <span className="text-sm font-medium text-muted-foreground">Ritumbhara Hotels</span>
           </div>
         </div>
 

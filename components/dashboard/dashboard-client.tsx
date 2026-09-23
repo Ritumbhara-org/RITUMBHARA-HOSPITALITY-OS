@@ -92,7 +92,7 @@ export function DashboardClient({ data }: { data: DashboardData }) {
              <p suppressHydrationWarning className="text-sm font-semibold text-white/90">
                {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
              </p>
-             <p className="text-xs text-rose-200/50 mt-0.5">Wonder Megacity</p>
+             <p className="text-xs text-rose-200/50 mt-0.5">Ritumbhara Hotels</p>
           </motion.div>
         </div>
       </motion.div>
