@@ -119,9 +119,9 @@ export function TicketDetailsModal({
               <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Location</span>
               <div className="flex items-center gap-2 font-medium text-sm">
                 {ticket.unit ? (
-                  <><Building className="w-4 h-4 text-muted-foreground" /> {ticket.unit.name}</>
+                  <><Building className="w-4 h-4 text-muted-foreground" /> {ticket.unit.name}{ticket.property?.name ? `, ${ticket.property.name}` : ''}</>
                 ) : (
-                  <><Building className="w-4 h-4 text-muted-foreground" /> Property-wide</>
+                  <><Building className="w-4 h-4 text-muted-foreground" /> Property-wide{ticket.property?.name ? ` (${ticket.property.name})` : ''}</>
                 )}
               </div>
             </div>
@@ -163,9 +163,15 @@ export function TicketDetailsModal({
                         {member.name.split(' ')[0]} ({member.id.substring(member.id.length - 4)})
                       </SelectItem>
                     ))}
-                    {ticket.assignedToId && ticket.assignedTo && !eligibleMembers.find(m => m.id === ticket.assignedToId) && (
+                    {ticket.assignedToId && !eligibleMembers.find(m => m.id === ticket.assignedToId) && (
                       <SelectItem value={ticket.assignedToId}>
-                        {ticket.assignedTo.name.split(' ')[0]} ({ticket.assignedToId.substring(ticket.assignedToId.length - 4)})
+                        {(() => {
+                          const fallbackMember = teamMembers.find(m => m.id === ticket.assignedToId) || ticket.assignedTo;
+                          if (fallbackMember && fallbackMember.name) {
+                            return `${fallbackMember.name.split(' ')[0]} (${ticket.assignedToId.substring(ticket.assignedToId.length - 4)})`;
+                          }
+                          return ticket.assignedToId;
+                        })()}
                       </SelectItem>
                     )}
                     {eligibleMembers.length === 0 && !ticket.assignedToId && (
