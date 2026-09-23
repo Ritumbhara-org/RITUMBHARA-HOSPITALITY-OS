@@ -77,12 +77,12 @@ export function TicketDetailsModal({
 
   const isAutoTask = !!ticket.isAutoTask;
 
-  // Calculate fallback assignee name safely outside of JSX for Radix UI compatibility
-  let fallbackAssigneeText = ticket.assignedToId;
-  if (ticket.assignedToId && !eligibleMembers.find(m => m.id === ticket.assignedToId)) {
-    const fallbackMember = teamMembers.find(m => m.id === ticket.assignedToId) || ticket.assignedTo;
-    if (fallbackMember && fallbackMember.name) {
-      fallbackAssigneeText = `${fallbackMember.name.split(' ')[0]} (${ticket.assignedToId.substring(ticket.assignedToId.length - 4)})`;
+  // Calculate assignee display name safely outside of JSX
+  let assigneeDisplayName = ticket.assignedToId;
+  if (ticket.assignedToId && ticket.assignedToId !== "unassigned") {
+    const member = teamMembers.find(m => m.id === ticket.assignedToId) || ticket.assignedTo;
+    if (member && member.name) {
+      assigneeDisplayName = `${member.name.split(' ')[0]} (${ticket.assignedToId.substring(ticket.assignedToId.length - 4)})`;
     }
   }
 
@@ -163,7 +163,9 @@ export function TicketDetailsModal({
                 </label>
                 <Select disabled={isUpdating || isAutoTask} value={ticket.assignedToId || "unassigned"} onValueChange={handleAssignmentChange}>
                   <SelectTrigger className="rounded-xl">
-                    <SelectValue placeholder="Select team member" />
+                    <SelectValue placeholder="Select team member">
+                      {ticket.assignedToId && ticket.assignedToId !== "unassigned" ? assigneeDisplayName : "Select team member"}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="unassigned" className="text-muted-foreground italic">Unassigned</SelectItem>
@@ -174,7 +176,7 @@ export function TicketDetailsModal({
                     ))}
                     {ticket.assignedToId && !eligibleMembers.find(m => m.id === ticket.assignedToId) && (
                       <SelectItem value={ticket.assignedToId}>
-                        {fallbackAssigneeText}
+                        {assigneeDisplayName}
                       </SelectItem>
                     )}
                     {eligibleMembers.length === 0 && !ticket.assignedToId && (
