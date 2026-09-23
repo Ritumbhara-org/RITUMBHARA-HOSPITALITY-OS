@@ -5,49 +5,62 @@ import { sendWhatsAppMessage } from "./client";
 import { assignTicketRoundRobin } from "@/lib/operations/round-robin";
 
 export async function handleGuestAIChat(senderPhone: string, messageText: string): Promise<void> {
-  // 1. Identify the guest
+  // 1. Identify if it's a Guest or Team Member
+  const cleanedPhone = normalizePhoneNumber(senderPhone);
+  
   const guests = await prisma.guest.findMany();
-  const guest = guests.find(g => g.phone && normalizePhoneNumber(g.phone) === normalizePhoneNumber(senderPhone));
+  const guest = guests.find(g => g.phone && normalizePhoneNumber(g.phone) === cleanedPhone);
 
-  if (!guest) {
-    console.log(`[AI Handler] Sender ${senderPhone} is not a registered guest.`);
+  const teamMembers = await prisma.teamMember.findMany({ include: { property: true } });
+  const teamMember = teamMembers.find(t => t.whatsappNumber && normalizePhoneNumber(t.whatsappNumber) === cleanedPhone);
+
+  if (!guest && !teamMember) {
+    console.log(`[AI Handler] Sender ${senderPhone} is not a registered guest or team member.`);
     return;
   }
 
-  // 2. Find their active or upcoming reservation
-  const reservation = await prisma.reservation.findFirst({
-    where: {
-      guestId: guest.id,
-      status: { in: ["CONFIRMED", "CHECKED_IN"] }
-    },
-    orderBy: { checkIn: 'asc' },
-    include: {
-      unit: {
-        include: { property: true }
-      }
-    }
-  });
+  let contextStr = "";
+  let reservation = null;
 
-  const contextStr = reservation 
-    ? `Guest Name: ${guest.name}. Reservation Status: ${reservation.status}. Property: ${reservation.unit.property.name}. Unit: ${reservation.unit.name}. Check-in: ${reservation.checkIn.toLocaleDateString()}. Check-out: ${reservation.checkOut.toLocaleDateString()}.`
-    : `Guest Name: ${guest.name}. No active reservation found.`;
+  if (guest) {
+    // Find their active or upcoming reservation
+    reservation = await prisma.reservation.findFirst({
+      where: {
+        guestId: guest.id,
+        status: { in: ["CONFIRMED", "CHECKED_IN"] }
+      },
+      orderBy: { checkIn: 'asc' },
+      include: {
+        unit: {
+          include: { property: true }
+        }
+      }
+    });
+
+    contextStr = reservation 
+      ? `User Type: Guest. Guest Name: ${guest.name}. Reservation Status: ${reservation.status}. Property: ${reservation.unit.property.name}. Unit: ${reservation.unit.name}. Check-in: ${reservation.checkIn.toLocaleDateString()}. Check-out: ${reservation.checkOut.toLocaleDateString()}.`
+      : `User Type: Guest. Guest Name: ${guest.name}. No active reservation found.`;
+  } else if (teamMember) {
+    contextStr = `User Type: Staff/Team Member. Name: ${teamMember.name}. Role: ${teamMember.role}. Department: ${teamMember.department}. Property: ${teamMember.property.name}.`;
+  }
 
   const systemPrompt = `You are an AI assistant for Ritumbhara Hospitality. 
-You are speaking to a guest via WhatsApp.
-Context about this guest: ${contextStr}
+You are speaking to a user via WhatsApp.
+Context about this user: ${contextStr}
 
-Your goal is to answer the guest's question politely and concisely. 
-If the guest is reporting a maintenance issue, a complaint, or requesting an item (like extra towels), you MUST respond with a JSON object containing the intent to escalate.
-Otherwise, respond with a JSON object containing your plain text answer to the guest.
+Your goal is to answer the user's question politely and concisely. 
+If the user is reporting a maintenance issue, a complaint, or requesting an item, you MUST respond with a JSON object containing the intent to escalate. If it's a Team Member reporting an issue, look closely at their message to see if they mentioned a specific room/unit (e.g., "Room 204", "Studio 12"). Extract that unit name.
+Otherwise, respond with a JSON object containing your plain text answer to the user.
 
 IMPORTANT: Always output valid JSON in the following schema:
 {
   "intent": "ANSWER_QUESTION" | "ESCALATE_ISSUE",
-  "replyText": "The message to send back to the guest",
-  "escalationCategory": "MAINTENANCE" | "HOUSEKEEPING" | "GUEST_REQUEST" | "GUEST_COMPLAINT"
+  "replyText": "The message to send back to the user",
+  "escalationCategory": "MAINTENANCE" | "HOUSEKEEPING" | "GUEST_REQUEST" | "GUEST_COMPLAINT",
+  "unitName": "Optional. The room or unit name extracted from the message, if any."
 }
 
-If intent is ESCALATE_ISSUE, replyText should assure the guest that our team has been notified.
+If intent is ESCALATE_ISSUE, replyText should assure the user that the team has been notified.
 `;
 
   try {
@@ -65,13 +78,29 @@ If intent is ESCALATE_ISSUE, replyText should assure the guest that our team has
 
     const parsed = JSON.parse(responseText);
 
-    if (parsed.intent === "ESCALATE_ISSUE" && reservation) {
+    if (parsed.intent === "ESCALATE_ISSUE" && (reservation || teamMember)) {
        // Calculate SLAs
        const slaDeadline = new Date();
        const responseSlaDeadline = new Date();
        // Default to MEDIUM for AI tickets
        slaDeadline.setHours(slaDeadline.getHours() + 24); 
        responseSlaDeadline.setMinutes(responseSlaDeadline.getMinutes() + 30);
+
+       let propertyId = "";
+       let unitId = null;
+
+       if (guest && reservation) {
+         propertyId = reservation.unit.propertyId;
+         unitId = reservation.unitId;
+       } else if (teamMember) {
+         propertyId = teamMember.propertyId;
+         if (parsed.unitName) {
+           const unit = await prisma.unit.findFirst({
+             where: { propertyId: propertyId, name: { contains: parsed.unitName, mode: 'insensitive' } }
+           });
+           if (unit) unitId = unit.id;
+         }
+       }
 
        // Create a ticket!
        const ticket = await prisma.ticket.create({
@@ -80,11 +109,11 @@ If intent is ESCALATE_ISSUE, replyText should assure the guest that our team has
            priority: "MEDIUM",
            status: "OPEN",
            category: parsed.escalationCategory || "GUEST_REQUEST",
-           reporterType: "GUEST",
-           reporterId: guest.id,
-           guestId: guest.id,
-           propertyId: reservation.unit.propertyId,
-           unitId: reservation.unitId,
+           reporterType: guest ? "GUEST" : "TEAM",
+           reporterId: guest ? guest.id : (teamMember ? teamMember.id : "unknown"),
+           guestId: guest ? guest.id : null,
+           propertyId: propertyId,
+           unitId: unitId,
            slaDeadline,
            responseSlaDeadline
          }

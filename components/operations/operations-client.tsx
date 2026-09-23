@@ -143,9 +143,23 @@ function OperationsClientContent({
       <p className="text-xs text-muted-foreground line-clamp-2 mb-3 leading-relaxed">{ticket.description}</p>
       
       <div className="flex items-center justify-between mt-auto pt-2.5 border-t border-border/40 text-xs">
-        <div className="flex items-center gap-1.5 font-medium text-muted-foreground">
-          <Wrench className="h-3 w-3" />
-          {ticket.unit?.name || 'Property'}
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-1.5 font-medium text-muted-foreground">
+            <Wrench className="h-3 w-3" />
+            {ticket.unit?.name || 'Property'}
+          </div>
+          <div className="text-[10px] text-muted-foreground/70">
+            By: {
+              ticket.reporterType === 'GUEST' 
+                ? (ticket.guest?.name || 'Guest') 
+                : ticket.reporterType === 'TEAM' 
+                  ? (() => {
+                      const reporter = teamMembers.find(m => m.id === ticket.reporterId);
+                      return reporter ? `${reporter.name} (${reporter.department})` : 'Staff';
+                    })()
+                  : 'Management'
+            }
+          </div>
         </div>
         <div className="flex -space-x-1">
           {ticket.assignedTo ? (

@@ -238,8 +238,19 @@ export function TicketDetailsModal({
           
           <div className="pt-2 border-t border-border/40">
              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-               <User className="w-3.5 h-3.5" />
-               Reported by {ticket.reporterType === 'GUEST' ? (ticket.guest?.name || 'Guest') : 'Staff'} • {formatDistanceToNow(new Date(ticket.createdAt))} ago
+                <User className="w-3.5 h-3.5 text-muted-foreground mr-1" />
+                Reported by {
+                  ticket.reporterType === 'GUEST' 
+                    ? (ticket.guest?.name || 'Guest') 
+                    : ticket.reporterType === 'TEAM' 
+                      ? (() => {
+                          const reporter = teamMembers.find(m => m.id === ticket.reporterId);
+                          return reporter 
+                            ? `${reporter.name} (${reporter.department} - ${reporter.id.substring(reporter.id.length - 4)})` 
+                            : 'Staff';
+                        })()
+                      : 'Management'
+                } &bull; {formatDistanceToNow(new Date(ticket.createdAt))} ago
              </div>
           </div>
         </div>
