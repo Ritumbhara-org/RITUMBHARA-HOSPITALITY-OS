@@ -60,6 +60,8 @@ function OperationsClientContent({
   const [filterUnit, setFilterUnit] = useState("ALL")
   const [filterPriority, setFilterPriority] = useState("ALL")
   const [filterAssignee, setFilterAssignee] = useState("ALL")
+  const [filterReporter, setFilterReporter] = useState("ALL")
+  const [filterStatus, setFilterStatus] = useState("ALL")
   const [filterOverdue, setFilterOverdue] = useState(false)
   const [viewMode, setViewMode] = useState<'board' | 'list'>('board')
   const [isDialogOpen, setIsDialogOpen] = useState(false)
@@ -96,6 +98,13 @@ function OperationsClientContent({
       if (filterAssignee === "UNASSIGNED" && ticket.assignedToId !== null) return false;
       if (filterAssignee !== "UNASSIGNED" && ticket.assignedToId !== filterAssignee) return false;
     }
+    if (filterReporter !== "ALL" && ticket.reporterType !== filterReporter) return false;
+    if (filterStatus !== "ALL") {
+      if (filterStatus === "OPEN" && !['OPEN', 'TRIAGED'].includes(ticket.status)) return false;
+      if (filterStatus === "ASSIGNED" && ticket.status !== 'ASSIGNED') return false;
+      if (filterStatus === "IN_PROGRESS" && !['ACKNOWLEDGED', 'IN_PROGRESS'].includes(ticket.status)) return false;
+      if (filterStatus === "RESOLVED" && !['RESOLVED', 'VERIFIED', 'CLOSED'].includes(ticket.status)) return false;
+    }
     
     // Overdue Filter
     const isOverdue = ticket.slaDeadline && new Date(ticket.slaDeadline) < new Date() && ticket.status !== 'RESOLVED' && ticket.status !== 'CLOSED' && ticket.status !== 'VERIFIED';
@@ -104,9 +113,18 @@ function OperationsClientContent({
     return true;
   })
 
+  // Groupings for Kanban
   const openTickets = filteredData.filter((t: any) => t.status === 'OPEN' || t.status === 'TRIAGED')
   const inProgressTickets = filteredData.filter((t: any) => t.status === 'ASSIGNED' || t.status === 'ACKNOWLEDGED' || t.status === 'IN_PROGRESS')
   const resolvedTickets = filteredData.filter((t: any) => t.status === 'RESOLVED' || t.status === 'VERIFIED' || t.status === 'CLOSED')
+
+  // Top-level stats calculation based on ALL initial data (not filtered, so user always sees the big picture)
+  const statsOpen = initialData.filter(t => t.status === 'OPEN' || t.status === 'TRIAGED').length;
+  const statsAssigned = initialData.filter(t => t.status === 'ASSIGNED').length;
+  const statsInProgress = initialData.filter(t => t.status === 'ACKNOWLEDGED' || t.status === 'IN_PROGRESS').length;
+  const statsOverdue = initialData.filter(t => t.slaDeadline && new Date(t.slaDeadline) < new Date() && !['RESOLVED', 'VERIFIED', 'CLOSED'].includes(t.status)).length;
+  const statsCritical = initialData.filter(t => t.priority === 'CRITICAL').length;
+  const statsResolved = initialData.filter(t => ['RESOLVED', 'VERIFIED', 'CLOSED'].includes(t.status)).length;
 
   const getPriorityColor = (priority: string) => {
     switch(priority) {
@@ -298,22 +316,24 @@ function OperationsClientContent({
         </Dialog>
       </div>
 
-      <div className="grid shrink-0 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid shrink-0 gap-4 sm:grid-cols-2 lg:grid-cols-6">
         {[
-          { label: "Total Tickets", value: stats.total, icon: Wrench, color: "bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400" },
-          { label: "Open Issues", value: stats.open, icon: AlertCircle, color: "bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400" },
-          { label: "In Progress", value: stats.inProgress, icon: Clock, color: "bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400" },
-          { label: "Resolved", value: stats.resolved, icon: CheckCircle2, color: "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400" }
+          { label: "Open Issues", value: statsOpen, icon: AlertCircle, color: "bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400" },
+          { label: "Assigned", value: statsAssigned, icon: Wrench, color: "bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400" },
+          { label: "In Progress", value: statsInProgress, icon: Clock, color: "bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400" },
+          { label: "Overdue", value: statsOverdue, icon: AlertCircle, color: "bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400", urgent: true },
+          { label: "Critical", value: statsCritical, icon: AlertCircle, color: "bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400", urgent: true },
+          { label: "Resolved", value: statsResolved, icon: CheckCircle2, color: "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400" }
         ].map((stat, i) => (
           <motion.div
             key={stat.label}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35, delay: i * 0.05 }}
-            className="group rounded-2xl border bg-card p-4 shadow-sm transition-all duration-300 hover:shadow-md hover:border-border/80"
+            className={`group rounded-2xl border p-4 shadow-sm transition-all duration-300 hover:shadow-md hover:border-border/80 ${stat.urgent && stat.value > 0 ? 'bg-red-50/50 dark:bg-red-950/20 border-red-200 dark:border-red-900' : 'bg-card'}`}
           >
             <div className="flex items-center justify-between mb-3">
-              <p className="text-sm font-medium text-muted-foreground">{stat.label}</p>
+              <p className={`text-sm font-medium ${stat.urgent && stat.value > 0 ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}`}>{stat.label}</p>
               <div className={`rounded-xl p-2 ${stat.color} transition-transform duration-300 group-hover:scale-110`}>
                 <stat.icon className="h-4 w-4" />
               </div>
@@ -351,9 +371,9 @@ function OperationsClientContent({
               <PopoverTrigger className="inline-flex items-center justify-center gap-2 rounded-xl border border-border/60 bg-background px-4 py-2.5 text-sm font-medium shadow-sm transition-all hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20">
                 <ListFilter className="h-4 w-4" />
                 Advanced Filters
-                {([filterCategory, filterProperty, filterUnit, filterPriority, filterAssignee].filter(v => v !== "ALL").length > 0 || filterOverdue) && (
+                {([filterCategory, filterProperty, filterUnit, filterPriority, filterAssignee, filterReporter, filterStatus].filter(v => v !== "ALL").length > 0 || filterOverdue) && (
                   <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
-                    {[filterCategory, filterProperty, filterUnit, filterPriority, filterAssignee].filter(v => v !== "ALL").length + (filterOverdue ? 1 : 0)}
+                    {[filterCategory, filterProperty, filterUnit, filterPriority, filterAssignee, filterReporter, filterStatus].filter(v => v !== "ALL").length + (filterOverdue ? 1 : 0)}
                   </span>
                 )}
               </PopoverTrigger>
@@ -426,6 +446,35 @@ function OperationsClientContent({
                     </div>
                   </div>
 
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label className="text-xs text-muted-foreground">Reporter</Label>
+                      <Select value={filterReporter} onValueChange={(val) => setFilterReporter(val || "ALL")}>
+                        <SelectTrigger className="h-8 rounded-lg text-xs"><SelectValue placeholder="All" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="ALL">All Reporters</SelectItem>
+                          <SelectItem value="GUEST">Guest</SelectItem>
+                          <SelectItem value="TEAM">Team</SelectItem>
+                          <SelectItem value="MANAGEMENT">Management</SelectItem>
+                          <SelectItem value="SYSTEM">System</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label className="text-xs text-muted-foreground">Status</Label>
+                      <Select value={filterStatus} onValueChange={(val) => setFilterStatus(val || "ALL")}>
+                        <SelectTrigger className="h-8 rounded-lg text-xs"><SelectValue placeholder="All" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="ALL">All Status</SelectItem>
+                          <SelectItem value="OPEN">Open</SelectItem>
+                          <SelectItem value="ASSIGNED">Assigned</SelectItem>
+                          <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
+                          <SelectItem value="RESOLVED">Resolved</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
                   <div className="flex items-center space-x-2 pt-2 border-t">
                     <input 
                       type="checkbox" 
@@ -443,7 +492,7 @@ function OperationsClientContent({
                     <button 
                       onClick={() => {
                         setFilterCategory("ALL"); setFilterProperty("ALL"); setFilterUnit("ALL");
-                        setFilterPriority("ALL"); setFilterAssignee("ALL"); setFilterOverdue(false);
+                        setFilterPriority("ALL"); setFilterAssignee("ALL"); setFilterReporter("ALL"); setFilterStatus("ALL"); setFilterOverdue(false);
                       }}
                       className="w-full text-xs text-center py-1.5 text-muted-foreground hover:text-foreground transition-colors"
                     >

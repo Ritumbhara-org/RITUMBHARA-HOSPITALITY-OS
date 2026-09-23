@@ -171,12 +171,12 @@ export function InventoryClient({ initialItems, activePropertyId, properties, re
                 <div className="space-y-2">
                   <label className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">Category</label>
                   <select required name="category" className="flex h-11 w-full rounded-xl border border-input bg-background/50 px-3 py-2 text-sm transition-all focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary/50">
-                    <option value="TOILETRIES">Toiletries</option>
+                    <option value="TOWELS">Towels</option>
                     <option value="LINEN">Linen</option>
-                    <option value="CLEANING">Cleaning</option>
-                    <option value="FOOD_BEVERAGE">Food & Beverage</option>
-                    <option value="MAINTENANCE">Maintenance</option>
-                    <option value="OTHER">Other</option>
+                    <option value="TOILETRIES">Toiletries</option>
+                    <option value="CLEANING_SUPPLIES">Cleaning supplies</option>
+                    <option value="KITCHEN_SUPPLIES">Kitchen supplies</option>
+                    <option value="CONSUMABLES">Consumables</option>
                   </select>
                 </div>
                 <div className="space-y-2">
