@@ -2,29 +2,61 @@ import { prisma } from "@/lib/prisma";
 
 export async function handleWhatsAppAction(senderPhone: string, messageText: string): Promise<string | null> {
   try {
-    // 1. Identify the Team Member by their WhatsApp number (ignoring spaces)
+    // 1. Identify all Team Members by their WhatsApp number (ignoring spaces)
     const members = await prisma.teamMember.findMany({
       where: { isActive: true },
     });
     
-    const teamMember = members.find(m => 
+    const matchingMembers = members.filter(m => 
       m.whatsappNumber.replace(/\s+/g, '') === senderPhone
     );
 
-    if (!teamMember) {
+    if (matchingMembers.length === 0) {
       // Return null so we don't spam regular guests with an error message
       return null;
     }
 
-    // 2. Look for active TICKETS first
-    const activeTicket = await prisma.ticket.findFirst({
-      where: {
-        assignedToId: teamMember.id,
-        status: { in: ["ASSIGNED", "ACKNOWLEDGED", "IN_PROGRESS"] }
-      },
-      orderBy: { updatedAt: 'desc' },
-      include: { unit: true }
-    });
+    let activeTicket = null;
+    let activeTask = null;
+    let actingTeamMember = matchingMembers[0]; // Default to first if none have active tasks
+
+    // 2. Look for active TICKETS or TASKS across all matching members (crucial for testing shared numbers)
+    for (const member of matchingMembers) {
+      // Check tickets
+      const ticket = await prisma.ticket.findFirst({
+        where: {
+          assignedToId: member.id,
+          status: { in: ["ASSIGNED", "ACKNOWLEDGED", "IN_PROGRESS"] }
+        },
+        orderBy: { updatedAt: 'desc' },
+        include: { unit: true }
+      });
+      
+      if (ticket) {
+        activeTicket = ticket;
+        actingTeamMember = member;
+        break; // Found an active ticket, stop looking
+      }
+
+      // Check tasks
+      const task = await prisma.housekeepingTask.findFirst({
+        where: {
+          assignedToId: member.id,
+          status: { in: ["PENDING", "IN_PROGRESS"] }
+        },
+        orderBy: { createdAt: 'asc' },
+        include: { unit: true }
+      });
+
+      if (task) {
+        activeTask = task;
+        actingTeamMember = member;
+        break; // Found an active task, stop looking
+      }
+    }
+
+    // Now proceed with actingTeamMember and their found ticket/task
+    const teamMember = actingTeamMember;
 
     if (activeTicket) {
       if (messageText.includes("ACCEPT")) {
@@ -69,16 +101,8 @@ export async function handleWhatsAppAction(senderPhone: string, messageText: str
       return null;
     }
 
-    // 3. Fallback to Housekeeping Tasks
-    const activeTask = await prisma.housekeepingTask.findFirst({
-      where: {
-        assignedToId: teamMember.id,
-        status: { in: ["PENDING", "IN_PROGRESS"] }
-      },
-      orderBy: { createdAt: 'asc' },
-      include: { unit: true }
-    });
-
+    // 3. Process Housekeeping Actions (Fallback)
+    // We already found activeTask in the loop above if one existed
     if (!activeTask) {
       // If they explicitly typed a command, we can tell them they have no tasks.
       // Otherwise, return null so they can chat normally as a guest.
