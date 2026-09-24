@@ -17,8 +17,12 @@ export async function createTicket(formData: FormData) {
     // We removed reporterType from the form, default it to TEAM
     const reporterType: ReporterType = "TEAM"
     
-    let defaultProperty = await prisma.property.findFirst()
-    if (!defaultProperty) throw new Error("No property found")
+    let propertyId = formData.get("propertyId") as string
+    if (!propertyId) {
+      let defaultProperty = await prisma.property.findFirst()
+      if (!defaultProperty) throw new Error("No property found")
+      propertyId = defaultProperty.id
+    }
 
     let teamMember = await prisma.teamMember.findFirst({ where: { role: "MANAGER" } })
     if (!teamMember) {
@@ -31,7 +35,7 @@ export async function createTicket(formData: FormData) {
     const assigneeId = formData.get("assigneeId") as string
     const isManuallyAssigned = assigneeId && assigneeId !== "unassigned"
 
-    const fullDescription = `[${title}] ${description}`
+    const fullDescription = `[${title || 'Alert'}] ${description}`
 
     const slaDeadline = new Date()
     const responseSlaDeadline = new Date()
@@ -59,7 +63,7 @@ export async function createTicket(formData: FormData) {
         description: fullDescription,
         category: category,
         priority: priority,
-        propertyId: defaultProperty.id,
+        propertyId: propertyId,
         reporterId: reporterId,
         reporterType: reporterType,
         status: isManuallyAssigned ? "ASSIGNED" : "OPEN", // Will be updated if round-robin assigns it
