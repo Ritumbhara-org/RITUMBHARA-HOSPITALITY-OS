@@ -158,6 +158,7 @@ export function TeamModal({ isOpen, onClose, member, properties }: TeamModalProp
                   <option value="FRONT_DESK">Front Desk</option>
                   <option value="MANAGEMENT">Management</option>
                   <option value="IT">IT Support</option>
+                  <option value="INVENTORY">Inventory</option>
                 </select>
               </div>
 
