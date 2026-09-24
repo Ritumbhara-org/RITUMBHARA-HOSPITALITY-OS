@@ -36,8 +36,11 @@ export async function POST(req: Request) {
       }
     });
 
+    const numMedia = parseInt(params.get("NumMedia") || "0", 10);
+    const mediaUrl = numMedia > 0 ? params.get("MediaUrl0") : null;
+
     // Process the action (ACCEPT, START, COMPLETE)
-    const responseMessage = await handleWhatsAppAction(senderPhone, commandText);
+    const responseMessage = await handleWhatsAppAction(senderPhone, commandText, mediaUrl);
 
     // If no response is needed (e.g., standard guest chat), forward to AI!
     if (!responseMessage) {

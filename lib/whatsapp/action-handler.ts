@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 
-export async function handleWhatsAppAction(senderPhone: string, messageText: string): Promise<string | null> {
+export async function handleWhatsAppAction(senderPhone: string, messageText: string, mediaUrl?: string | null): Promise<string | null> {
   try {
     // 1. Identify all Team Members by their WhatsApp number (ignoring spaces)
     const members = await prisma.teamMember.findMany({
@@ -75,10 +75,24 @@ export async function handleWhatsAppAction(senderPhone: string, messageText: str
         return `✅ Ticket In Progress. Reply 'RESOLVE' when the issue is fixed.`;
       }
 
-      if (messageText.includes("RESOLVE") || messageText.includes("COMPLETE")) {
+      if (messageText.includes("RESOLVE") || messageText.includes("COMPLETE") || mediaUrl) {
+        
+        let attachmentsJson = "[]";
+        if (mediaUrl) {
+           const currentAttachments = Array.isArray(activeTicket.attachments) 
+              ? activeTicket.attachments 
+              : JSON.parse(activeTicket.attachments?.toString() || "[]");
+           
+           attachmentsJson = JSON.stringify([...currentAttachments, mediaUrl]);
+        }
+
         const resolvedTicket = await prisma.ticket.update({
           where: { id: activeTicket.id },
-          data: { status: "RESOLVED", resolvedAt: new Date() }
+          data: { 
+            status: "RESOLVED", 
+            resolvedAt: new Date(),
+            attachments: attachmentsJson 
+          }
         });
         
         // Import eventBus dynamically or statically at top
@@ -91,7 +105,7 @@ export async function handleWhatsAppAction(senderPhone: string, messageText: str
           status: resolvedTicket.status
         });
 
-        return `🌟 Great job, ${teamMember.name}! The ticket has been resolved.`;
+        return `🌟 Great job, ${teamMember.name}! The ticket has been resolved${mediaUrl ? ' with photo evidence' : ''}.`;
       }
 
       const isActionCommand = ["ACCEPT", "START", "RESOLVE", "COMPLETE"].some(cmd => messageText.includes(cmd));
@@ -130,9 +144,18 @@ export async function handleWhatsAppAction(senderPhone: string, messageText: str
       return `✅ Task Accepted! You are now assigned to clean Room ${activeTask.unit.name}. Send COMPLETE when finished.`;
     } 
     
-    if (messageText.includes("COMPLETE") || messageText.includes("RESOLVE")) {
+    if (messageText.includes("COMPLETE") || messageText.includes("RESOLVE") || mediaUrl) {
       if (activeTask.status === "PENDING") {
         return `Please ACCEPT the task for Room ${activeTask.unit.name} first before completing it.`;
+      }
+
+      let photosJson = "[]";
+      if (mediaUrl) {
+         const currentPhotos = Array.isArray(activeTask.photoUrls) 
+            ? activeTask.photoUrls 
+            : JSON.parse(activeTask.photoUrls?.toString() || "[]");
+         
+         photosJson = JSON.stringify([...currentPhotos, mediaUrl]);
       }
 
       // Mark task as completed
@@ -140,7 +163,8 @@ export async function handleWhatsAppAction(senderPhone: string, messageText: str
         where: { id: activeTask.id },
         data: {
           status: "COMPLETED",
-          completedAt: new Date()
+          completedAt: new Date(),
+          photoUrls: photosJson
         }
       });
 
@@ -150,7 +174,7 @@ export async function handleWhatsAppAction(senderPhone: string, messageText: str
         data: { status: "READY" }
       });
 
-      return `🌟 Amazing work, ${teamMember.name}! Room ${activeTask.unit.name} is now marked as READY in the system.`;
+      return `🌟 Amazing work, ${teamMember.name}! Room ${activeTask.unit.name} is now marked as READY in the system${mediaUrl ? ' with photo evidence' : ''}.`;
     }
 
     // 5. Default Fallback
