@@ -187,7 +187,26 @@ Best, Ritumbhara Hospitality`;
       const guest = await prisma.guest.findUnique({ where: { id: payload.guestId } });
       if (!guest?.phone) return;
 
-      const messageContent = `Good morning, ${guest.name}! We hope you enjoyed your stay. Friendly reminder that checkout is at 11:00 AM today. Please leave the keys on the counter. Safe travels!`;
+      const messageContent = `Hi ${guest.name}
+
+We hope you enjoyed your stay with us! Just a friendly reminder that checkout is today at 11:00 AM
+
+To help our cleaning team prepare for the next guest, we would truly appreciate it if you could follow these quick steps before heading out:
+
+Lights & AC: Please turn off all lights and the air conditioning.
+
+Trash: Place any bagged trash in the bin
+
+Dishes: Please leave any used dishes in the sink
+
+Final Check: Double-check for any chargers or personal items!
+
+Please send us a quick message once you have officially checked out so we can give our housekeeping team a head start.
+
+Safe travels, and we hope to see you again soon!
+
+Best,
+Ritumbhara Hospitality`;
 
       await sendWhatsAppMessage(
         guest.phone,
@@ -196,7 +215,10 @@ Best, Ritumbhara Hospitality`;
         'checkout_instructions',
         'Reservation',
         payload.reservationId,
-        { '1': guest.name }
+        { 
+          '1': guest.name,
+          '2': '11:00 AM'
+        }
       );
     } catch (error) {
       console.error("[WhatsApp Listener Error - UPCOMING_CHECK_OUT]", error);
