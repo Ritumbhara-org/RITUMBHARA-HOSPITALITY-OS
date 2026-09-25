@@ -126,41 +126,27 @@ Ritumbhara Hospitality`;
 
       const messageContent = `Hi ${guest.name},
 
-Your stay at ${unit?.unit?.name || 'our property'} is coming up soon! You can check in anytime after 1PM on ${payload.checkIn.toLocaleDateString()}
+Your stay at ${unit?.unit?.name || 'our property'} is coming up! Check-in: anytime after 1PM on ${payload.checkIn.toLocaleDateString()}.
 
-📍 Arrival Details:
-
-
-Wifi Credentials:
-
+Wifi:
 Network: Ritumbhara_Guest
-
 Password: Ritumbhara@123
 
-Action Required: As per local regulations, please share photos of the IDs for all guests staying in the apartment here in this chat box. This is required to complete your registration.
+Action Required: Please share photos of IDs for all guests in this chat. This is required by local regulations to complete your registration.
 
 Good to know:
+Housekeeping: Complimentary, available in designated time slot on request.
 
-Housekeeping: Complimentary and available in the designated time slot upon request. Just send us a message!
+Friendly House Rules:
+- Quiet Hours: 10PM - 8AM
+- Smoking: Strictly NO smoking indoors
+- Energy: Please turn off AC/lights when leaving
+- Visitors: Only registered guests allowed overnight
+- Delivery: For safety, delivery persons are not allowed inside. Please self-pick up orders from the Gate.
 
-Friendly House Rules
+Support: If you need anything, message us or use the call button!
 
-Quiet Hours: 10:00 PM - 8:00 AM (Please respect our neighbors).
-
-Smoking: Strictly no smoking indoors.
-
-Energy: Please turn off the AC and lights when you step out.
-
-Visitors: Only registered guests are allowed overnight.
-
-Support: If you need anything at all, you can message us here or use the call button below.
-
-We look forward to hosting you!
-
-Best,
-Ritumbhara Hospitality
-
-Please note that from the safety point of view, Delivery boys are not allowed inside the building, and you have to self-pick up your orders from the Guard Room or Entry Gate`;
+Best, Ritumbhara Hospitality`;
 
       await sendWhatsAppMessage(
         guest.phone,
