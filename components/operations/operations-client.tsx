@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { createTicket } from "@/app/actions/operations"
+import { toast } from "sonner"
 
 import { TicketDetailsModal } from "./ticket-details-modal"
 
@@ -200,8 +201,9 @@ function OperationsClientContent({
     setIsSubmitting(false)
     if (result.success) {
       setIsDialogOpen(false)
+      toast.success("Ticket Created 🛠️", { description: "The team has been notified." })
     } else {
-      alert("Failed to create ticket: " + result.error)
+      toast.error("Failed to create ticket", { description: result.error })
     }
   }
 

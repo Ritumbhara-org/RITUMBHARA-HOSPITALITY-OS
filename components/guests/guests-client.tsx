@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { createGuest, updateGuest } from "@/app/actions/guests"
 import Link from "next/link"
+import { toast } from "sonner"
 
 type GuestStats = {
   total: number
@@ -66,8 +67,9 @@ export function GuestsClient({
     setIsSubmitting(false)
     if (result.success) {
       setIsDialogOpen(false)
+      toast.success("Guest Profile Created 👤")
     } else {
-      alert("Failed to create guest: " + result.error)
+      toast.error("Failed to create guest", { description: result.error })
     }
   }
 
@@ -80,8 +82,9 @@ export function GuestsClient({
     setIsEditSubmitting(false)
     if (result.success) {
       setEditGuest(null)
+      toast.success("Guest Profile Updated ✨")
     } else {
-      alert("Failed to update guest: " + result.error)
+      toast.error("Failed to update guest", { description: result.error })
     }
   }
 

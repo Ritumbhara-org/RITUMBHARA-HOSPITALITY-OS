@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { createUnit } from "@/app/actions/units"
+import { toast } from "sonner"
 
 type UnitStats = {
   total: number
@@ -88,8 +89,9 @@ export function UnitsClient({
     setIsSubmitting(false)
     if (result.success) {
       setIsDialogOpen(false)
+      toast.success("Unit Added Successfully")
     } else {
-      alert("Failed to add unit: " + result.error)
+      toast.error("Failed to add unit", { description: result.error })
     }
   }
 

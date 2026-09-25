@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { updateReservationStatus, createReservation } from "@/app/actions/reservations"
 import Link from "next/link"
 import { format } from "date-fns"
+import { toast } from "sonner"
 
 type ReservationStats = {
   total: number
@@ -76,11 +77,30 @@ function ReservationsClientContent({
   }, [searchParams, router])
 
   const handleStatusChange = async (reservationId: string, status: string, label: string) => {
-    if (!confirm(`Are you sure you want to mark this reservation as "${label}"?`)) return
+    // We will use standard confirmed dialog for now, or just let it update smoothly
     setLoadingId(reservationId)
     const result = await updateReservationStatus(reservationId, status)
     setLoadingId(null)
-    if (!result.success) alert("Failed to update: " + result.error)
+    
+    if (!result.success) {
+      toast.error(`Failed to mark as ${label}`, { description: result.error })
+    } else {
+      let title = `Reservation marked as ${label}`;
+      let desc = "";
+      
+      if (status === 'CONFIRMED') {
+        title = "Booking Confirmed! 🎉";
+        desc = "The guest has been notified via WhatsApp.";
+      } else if (status === 'CHECKED_IN') {
+        title = "Guest Checked In 🏨";
+        desc = "Welcome instructions sent via WhatsApp.";
+      } else if (status === 'CHECKED_OUT') {
+        title = "Guest Checked Out 🚪";
+        desc = "Housekeeping task generated and sent to staff via WhatsApp.";
+      }
+      
+      toast.success(title, { description: desc })
+    }
   }
 
   const handleNewBooking = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -91,8 +111,11 @@ function ReservationsClientContent({
     setIsSubmitting(false)
     if (result.success) {
       setIsDialogOpen(false)
+      toast.success("Booking Created 🗓️", { 
+        description: "The reservation has been added and the guest will be notified." 
+      })
     } else {
-      alert("Failed to create booking: " + result.error)
+      toast.error("Failed to create booking", { description: result.error })
     }
   }
 
