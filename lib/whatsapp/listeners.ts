@@ -9,13 +9,32 @@ export function initWhatsAppListeners() {
       const guest = await prisma.guest.findUnique({ where: { id: payload.guestId } });
       const unit = await prisma.reservation.findUnique({ 
         where: { id: payload.reservationId },
-        include: { unit: true }
+        include: { unit: { include: { property: true } } }
       });
 
       if (!guest?.phone) return;
 
-      // MUST EXACTLY MATCH TEMPLATE 1
-      const messageContent = `Hi ${guest.name}, your booking for ${unit?.unit.name} is confirmed from ${payload.checkIn.toLocaleDateString()} to ${payload.checkOut.toLocaleDateString()}. We look forward to hosting you!`;
+      const messageContent = `Hi ${guest.name},
+
+Thanks for booking ${unit?.unit.name}! We are thrilled to host you and aim to deliver a seamless 5-star experience.
+
+Quick Details:
+
+Check-in: After 1:00 PM
+Check-out: Before 10:00 AM
+Directions the Studio : https://maps.app.goo.gl
+Address: ${unit?.unit.property?.address || 'Ritumbhara Property'}
+
+Action Required:
+To ensure an uninterrupted check-in, please fill out our Guest Form here: https://forms.gle/NnCHqpCz1aj6c9T26
+
+Planning Your Trip:
+Feel free to browse our curated Guidebook https://ritumbhara.com/guide for our favorite local spots and hidden gems.
+
+If you have any questions or need recommendations, just send us a message. We're here to help!
+
+Best,
+Ritumbhara Hospitality`;
 
       await sendWhatsAppMessage(
         guest.phone,
@@ -27,8 +46,11 @@ export function initWhatsAppListeners() {
         {
           '1': guest.name,
           '2': unit?.unit.name || 'our property',
-          '3': payload.checkIn.toLocaleDateString(),
-          '4': payload.checkOut.toLocaleDateString()
+          '3': '1:00 PM',
+          '4': '10:00 AM',
+          '5': 'https://maps.app.goo.gl',
+          '6': unit?.unit.property?.address || 'Ritumbhara Property',
+          '7': 'https://ritumbhara.com/guide'
         }
       );
     } catch (error) {
@@ -102,8 +124,32 @@ export function initWhatsAppListeners() {
       });
       if (!guest?.phone) return;
 
-      // MUST EXACTLY MATCH TEMPLATE 3
-      const messageContent = `Hi ${guest.name}, we are excited to welcome you tomorrow for your stay in ${unit?.unit?.name || 'our property'}! Please remember to bring a valid government ID for check-in.`;
+      const messageContent = `Hi ${guest.name},
+
+Your stay at ${unit?.unit?.name || 'our property'} is coming up soon! You can check in anytime after 1:00 PM on ${payload.checkIn.toLocaleDateString()}
+
+📍 Arrival Details:
+
+Access: Front Desk Key
+
+Wifi Credentials:
+
+Network: Ritumbhara_Guest
+
+Smoking: Strictly no smoking indoors.
+
+Energy: Please turn off the AC and lights when you step out.
+
+Visitors: Only registered guests are allowed overnight.
+
+Support: If you need anything at all, you can message us here or use the call button below.
+
+We look forward to hosting you!
+
+Best,
+Ritumbhara Hospitality
+
+Please note that from the safety point of view, Delivery boys are not allowed inside the building, and you have to self-pick up your orders from the Guard Room or Entry Gate`;
 
       await sendWhatsAppMessage(
         guest.phone,
@@ -114,7 +160,11 @@ export function initWhatsAppListeners() {
         payload.reservationId,
         {
           '1': guest.name,
-          '2': unit?.unit?.name || 'our property'
+          '2': unit?.unit?.name || 'our property',
+          '3': '1:00 PM',
+          '4': payload.checkIn.toLocaleDateString(),
+          '5': 'Front Desk Key',
+          '6': 'Ritumbhara_Guest'
         }
       );
     } catch (error) {
@@ -143,8 +193,21 @@ export function initWhatsAppListeners() {
       });
       if (!guest?.phone) return;
 
-      // This text MUST exactly match the new template you create in Meta Business Manager
-      const messageContent = `Hi ${guest.name}, we are looking forward to your arrival today at ${unit?.unit?.property?.name || 'our property'}! Your room ${unit?.unit?.name || ''} will be ready for you. If you need directions, please reply to this message.`;
+      const messageContent = `Hi ${guest.name}
+
+To help you plan your arrival, here is the best way to reach ${unit?.unit?.name || 'our property'}
+
+How to get here:
+${unit?.unit?.property?.address || 'Ritumbhara'}
+
+Google Maps: https://maps.app.goo.gl
+
+From Airport/Station: We recommend using Ola/Uber/Rapido
+
+If you have any trouble finding us on the day, just click the "Call" button below!
+
+Best,
+Ritumbhara Hospitality`;
 
       await sendWhatsAppMessage(
         guest.phone,
@@ -155,8 +218,9 @@ export function initWhatsAppListeners() {
         payload.reservationId,
         {
           '1': guest.name,
-          '2': unit?.unit?.property?.name || 'our property',
-          '3': unit?.unit?.name || ''
+          '2': unit?.unit?.name || 'our property',
+          '3': unit?.unit?.property?.address || 'Ritumbhara',
+          '4': 'Google Maps: https://maps.app.goo.gl'
         }
       );
     } catch (error) {
