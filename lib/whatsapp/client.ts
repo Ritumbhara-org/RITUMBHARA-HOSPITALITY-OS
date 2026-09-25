@@ -37,11 +37,10 @@ export async function sendWhatsAppMessage(
          'day_of_arrival_reminder': 'HX33ddb272d96520d4731d7f5ba72a3ac8',
          'post_stay_thank_you': 'HX9beb28c25fde329a33b3ca227e5bb61a',
          'ticket_assigned': 'HX5cd6f7785a5b635d62d6c6900635ec83',
-         'check_in_welcome': 'HX1b87a07d01ab079c329395cbaa039ee1',
-         'pre_arrival_instructions': 'HX967939a61898301d0779a5576369044e',
-         'checkout_instructions': 'HXb320badd14f3692b48596358445e5bc4',
+         'pre_arrival_instructions': 'HXc53995bd6a9f7fd3323fa409d57a9e67',
+         'checkout_instructions': 'HX6972f5c3804258c5ddb58dd11d299d21',
          'sla_breach_alert': 'HX65186e10f421d8084b22951e7bc23692',
-         'booking_confirmation': 'HXf7b175747b9c791de513032c1e4cd589'
+         'booking_confirmation': 'HX1cb670505a31a3ca1a65a6791e5542ec'
       };
 
       let createParams: any = {
