@@ -126,11 +126,10 @@ Ritumbhara Hospitality`;
 
       const messageContent = `Hi ${guest.name},
 
-Your stay at ${unit?.unit?.name || 'our property'} is coming up soon! You can check in anytime after 1:00 PM on ${payload.checkIn.toLocaleDateString()}
+Your stay at ${unit?.unit?.name || 'our property'} is coming up soon! You can check in anytime after 1PM on ${payload.checkIn.toLocaleDateString()}
 
 📍 Arrival Details:
 
-Access: Front Desk Key
 
 Wifi Credentials:
 
@@ -138,8 +137,7 @@ Network: Ritumbhara_Guest
 
 Password: Ritumbhara@123
 
-Action Required:
-As per local regulations, please share photos of the IDs for all guests staying in the apartment here in this chat box. This is required to complete your registration.
+Action Required: As per local regulations, please share photos of the IDs for all guests staying in the apartment here in this chat box. This is required to complete your registration.
 
 Good to know:
 
@@ -174,11 +172,9 @@ Please note that from the safety point of view, Delivery boys are not allowed in
         {
           '1': guest.name,
           '2': unit?.unit?.name || 'our property',
-          '3': '1:00 PM',
-          '4': payload.checkIn.toLocaleDateString(),
-          '5': 'Front Desk Key',
-          '6': 'Ritumbhara_Guest',
-          '7': 'Ritumbhara@123'
+          '3': payload.checkIn.toLocaleDateString(),
+          '4': 'Ritumbhara_Guest',
+          '5': 'Ritumbhara@123'
         }
       );
     } catch (error) {
