@@ -186,61 +186,7 @@ Please note that from the safety point of view, Delivery boys are not allowed in
     }
   });
 
-  // 4.5. Day of Arrival Instructions
-  eventBus.on<BookingEventPayload>('TODAY_CHECK_IN', async (payload) => {
-    try {
-      // Check if message already sent
-      const existingMsg = await prisma.whatsAppMessage.findFirst({
-        where: {
-          templateName: 'day_of_arrival_reminder',
-          relatedEntityId: payload.reservationId,
-          status: { not: 'FAILED' } 
-        }
-      });
-      
-      if (existingMsg) return;
-
-      const guest = await prisma.guest.findUnique({ where: { id: payload.guestId } });
-      const unit = await prisma.reservation.findUnique({ 
-        where: { id: payload.reservationId },
-        include: { unit: { include: { property: true } } }
-      });
-      if (!guest?.phone) return;
-
-      const messageContent = `Hi ${guest.name}
-
-To help you plan your arrival, here is the best way to reach ${unit?.unit?.name || 'our property'}
-
-How to get here:
-${unit?.unit?.property?.address || 'Ritumbhara'}
-
-Google Maps: https://maps.app.goo.gl
-
-From Airport/Station: We recommend using Ola/Uber/Rapido
-
-If you have any trouble finding us on the day, just click the "Call" button below!
-
-Best,
-Ritumbhara Hospitality`;
-
-      await sendWhatsAppMessage(
-        guest.phone,
-        'template',
-        messageContent,
-        'day_of_arrival_reminder',
-        'Reservation',
-        payload.reservationId,
-        {
-          '1': guest.name,
-          '2': unit?.unit?.name || 'our property',
-          '3': unit?.unit?.property?.address || 'Ritumbhara',
-          '4': unit?.unit?.property?.googleMapsUrl || 'https://maps.app.goo.gl'
-        }
-      );
-    } catch (error) {
-      console.error("[WhatsApp Listener Error - TODAY_CHECK_IN]", error);
-    }
-  });
+  // (Skipping TODAY_CHECK_IN / day_of_arrival_reminder as per CEO request - rely on pre_arrival_instructions)
 
   // 5. Checkout Instructions
   eventBus.on<BookingEventPayload>('UPCOMING_CHECK_OUT', async (payload) => {
