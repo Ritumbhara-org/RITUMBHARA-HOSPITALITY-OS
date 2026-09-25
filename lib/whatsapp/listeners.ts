@@ -21,7 +21,7 @@ Thanks for booking ${unit?.unit.name}! We are thrilled to host you and aim to de
 Quick Details:
 
 Check-in: After 1:00 PM
-Check-out: Before 10:00 AM
+Check-out: Before 11:00 AM
 Directions the Studio : https://maps.app.goo.gl
 Address: ${unit?.unit.property?.address || 'Ritumbhara Property'}
 
@@ -47,7 +47,7 @@ Ritumbhara Hospitality`;
           '1': guest.name,
           '2': unit?.unit.name || 'our property',
           '3': '1:00 PM',
-          '4': '10:00 AM',
+          '4': '11:00 AM',
           '5': 'https://maps.app.goo.gl',
           '6': unit?.unit.property?.address || 'Ritumbhara Property',
           '7': 'https://ritumbhara.com/guide'
