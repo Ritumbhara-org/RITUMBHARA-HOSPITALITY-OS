@@ -84,16 +84,7 @@ export async function createTicket(formData: FormData) {
 
     if (isManuallyAssigned) {
       const assignedMember = await prisma.teamMember.findUnique({ where: { id: assigneeId } });
-      if (assignedMember) {
-        await sendWhatsAppMessage(
-          assignedMember.whatsappNumber,
-          'text',
-          `🚨 *New Task Assigned* 🚨\n\n*Ticket:* ${ticket.description}\n*Location:* ${ticket.unitId || 'Property'}\n\nReply *ACCEPT* to acknowledge.`,
-          undefined,
-          'ticket',
-          ticket.id
-        );
-      }
+      // (Handled by TICKET_ASSIGNED event listener)
 
       await eventBus.emit('TICKET_ASSIGNED', {
         ticketId: ticket.id,
@@ -143,15 +134,7 @@ export async function assignTicket(ticketId: string, teamMemberId: string) {
       }
     })
 
-    await sendWhatsAppMessage(
-      assignedMember.whatsappNumber,
-      'text',
-      `🚨 *Ticket Reassigned To You* 🚨\n\n*Ticket:* ${ticket.description}\n*Location:* ${ticket.unitId || 'Property'}\n\nReply *ACCEPT* to acknowledge.`,
-      undefined,
-      'ticket',
-      ticket.id
-    );
-    
+    // (Handled by TICKET_ASSIGNED event listener)
     await eventBus.emit('TICKET_ASSIGNED', {
       ticketId: ticket.id,
       assignedToId: teamMemberId,

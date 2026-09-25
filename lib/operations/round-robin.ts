@@ -107,23 +107,7 @@ export async function assignTicketRoundRobin(ticketId: string, excludeMemberId?:
       }
     });
 
-    // 5. Notify via WhatsApp
-    const messageContent = `🚨 *New Task Assigned* 🚨\n\n*Ticket:* ${ticket.description}\n*Location:* ${ticket.unit ? ticket.unit.name : 'Property'}\n\nReply *ACCEPT* to acknowledge.`;
-    
-    await sendWhatsAppMessage(
-      nextAssignee.whatsappNumber,
-      'template',
-      messageContent,
-      'ticket_assigned',
-      'ticket',
-      ticket.id,
-      {
-        '1': ticket.description.substring(0, 30) + '...',
-        '2': ticket.unit ? ticket.unit.name : 'Property',
-        '3': ticket.priority
-      }
-    );
-
+    // 5. Notify via WhatsApp (Handled by TICKET_ASSIGNED event listener)
     // Notify original assignee if it's an escalation
     if (excludeMemberId) {
       const oldAssignee = await prisma.teamMember.findUnique({ where: { id: excludeMemberId } });
