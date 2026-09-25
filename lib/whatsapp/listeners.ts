@@ -58,50 +58,9 @@ Ritumbhara Hospitality`;
     }
   });
 
-  // 2. Check-in Instructions
-  eventBus.on<BookingEventPayload>('GUEST_CHECKED_IN', async (payload) => {
-    try {
-      const guest = await prisma.guest.findUnique({ where: { id: payload.guestId } });
-      if (!guest?.phone) return;
-
-      // MUST EXACTLY MATCH TEMPLATE 2
-      const messageContent = `Welcome to Ritumbhara, ${guest.name}! You are now checked in. If you need anything during your stay, please reply to this message or contact the front desk. Enjoy your stay!`;
-
-      await sendWhatsAppMessage(
-        guest.phone,
-        'template',
-        messageContent,
-        'check_in_welcome',
-        'Reservation',
-        payload.reservationId,
-        { '1': guest.name }
-      );
-    } catch (error) {
-      console.error("[WhatsApp Listener Error - GUEST_CHECKED_IN]", error);
-    }
-  });
-
-  // 3. Post-stay / Review
-  eventBus.on<BookingEventPayload>('GUEST_CHECKED_OUT', async (payload) => {
-    try {
-      const guest = await prisma.guest.findUnique({ where: { id: payload.guestId } });
-      if (!guest?.phone) return;
-
-      const messageContent = `Thank you for staying with us, ${guest.name}! We hope you had a wonderful time. Please let us know how we did. Have a safe journey home!`;
-
-      await sendWhatsAppMessage(
-        guest.phone,
-        'template',
-        messageContent,
-        'post_stay_thank_you',
-        'Reservation',
-        payload.reservationId,
-        { '1': guest.name }
-      );
-    } catch (error) {
-      console.error("[WhatsApp Listener Error - GUEST_CHECKED_OUT]", error);
-    }
-  });
+  // (Skipped GUEST_CHECKED_IN / check_in_welcome per CEO)
+  
+  // (Skipped GUEST_CHECKED_OUT / post_stay_thank_you per CEO)
 
   // 4. Pre-arrival Instructions
   eventBus.on<BookingEventPayload>('UPCOMING_CHECK_IN', async (payload) => {
