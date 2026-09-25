@@ -216,8 +216,7 @@ Ritumbhara Hospitality`;
         'Reservation',
         payload.reservationId,
         { 
-          '1': guest.name,
-          '2': '11:00 AM'
+          '1': guest.name
         }
       );
     } catch (error) {
