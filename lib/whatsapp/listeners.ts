@@ -138,8 +138,8 @@ Best, Ritumbhara Hospitality`;
           '1': guest.name,
           '2': unit?.unit?.name || 'our property',
           '3': payload.checkIn.toLocaleDateString(),
-          '4': 'Ritumbhara_Guest',
-          '5': 'Ritumbhara@123'
+          '4': unit?.unit?.property?.wifiNetwork || 'Ritumbhara_Guest',
+          '5': unit?.unit?.property?.wifiPassword || 'Ritumbhara@123'
         }
       );
     } catch (error) {

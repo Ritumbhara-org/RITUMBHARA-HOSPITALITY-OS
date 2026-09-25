@@ -168,6 +168,48 @@ export function LocationModal({ isOpen, onClose, location }: LocationModalProps)
                   className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 transition-all outline-none text-gray-900"
                 />
               </div>
+
+              <div className="col-span-2">
+                <label htmlFor="googleMapsUrl" className="block text-sm font-semibold text-gray-700 mb-2">
+                  Google Maps URL
+                </label>
+                <input
+                  type="url"
+                  name="googleMapsUrl"
+                  id="googleMapsUrl"
+                  defaultValue={location?.googleMapsUrl}
+                  placeholder="https://maps.app.goo.gl/..."
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 transition-all outline-none text-gray-900 placeholder:text-gray-400"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="wifiNetwork" className="block text-sm font-semibold text-gray-700 mb-2">
+                  WiFi Network Name
+                </label>
+                <input
+                  type="text"
+                  name="wifiNetwork"
+                  id="wifiNetwork"
+                  defaultValue={location?.wifiNetwork}
+                  placeholder="e.g. Ritumbhara_Guest"
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 transition-all outline-none text-gray-900 placeholder:text-gray-400"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="wifiPassword" className="block text-sm font-semibold text-gray-700 mb-2">
+                  WiFi Password
+                </label>
+                <input
+                  type="text"
+                  name="wifiPassword"
+                  id="wifiPassword"
+                  defaultValue={location?.wifiPassword}
+                  placeholder="e.g. Password123"
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 transition-all outline-none text-gray-900 placeholder:text-gray-400"
+                />
+              </div>
             </div>
           </form>
         </div>

@@ -24,6 +24,9 @@ export async function createLocation(formData: FormData) {
         country: formData.get("country") as string || "India",
         phone: formData.get("phone") as string || "",
         email: formData.get("email") as string || "",
+        googleMapsUrl: formData.get("googleMapsUrl") as string || null,
+        wifiNetwork: formData.get("wifiNetwork") as string || null,
+        wifiPassword: formData.get("wifiPassword") as string || null,
         timezone: "Asia/Kolkata"
       }
     })
@@ -54,6 +57,9 @@ export async function updateLocation(id: string, formData: FormData) {
         country: formData.get("country") as string || "India",
         phone: formData.get("phone") as string || "",
         email: formData.get("email") as string || "",
+        googleMapsUrl: formData.get("googleMapsUrl") as string || null,
+        wifiNetwork: formData.get("wifiNetwork") as string || null,
+        wifiPassword: formData.get("wifiPassword") as string || null,
       }
     })
 

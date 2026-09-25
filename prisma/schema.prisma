@@ -86,6 +86,8 @@ model Property {
   email     String
   timezone  String
   googleMapsUrl String?
+  wifiNetwork   String?
+  wifiPassword  String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
