@@ -136,6 +136,19 @@ Wifi Credentials:
 
 Network: Ritumbhara_Guest
 
+Password: Ritumbhara@123
+
+Action Required:
+As per local regulations, please share photos of the IDs for all guests staying in the apartment here in this chat box. This is required to complete your registration.
+
+Good to know:
+
+Housekeeping: Complimentary and available in the designated time slot upon request. Just send us a message!
+
+Friendly House Rules
+
+Quiet Hours: 10:00 PM - 8:00 AM (Please respect our neighbors).
+
 Smoking: Strictly no smoking indoors.
 
 Energy: Please turn off the AC and lights when you step out.
@@ -164,7 +177,8 @@ Please note that from the safety point of view, Delivery boys are not allowed in
           '3': '1:00 PM',
           '4': payload.checkIn.toLocaleDateString(),
           '5': 'Front Desk Key',
-          '6': 'Ritumbhara_Guest'
+          '6': 'Ritumbhara_Guest',
+          '7': 'Ritumbhara@123'
         }
       );
     } catch (error) {
