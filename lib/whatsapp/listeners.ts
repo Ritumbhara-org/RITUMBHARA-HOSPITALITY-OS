@@ -48,7 +48,7 @@ Ritumbhara Hospitality`;
           '2': unit?.unit.name || 'our property',
           '3': payload.checkIn.toLocaleDateString(),
           '4': payload.checkOut.toLocaleDateString(),
-          '5': 'https://maps.app.goo.gl',
+          '5': unit?.unit.property?.googleMapsUrl || 'https://maps.app.goo.gl',
           '6': unit?.unit.property?.address || 'Ritumbhara Property',
           '7': 'https://ritumbhara.com/guide'
         }
@@ -220,7 +220,7 @@ Ritumbhara Hospitality`;
           '1': guest.name,
           '2': unit?.unit?.name || 'our property',
           '3': unit?.unit?.property?.address || 'Ritumbhara',
-          '4': 'Google Maps: https://maps.app.goo.gl'
+          '4': unit?.unit?.property?.googleMapsUrl || 'https://maps.app.goo.gl'
         }
       );
     } catch (error) {
