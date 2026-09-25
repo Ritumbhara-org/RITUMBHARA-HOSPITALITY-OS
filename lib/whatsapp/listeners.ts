@@ -99,7 +99,7 @@ Ritumbhara Hospitality`;
       const guest = await prisma.guest.findUnique({ where: { id: payload.guestId } });
       const unit = await prisma.reservation.findUnique({ 
         where: { id: payload.reservationId },
-        include: { unit: true }
+        include: { unit: { include: { property: true } } }
       });
       if (!guest?.phone) return;
 
