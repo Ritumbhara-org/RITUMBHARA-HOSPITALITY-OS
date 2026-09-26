@@ -14,11 +14,13 @@ import {
   Globe,
   Sparkles,
   ShieldCheck,
-  Package
+  Package,
+  LineChart
 } from 'lucide-react'
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'Analytics', href: '/analytics', icon: LineChart },
   { name: 'Locations', href: '/locations', icon: MapPin },
   { name: 'Reservations', href: '/reservations', icon: CalendarCheck },
   { name: 'Guests', href: '/guests', icon: Users },
