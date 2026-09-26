@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { syncBookings } from "@/lib/intellistay/sync";
+import { processAutoCheckinCheckout } from "@/lib/reservations/auto-status";
 
 export const dynamic = 'force-dynamic';
 // For Vercel Cron Jobs, you typically specify maxDuration
@@ -25,13 +26,19 @@ export async function GET(request: Request) {
         { status: 200 }
       );
     }
+    
+    // After syncing, run the automated check-in and check-out logic
+    console.log("Triggering auto check-in/out logic...");
+    const autoStatusResult = await processAutoCheckinCheckout();
 
     return NextResponse.json({
       status: "success",
       message: `Sync completed successfully.`,
       details: {
         newBookings: result.newCount,
-        updatedBookings: result.updateCount
+        updatedBookings: result.updateCount,
+        autoCheckIns: autoStatusResult.checkedInCount,
+        autoCheckOuts: autoStatusResult.checkedOutCount
       },
       timestamp: new Date().toISOString()
     }, { status: 200 });
