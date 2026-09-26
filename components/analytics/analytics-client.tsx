@@ -41,11 +41,13 @@ interface AnalyticsData {
 export function AnalyticsClient() {
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [timeframe, setTimeframe] = useState("This Month");
 
   useEffect(() => {
     const fetchData = async () => {
+      setIsLoading(true);
       try {
-        const res = await fetch("/api/analytics");
+        const res = await fetch(`/api/analytics?timeframe=${encodeURIComponent(timeframe)}`);
         if (res.ok) {
           const json = await res.json();
           setData(json);
@@ -59,7 +61,7 @@ export function AnalyticsClient() {
       }
     };
     fetchData();
-  }, []);
+  }, [timeframe]);
 
   if (isLoading || !data) {
     return (
@@ -87,10 +89,14 @@ export function AnalyticsClient() {
           <p className="text-gray-500 mt-1">Management overview for revenue, operations, and guests.</p>
         </div>
         <div className="flex gap-2">
-          <select className="bg-white border border-gray-200 text-sm rounded-lg px-3 py-2 text-gray-700 outline-none focus:ring-2 focus:ring-rose-500/20">
-            <option>This Month</option>
-            <option>Last Month</option>
-            <option>Year to Date</option>
+          <select 
+            value={timeframe}
+            onChange={(e) => setTimeframe(e.target.value)}
+            className="bg-white border border-gray-200 text-sm rounded-lg px-3 py-2 text-gray-700 outline-none focus:ring-2 focus:ring-rose-500/20"
+          >
+            <option value="This Month">This Month</option>
+            <option value="Last Month">Last Month</option>
+            <option value="Year to Date">Year to Date</option>
           </select>
         </div>
       </div>

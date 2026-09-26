@@ -1,26 +1,36 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { startOfMonth, endOfMonth, startOfDay } from "date-fns";
+import { startOfMonth, endOfMonth, startOfDay, subMonths, startOfYear, endOfYear } from "date-fns";
 
 export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
     const propertyId = url.searchParams.get("propertyId");
+    const timeframe = url.searchParams.get("timeframe") || "This Month";
     
     // Timeframes
     const now = new Date();
-    const monthStart = startOfMonth(now);
-    const monthEnd = endOfMonth(now);
+    let startDate = startOfMonth(now);
+    let endDate = endOfMonth(now);
+
+    if (timeframe === "Last Month") {
+      const lastMonth = subMonths(now, 1);
+      startDate = startOfMonth(lastMonth);
+      endDate = endOfMonth(lastMonth);
+    } else if (timeframe === "Year to Date") {
+      startDate = startOfYear(now);
+      endDate = endOfYear(now);
+    }
 
     const whereProperty = propertyId ? { propertyId } : {};
     const whereUnitProperty = propertyId ? { propertyId } : {};
     const whereTicketProperty = propertyId ? { propertyId } : {};
 
-    // 1. REVENUE METRICS (Current Month)
+    // 1. REVENUE METRICS
     const reservations = await prisma.reservation.findMany({
       where: {
         ...whereProperty,
-        checkIn: { gte: monthStart, lte: monthEnd },
+        checkIn: { gte: startDate, lte: endDate },
         status: { not: "CANCELLED" }
       }
     });
