@@ -145,10 +145,15 @@ export function GuestPortalClient({ reservation }: { reservation: any }) {
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       {/* Premium Header */}
-      <div className="bg-gradient-to-br from-[#4a0518] via-[#5c0a20] to-[#3a0312] text-white px-6 pt-12 pb-8 rounded-b-[2.5rem] shadow-lg relative overflow-hidden border-b border-white/[0.08]">
+      <div className="bg-gradient-to-br from-[#4a0518] via-[#5c0a20] to-[#3a0312] text-white px-6 pt-10 pb-8 rounded-b-[2.5rem] shadow-lg relative overflow-hidden border-b border-white/[0.08]">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-rose-500/10 via-transparent to-transparent" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-red-500/5 via-transparent to-transparent" />
         <div className="relative z-10">
+          {/* Branding */}
+          <div className="flex items-center justify-center mb-10">
+            <img src="/logo.svg" alt="Ritumbhara Hotels" className="h-12 w-auto object-contain drop-shadow-lg" />
+          </div>
+
           <p className="text-gray-300 text-sm font-medium tracking-wide uppercase mb-1">Your Stay</p>
           <h1 className="text-3xl font-bold mb-6">Welcome, {reservation.guest.name.split(' ')[0]}!</h1>
           
