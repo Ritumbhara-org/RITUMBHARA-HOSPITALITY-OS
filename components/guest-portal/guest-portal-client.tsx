@@ -145,8 +145,9 @@ export function GuestPortalClient({ reservation }: { reservation: any }) {
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       {/* Premium Header */}
-      <div className="bg-gray-900 text-white px-6 pt-12 pb-8 rounded-b-[2.5rem] shadow-lg relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-rose-600/20 to-purple-600/20 opacity-50"></div>
+      <div className="bg-gradient-to-br from-[#4a0518] via-[#5c0a20] to-[#3a0312] text-white px-6 pt-12 pb-8 rounded-b-[2.5rem] shadow-lg relative overflow-hidden border-b border-white/[0.08]">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-rose-500/10 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-red-500/5 via-transparent to-transparent" />
         <div className="relative z-10">
           <p className="text-gray-300 text-sm font-medium tracking-wide uppercase mb-1">Your Stay</p>
           <h1 className="text-3xl font-bold mb-6">Welcome, {reservation.guest.name.split(' ')[0]}!</h1>
@@ -255,7 +256,7 @@ export function GuestPortalClient({ reservation }: { reservation: any }) {
         <div>
           <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-3">Ritumbhara Rewards</h3>
           {membership ? (
-            <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-3xl p-6 text-white shadow-lg relative overflow-hidden">
+            <div className="bg-gradient-to-br from-[#5c0a20] to-[#3a0312] rounded-3xl p-6 text-white shadow-lg relative overflow-hidden">
               <div className="absolute top-0 right-0 p-4 opacity-10">
                 <Crown className="w-24 h-24" />
               </div>
@@ -296,7 +297,7 @@ export function GuestPortalClient({ reservation }: { reservation: any }) {
                   <button 
                     onClick={handleJoinMembership}
                     disabled={isJoining}
-                    className="bg-gray-900 text-white font-semibold py-2 px-6 rounded-xl hover:bg-gray-800 transition-colors disabled:opacity-70"
+                    className="bg-rose-600 text-white font-semibold py-2 px-6 rounded-xl hover:bg-rose-700 transition-colors disabled:opacity-70"
                   >
                     {isJoining ? "Joining..." : "Join for Free"}
                   </button>
@@ -307,7 +308,7 @@ export function GuestPortalClient({ reservation }: { reservation: any }) {
         </div>
 
         {/* Status Indicator */}
-        <div className="bg-gray-900 rounded-2xl p-5 text-white flex items-center gap-4 shadow-md">
+        <div className="bg-gradient-to-br from-[#4a0518] to-[#3a0312] rounded-2xl p-5 text-white flex items-center gap-4 shadow-md">
           <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center shrink-0">
             <Info className="w-6 h-6 text-white" />
           </div>
@@ -335,7 +336,7 @@ export function GuestPortalClient({ reservation }: { reservation: any }) {
               <button 
                 onClick={handleHousekeeping}
                 disabled={isSubmitting}
-                className="flex-1 py-3 font-semibold text-white bg-gray-900 rounded-xl hover:bg-gray-800 transition-colors disabled:opacity-70"
+                className="flex-1 py-3 font-semibold text-white bg-[#5c0a20] rounded-xl hover:bg-[#3a0312] transition-colors disabled:opacity-70"
               >
                 {isSubmitting ? "Sending..." : "Confirm"}
               </button>
@@ -384,7 +385,7 @@ export function GuestPortalClient({ reservation }: { reservation: any }) {
       {/* AI Chat Bubble */}
       <button 
         onClick={() => setIsChatOpen(true)}
-        className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-tr from-purple-600 to-indigo-600 rounded-full shadow-xl flex items-center justify-center text-white hover:scale-105 transition-transform z-40"
+        className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-tr from-rose-600 to-[#5c0a20] rounded-full shadow-xl flex items-center justify-center text-white hover:scale-105 transition-transform z-40"
       >
         <Bot className="w-7 h-7" />
       </button>
@@ -394,7 +395,7 @@ export function GuestPortalClient({ reservation }: { reservation: any }) {
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-gray-900/40 backdrop-blur-sm sm:p-4">
           <div className="bg-white w-full h-[85vh] sm:h-[600px] sm:max-w-md sm:rounded-3xl rounded-t-3xl flex flex-col shadow-2xl animate-in slide-in-from-bottom-8 overflow-hidden border border-gray-200">
             {/* Chat Header */}
-            <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-4 flex items-center justify-between text-white">
+            <div className="bg-gradient-to-r from-[#4a0518] to-[#5c0a20] p-4 flex items-center justify-between text-white">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
                   <Bot className="w-6 h-6" />
@@ -413,7 +414,7 @@ export function GuestPortalClient({ reservation }: { reservation: any }) {
             <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
               {chatMessages.map((msg, i) => (
                 <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[80%] rounded-2xl p-3 text-sm ${msg.role === 'user' ? 'bg-indigo-600 text-white rounded-tr-sm' : 'bg-white border border-gray-100 text-gray-800 rounded-tl-sm shadow-sm'}`}>
+                  <div className={`max-w-[80%] rounded-2xl p-3 text-sm ${msg.role === 'user' ? 'bg-[#5c0a20] text-white rounded-tr-sm' : 'bg-white border border-gray-100 text-gray-800 rounded-tl-sm shadow-sm'}`}>
                     {msg.content}
                   </div>
                 </div>
@@ -437,12 +438,12 @@ export function GuestPortalClient({ reservation }: { reservation: any }) {
                   value={chatInput}
                   onChange={e => setChatInput(e.target.value)}
                   placeholder="Ask for towels, wifi password..."
-                  className="w-full bg-gray-50 border border-gray-200 rounded-full pl-4 pr-12 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-sm"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-full pl-4 pr-12 py-3 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 text-sm"
                 />
                 <button 
                   type="submit"
                   disabled={!chatInput.trim() || isChatLoading}
-                  className="absolute right-2 w-8 h-8 bg-indigo-600 text-white rounded-full flex items-center justify-center disabled:opacity-50 hover:bg-indigo-700 transition-colors"
+                  className="absolute right-2 w-8 h-8 bg-[#5c0a20] text-white rounded-full flex items-center justify-center disabled:opacity-50 hover:bg-[#3a0312] transition-colors"
                 >
                   <Send className="w-4 h-4" />
                 </button>
