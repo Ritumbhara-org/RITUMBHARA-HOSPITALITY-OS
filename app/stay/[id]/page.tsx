@@ -26,5 +26,7 @@ export default async function StayPage({ params }: { params: Promise<{ id: strin
     notFound();
   }
 
-  return <GuestPortalClient reservation={reservation} />;
+  const whatsappNumber = process.env.TWILIO_WHATSAPP_NUMBER?.replace('+', '') || '';
+
+  return <GuestPortalClient reservation={reservation} whatsappNumber={whatsappNumber} />;
 }

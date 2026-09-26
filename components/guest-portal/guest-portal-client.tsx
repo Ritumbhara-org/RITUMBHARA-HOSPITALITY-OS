@@ -22,7 +22,7 @@ import {
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
-export function GuestPortalClient({ reservation }: { reservation: any }) {
+export function GuestPortalClient({ reservation, whatsappNumber }: { reservation: any, whatsappNumber: string }) {
   const router = useRouter();
   const [isHousekeepingOpen, setIsHousekeepingOpen] = useState(false);
   const [isIssueOpen, setIsIssueOpen] = useState(false);
@@ -240,7 +240,7 @@ export function GuestPortalClient({ reservation }: { reservation: any }) {
             </button>
 
             <a 
-              href={`https://wa.me/YOUR_BUSINESS_NUMBER`} // Should be dynamic ideally
+              href={`https://wa.me/${whatsappNumber}?text=Hi, I am staying at ${reservation.unit.name} (Booking ${reservation.id}). I have a question.`}
               target="_blank"
               rel="noreferrer"
               className="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors text-left"
