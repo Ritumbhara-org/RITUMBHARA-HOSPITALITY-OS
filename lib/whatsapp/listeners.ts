@@ -243,6 +243,40 @@ Ritumbhara Hospitality`;
     }
   });
 
+  // 6.5 Ticket Updated (e.g. Reopened)
+  eventBus.on<any>('TICKET_UPDATED', async (payload) => {
+    try {
+      if (payload.status === "REOPENED") {
+        const ticket = await prisma.ticket.findUnique({ 
+          where: { id: payload.ticketId },
+          include: { unit: true, assignedTo: true }
+        });
+        
+        if (!ticket || !ticket.assignedTo?.whatsappNumber) return;
+
+        // MUST EXACTLY MATCH TEMPLATE 4 (since we reuse ticket assignment/update template)
+        // Or if we don't have a template, send a text message or reuse ticket_assigned
+        const messageContent = `TICKET REOPENED\nLocation: ${ticket.unit?.name || 'Property'}\nIssue: ${ticket.description}\nPriority: ${ticket.priority}\n\nThe guest reported the issue is not fixed.`;
+
+        await sendWhatsAppMessage(
+          ticket.assignedTo.whatsappNumber,
+          'template',
+          messageContent,
+          'ticket_assigned', // Re-using this Meta template since it matches the format
+          'Ticket',
+          payload.ticketId,
+          {
+            '1': ticket.unit?.name || 'Property',
+            '2': "REOPENED: " + ticket.description,
+            '3': ticket.priority
+          }
+        );
+      }
+    } catch (error) {
+      console.error("[WhatsApp Listener Error - TICKET_UPDATED]", error);
+    }
+  });
+
   // 7. Ticket Resolution Guest Notification
   eventBus.on<TicketEventPayload>('TICKET_RESOLVED', async (payload) => {
     try {

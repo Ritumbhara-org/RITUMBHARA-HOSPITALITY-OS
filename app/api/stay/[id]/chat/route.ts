@@ -70,6 +70,23 @@ Do NOT just say you will do it—you must actually call the tool.`;
             required: ["category", "priority", "description"]
           }
         }
+      },
+      {
+        type: "function",
+        function: {
+          name: "reopen_ticket",
+          description: "Reopens the most recently closed or resolved ticket for the guest if they say the issue is not fixed.",
+          parameters: {
+            type: "object",
+            properties: {
+              reason: {
+                type: "string",
+                description: "Reason the guest wants to reopen the issue."
+              }
+            },
+            required: ["reason"]
+          }
+        }
       }
     ];
 
@@ -142,6 +159,71 @@ Do NOT just say you will do it—you must actually call the tool.`;
           return NextResponse.json({ 
             reply: secondResponse.choices[0]?.message?.content || "I have notified the team.",
             ticketCreated: true 
+          });
+        } else if (toolCall.function.name === "reopen_ticket") {
+          const args = JSON.parse(toolCall.function.arguments);
+          
+          // Find the most recent closed/resolved ticket for this guest
+          const recentTicket = await prisma.ticket.findFirst({
+            where: {
+              guestId: reservation.guestId,
+              status: { in: ["RESOLVED", "CLOSED"] }
+            },
+            orderBy: { updatedAt: 'desc' }
+          });
+
+          if (recentTicket) {
+            await prisma.ticket.update({
+              where: { id: recentTicket.id },
+              data: {
+                status: "REOPENED",
+                resolutionNotes: `Reopened by guest: ${args.reason}`
+              }
+            });
+
+            await prisma.ticketAuditLog.create({
+              data: {
+                ticketId: recentTicket.id,
+                action: "REOPENED_BY_AI",
+                actorId: reservation.guestId,
+                actorType: "GUEST",
+                toStatus: "REOPENED",
+                notes: args.reason
+              }
+            });
+
+            // Re-assign or just notify team via event bus
+            eventBus.emit('TICKET_UPDATED', {
+              ticketId: recentTicket.id,
+              propertyId: recentTicket.propertyId,
+              status: "REOPENED"
+            });
+
+            groqMessages.push(responseMessage as any);
+            groqMessages.push({
+              role: "tool",
+              tool_call_id: toolCall.id,
+              name: toolCall.function.name,
+              content: "Ticket successfully reopened."
+            });
+          } else {
+            groqMessages.push(responseMessage as any);
+            groqMessages.push({
+              role: "tool",
+              tool_call_id: toolCall.id,
+              name: toolCall.function.name,
+              content: "No recently closed or resolved tickets found to reopen."
+            });
+          }
+
+          const secondResponse = await ai.chat.completions.create({
+            model: process.env.GROQ_MODEL || "llama-3.1-8b-instant",
+            messages: groqMessages as any,
+          });
+
+          return NextResponse.json({ 
+            reply: secondResponse.choices[0]?.message?.content || "I've updated the request.",
+            ticketCreated: false 
           });
         }
       }
