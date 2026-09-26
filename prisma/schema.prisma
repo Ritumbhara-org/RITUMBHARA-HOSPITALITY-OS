@@ -296,13 +296,14 @@ model InventoryItem {
 }
 
 model Membership {
-  id        String    @id @default(cuid())
-  guestId   String    @unique
-  tier      String    @default("STANDARD")
-  points    Int       @default(0)
-  joinedAt  DateTime
-  expiresAt DateTime?
-  createdAt DateTime  @default(now())
+  id           String    @id @default(cuid())
+  guestId      String    @unique
+  tier         String    @default("SILVER")
+  points       Int       @default(0)
+  referralCode String    @unique @default(cuid())
+  joinedAt     DateTime  @default(now())
+  expiresAt    DateTime?
+  createdAt    DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
   guest Guest @relation(fields: [guestId], references: [id])

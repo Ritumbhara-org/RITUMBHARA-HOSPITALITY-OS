@@ -11,7 +11,11 @@ export default async function StayPage({ params }: { params: { id: string } }) {
           property: true
         }
       },
-      guest: true
+      guest: {
+        include: {
+          membership: true
+        }
+      }
     }
   });
 

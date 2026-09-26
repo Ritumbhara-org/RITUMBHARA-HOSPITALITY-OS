@@ -11,7 +11,10 @@ import {
   Info,
   Clock,
   ChevronRight,
-  Phone
+  Phone,
+  Crown,
+  Gift,
+  Copy
 } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -22,6 +25,28 @@ export function GuestPortalClient({ reservation }: { reservation: any }) {
   const [isIssueOpen, setIsIssueOpen] = useState(false);
   const [issueDesc, setIssueDesc] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isJoining, setIsJoining] = useState(false);
+
+  const membership = reservation.guest.membership;
+
+  const handleJoinMembership = async () => {
+    setIsJoining(true);
+    try {
+      const res = await fetch(`/api/stay/${reservation.id}/membership/join`, {
+        method: "POST"
+      });
+      if (res.ok) {
+        toast.success("Welcome to Ritumbhara Rewards! You've earned points for this stay.");
+        router.refresh();
+      } else {
+        toast.error("Failed to join membership. Please try again.");
+      }
+    } catch (e) {
+      toast.error("An error occurred.");
+    } finally {
+      setIsJoining(false);
+    }
+  };
 
   const handleHousekeeping = async () => {
     setIsSubmitting(true);
@@ -183,6 +208,61 @@ export function GuestPortalClient({ reservation }: { reservation: any }) {
               <ChevronRight className="w-5 h-5 text-gray-300" />
             </a>
           </div>
+        </div>
+
+        {/* Membership Section */}
+        <div>
+          <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-3">Ritumbhara Rewards</h3>
+          {membership ? (
+            <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-3xl p-6 text-white shadow-lg relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-4 opacity-10">
+                <Crown className="w-24 h-24" />
+              </div>
+              <div className="relative z-10">
+                <div className="flex items-center gap-2 mb-4">
+                  <Crown className="w-5 h-5 text-yellow-400" />
+                  <span className="font-bold tracking-widest uppercase text-yellow-400 text-sm">{membership.tier} MEMBER</span>
+                </div>
+                <p className="text-3xl font-bold mb-1">{membership.points} <span className="text-lg font-medium text-gray-400">pts</span></p>
+                <p className="text-sm text-gray-300 mb-6">Earn more points on your next booking.</p>
+                
+                <div className="bg-white/10 rounded-xl p-3 flex items-center justify-between backdrop-blur-sm border border-white/10">
+                  <div>
+                    <p className="text-xs text-gray-400 uppercase">Referral Code</p>
+                    <p className="font-mono font-bold tracking-wider">{membership.referralCode}</p>
+                  </div>
+                  <button 
+                    onClick={() => {
+                      navigator.clipboard.writeText(membership.referralCode);
+                      toast.success("Referral code copied!");
+                    }}
+                    className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+                  >
+                    <Copy className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-gradient-to-br from-rose-50 to-orange-50 rounded-3xl p-6 border border-rose-100 shadow-sm relative overflow-hidden">
+              <div className="relative z-10 flex gap-4">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-rose-500 to-orange-500 text-white flex items-center justify-center shrink-0 shadow-md">
+                  <Gift className="w-6 h-6" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-gray-900 mb-1">Join Ritumbhara Rewards</h4>
+                  <p className="text-sm text-gray-600 mb-4">Earn points for this stay and unlock exclusive perks, late checkouts, and future discounts.</p>
+                  <button 
+                    onClick={handleJoinMembership}
+                    disabled={isJoining}
+                    className="bg-gray-900 text-white font-semibold py-2 px-6 rounded-xl hover:bg-gray-800 transition-colors disabled:opacity-70"
+                  >
+                    {isJoining ? "Joining..." : "Join for Free"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Status Indicator */}
