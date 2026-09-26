@@ -3,8 +3,9 @@ import { prisma } from "@/lib/prisma";
 import { ai } from "@/lib/ai/groq";
 import { eventBus } from "@/lib/events/bus";
 
-export async function POST(request: Request, { params }: { params: { id: string } }) {
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const { messages } = await request.json();
     
     if (!messages || !Array.isArray(messages)) {
@@ -12,7 +13,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
     }
 
     const reservation = await prisma.reservation.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: { 
         unit: { include: { property: true } },
         guest: true

@@ -3,8 +3,9 @@ import { prisma } from "@/lib/prisma";
 import { eventBus } from "@/lib/events/bus";
 import { TicketCategory, TicketPriority } from "@prisma/client";
 
-export async function POST(request: Request, { params }: { params: { id: string } }) {
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const body = await request.json();
     const { category, description, priority } = body;
 
@@ -13,7 +14,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
     }
 
     const reservation = await prisma.reservation.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: { unit: true }
     });
 

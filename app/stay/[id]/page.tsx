@@ -2,9 +2,12 @@ import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { GuestPortalClient } from "@/components/guest-portal/guest-portal-client";
 
-export default async function StayPage({ params }: { params: { id: string } }) {
+export const dynamic = "force-dynamic";
+
+export default async function StayPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const reservation = await prisma.reservation.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: {
       unit: {
         include: {
