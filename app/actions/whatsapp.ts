@@ -34,20 +34,33 @@ export async function getWhatsAppConversations() {
     thread.messages.push(msg);
   }
 
-  // Populate guest / team member names
-  const allGuests = await prisma.guest.findMany();
+  const allGuests = await prisma.guest.findMany({
+    include: { reservations: { orderBy: { checkIn: 'desc' }, take: 1 } }
+  });
   const allTeam = await prisma.teamMember.findMany();
 
   const results = Array.from(threads.values()).map(thread => {
     // Reverse messages so they are chronological
     thread.messages.reverse();
 
+    let propertyId = null;
+
     // Match guest or team member
     const guestMatch = allGuests.find(g => g.phone && normalizePhoneNumber(g.phone) === thread.phone);
-    if (guestMatch) thread.guest = guestMatch;
+    if (guestMatch) {
+      thread.guest = guestMatch;
+      if (guestMatch.reservations.length > 0) {
+        propertyId = guestMatch.reservations[0].propertyId;
+      }
+    }
 
     const teamMatch = allTeam.find(t => t.whatsappNumber && normalizePhoneNumber(t.whatsappNumber) === thread.phone);
-    if (teamMatch) thread.teamMember = teamMatch;
+    if (teamMatch) {
+      thread.teamMember = teamMatch;
+      propertyId = teamMatch.propertyId;
+    }
+
+    thread.propertyId = propertyId;
 
     return thread;
   });

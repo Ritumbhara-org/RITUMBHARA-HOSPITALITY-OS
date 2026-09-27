@@ -4,30 +4,65 @@ import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { MessageSquare, Settings, Users, Search, Phone, User, Send, Bot, Shield, Clock, PlusCircle } from "lucide-react"
 
+import { useRouter, useSearchParams } from "next/navigation"
+
 interface WhatsAppClientProps {
   initialThreads: any[]
+  properties: any[]
+  activePropertyId: string
 }
 
-export function WhatsAppClient({ initialThreads }: WhatsAppClientProps) {
+export function WhatsAppClient({ initialThreads, properties, activePropertyId }: WhatsAppClientProps) {
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const [activeTab, setActiveTab] = useState<"inbox" | "broadcasts" | "settings">("inbox")
   const [search, setSearch] = useState("")
   const [activeThreadId, setActiveThreadId] = useState<string | null>(initialThreads[0]?.phone || null)
   const [replyText, setReplyText] = useState("")
 
-  const filteredThreads = initialThreads.filter(t => 
-    t.phone.includes(search) || 
-    t.guest?.name?.toLowerCase().includes(search.toLowerCase()) ||
-    t.teamMember?.name?.toLowerCase().includes(search.toLowerCase())
-  )
+  const filteredThreads = initialThreads.filter(t => {
+    // Basic search filtering
+    const matchesSearch = t.phone.includes(search) || 
+      t.guest?.name?.toLowerCase().includes(search.toLowerCase()) ||
+      t.teamMember?.name?.toLowerCase().includes(search.toLowerCase());
+    
+    // Property filtering
+    const matchesProperty = t.propertyId === activePropertyId;
 
-  const activeThread = initialThreads.find(t => t.phone === activeThreadId)
+    return matchesSearch && matchesProperty;
+  })
+
+  // Set active thread to the first filtered one if none is selected
+  const activeThread = filteredThreads.find(t => t.phone === activeThreadId) || filteredThreads[0];
+
+  const handlePropertyChange = (propertyId: string) => {
+    const params = new URLSearchParams(searchParams)
+    params.set("propertyId", propertyId)
+    router.push(`/whatsapp?${params.toString()}`)
+    setActiveThreadId(null) // Reset selection
+  }
 
   return (
     <div className="flex h-full w-full flex-col bg-background p-6">
       <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">WhatsApp Control Center</h1>
-          <p className="text-muted-foreground mt-1">Manage guest communications, broadcasts, and AI settings.</p>
+        <div className="flex items-center gap-6">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">WhatsApp Control Center</h1>
+            <p className="text-muted-foreground mt-1">Manage guest communications, broadcasts, and AI settings.</p>
+          </div>
+          
+          {/* Property Selector */}
+          <div className="h-10 px-3 bg-muted/20 border rounded-xl flex items-center">
+            <select 
+              value={activePropertyId} 
+              onChange={(e) => handlePropertyChange(e.target.value)}
+              className="bg-transparent font-medium border-none outline-none focus:ring-0 cursor-pointer text-sm"
+            >
+              {properties.map(p => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+          </div>
         </div>
         <div className="flex items-center gap-2 rounded-xl border bg-card p-1 shadow-sm">
           {[
@@ -186,7 +221,7 @@ export function WhatsAppClient({ initialThreads }: WhatsAppClientProps) {
                 ) : (
                   <div className="h-full flex flex-col items-center justify-center text-muted-foreground">
                     <MessageSquare className="h-12 w-12 opacity-20 mb-4" />
-                    <p>Select a conversation to view messages</p>
+                    <p>No active WhatsApp conversations found for this location.</p>
                   </div>
                 )}
               </div>

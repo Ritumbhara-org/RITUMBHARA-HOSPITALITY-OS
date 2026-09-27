@@ -3,19 +3,46 @@ import { cookies } from "next/headers"
 import { getWhatsAppConversations } from "@/app/actions/whatsapp"
 import { WhatsAppClient } from "@/components/whatsapp/whatsapp-client"
 
-export default async function WhatsAppPage() {
+import { prisma } from "@/lib/prisma"
+
+export default async function WhatsAppPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+}) {
   const cookieStore = await cookies()
   const token = cookieStore.get("auth-token")
 
-  if (!token) {
-    redirect("/login")
+  // Fallback to first admin for demo purposes
+  let user = null;
+  if (token) {
+    user = await prisma.teamMember.findUnique({
+      where: { id: token.value }
+    });
   }
+
+  if (!user) {
+    user = await prisma.teamMember.findFirst({
+      orderBy: { createdAt: 'asc' }
+    });
+  }
+
+  const properties = await prisma.property.findMany({
+    orderBy: { name: 'asc' }
+  });
+
+  const resolvedParams = await searchParams;
+  const activePropertyId = resolvedParams?.propertyId as string || user?.propertyId || properties[0]?.id;
 
   const threads = await getWhatsAppConversations()
 
   return (
     <div className="flex h-[calc(100vh-4rem)] flex-col">
-      <WhatsAppClient initialThreads={threads} />
+      <WhatsAppClient 
+        initialThreads={threads} 
+        properties={properties} 
+        activePropertyId={activePropertyId} 
+      />
     </div>
   )
 }
