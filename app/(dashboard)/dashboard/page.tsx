@@ -82,6 +82,9 @@ export default async function DashboardPage() {
       where: {
         quantity: { lt: prisma.inventoryItem.fields.minThreshold }
       },
+      include: {
+        property: true
+      },
       take: 5
     })
   ])

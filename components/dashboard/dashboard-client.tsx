@@ -323,7 +323,9 @@ export function DashboardClient({ data }: { data: DashboardData }) {
                   <div key={item.id} className="flex items-center justify-between rounded-xl p-3 border bg-red-50/50 border-red-200/50 dark:bg-red-900/10 dark:border-red-900/30">
                     <div>
                       <p className="text-sm font-semibold text-red-900 dark:text-red-300">{item.name}</p>
-                      <p className="text-xs text-red-700/70 dark:text-red-400/70">{item.category}</p>
+                      <p className="text-xs text-red-700/70 dark:text-red-400/70">
+                        {item.category} &middot; {item.property?.name || 'All Properties'}
+                      </p>
                     </div>
                     <div className="text-right">
                       <p className="text-lg font-bold text-red-600 dark:text-red-400">{item.quantity} <span className="text-xs font-normal opacity-70">{item.unit}</span></p>
