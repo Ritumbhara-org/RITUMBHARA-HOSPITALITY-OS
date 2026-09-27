@@ -6,7 +6,7 @@ import { MessageSquare, Settings, Users, Search, Phone, User, Send, Bot, Shield,
 
 import { useRouter, useSearchParams } from "next/navigation"
 import { sendBroadcast } from "@/app/actions/whatsapp"
-import toast from "react-hot-toast"
+import { toast } from "sonner"
 
 interface WhatsAppClientProps {
   initialThreads: any[]
