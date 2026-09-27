@@ -287,6 +287,7 @@ model InventoryItem {
   quantity     Int
   unit         String
   minThreshold Int
+  defaultDeduction Int @default(0)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

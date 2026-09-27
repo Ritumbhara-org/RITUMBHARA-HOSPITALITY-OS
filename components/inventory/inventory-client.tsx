@@ -78,6 +78,7 @@ export function InventoryClient({ initialItems, activePropertyId, properties, re
         quantity: parseInt(formData.get("quantity") as string),
         unit: formData.get("unit") as string,
         minThreshold: parseInt(formData.get("minThreshold") as string),
+        defaultDeduction: parseInt(formData.get("defaultDeduction") as string) || 0,
       })
       setItems([...items, newItem].sort((a, b) => a.category.localeCompare(b.category)))
       setIsAdding(false)
@@ -191,8 +192,12 @@ export function InventoryClient({ initialItems, activePropertyId, properties, re
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">Min Alert Level</label>
+                  <input required name="minThreshold" type="number" min="0" className="flex h-11 w-full rounded-xl border border-input bg-background/50 px-3 py-2 text-sm transition-all focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary/50" placeholder="Alert at..." />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">Deduct Per Clean</label>
                   <div className="flex items-end gap-3">
-                    <input required name="minThreshold" type="number" min="0" className="flex h-11 w-full rounded-xl border border-input bg-background/50 px-3 py-2 text-sm transition-all focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary/50" placeholder="Alert at..." />
+                    <input required name="defaultDeduction" type="number" min="0" defaultValue="0" className="flex h-11 w-full rounded-xl border border-input bg-background/50 px-3 py-2 text-sm transition-all focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary/50" placeholder="e.g. 2" />
                     <button disabled={isLoading} type="submit" className="h-11 px-6 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl transition-all font-semibold shadow-sm shadow-primary/20">
                       Save
                     </button>
@@ -231,6 +236,7 @@ export function InventoryClient({ initialItems, activePropertyId, properties, re
                 <th className="h-14 px-6 text-left align-middle text-xs font-bold uppercase tracking-wider text-muted-foreground">Category</th>
                 <th className="h-14 px-6 text-left align-middle text-xs font-bold uppercase tracking-wider text-muted-foreground">Stock Level</th>
                 <th className="h-14 px-6 text-left align-middle text-xs font-bold uppercase tracking-wider text-muted-foreground">Alert Threshold</th>
+                <th className="h-14 px-6 text-left align-middle text-xs font-bold uppercase tracking-wider text-muted-foreground">Deduct/Clean</th>
                 <th className="h-14 px-6 text-left align-middle text-xs font-bold uppercase tracking-wider text-muted-foreground">Status</th>
                 <th className="h-14 px-6 text-right align-middle text-xs font-bold uppercase tracking-wider text-muted-foreground">Manage</th>
               </tr>
@@ -275,6 +281,10 @@ export function InventoryClient({ initialItems, activePropertyId, properties, re
                       </td>
                       <td className="p-6 align-middle font-medium text-muted-foreground">
                         {item.minThreshold} {item.unit}
+                      </td>
+                      <td className="p-6 align-middle font-medium text-muted-foreground">
+                        {/* @ts-ignore */}
+                        {item.defaultDeduction || 0} {item.unit}
                       </td>
                       <td className="p-6 align-middle">
                         {isLowStock ? (

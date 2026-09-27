@@ -174,6 +174,14 @@ export async function handleWhatsAppAction(senderPhone: string, messageText: str
         data: { status: "READY" }
       });
 
+      const { eventBus } = await import("@/lib/events/bus");
+      await eventBus.emit('HOUSEKEEPING_TASK_COMPLETED', {
+        taskId: activeTask.id,
+        unitId: activeTask.unitId,
+        propertyId: activeTask.propertyId,
+        assignedToId: activeTask.assignedToId
+      });
+
       return `🌟 Amazing work, ${teamMember.name}! Room ${activeTask.unit.name} is now marked as READY in the system${mediaUrl ? ' with photo evidence' : ''}.`;
     }
 

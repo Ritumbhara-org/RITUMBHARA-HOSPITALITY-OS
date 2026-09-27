@@ -23,7 +23,8 @@ export type EventType =
   | 'TICKET_ASSIGNED'
   | 'TICKET_UPDATED'
   | 'TICKET_RESOLVED'
-  | 'SLA_BREACHED';
+  | 'SLA_BREACHED'
+  | 'HOUSEKEEPING_TASK_COMPLETED';
 
 export interface TicketEventPayload {
   ticketId: string;
@@ -41,6 +42,13 @@ export interface SlaBreachPayload {
   assignedToId?: string | null;
   unitId?: string | null;
   slaDeadline: Date;
+}
+
+export interface HousekeepingTaskPayload {
+  taskId: string;
+  unitId: string;
+  propertyId: string;
+  assignedToId?: string | null;
 }
 
 class EventBus {

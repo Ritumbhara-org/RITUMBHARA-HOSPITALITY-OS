@@ -18,6 +18,7 @@ export async function addInventoryItem(data: {
   quantity: number;
   unit: string;
   minThreshold: number;
+  defaultDeduction?: number;
 }) {
   const item = await prisma.inventoryItem.create({
     data

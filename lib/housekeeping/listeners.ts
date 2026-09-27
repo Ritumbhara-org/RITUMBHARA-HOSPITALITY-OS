@@ -60,5 +60,46 @@ export function initHousekeepingListeners() {
     }
   });
 
+  eventBus.on<{taskId: string, propertyId: string, unitId: string}>('HOUSEKEEPING_TASK_COMPLETED', async (payload) => {
+    try {
+      console.log(`[Housekeeping Listener] Task ${payload.taskId} completed. Processing automated inventory deductions...`);
+      
+      // 1. Fetch all inventory items for this property that have a defaultDeduction > 0
+      const itemsToDeduct = await prisma.inventoryItem.findMany({
+        where: {
+          propertyId: payload.propertyId,
+          defaultDeduction: { gt: 0 }
+        }
+      });
+
+      if (itemsToDeduct.length === 0) {
+        console.log(`[Housekeeping Listener] No inventory items with defaultDeduction > 0 found for property ${payload.propertyId}. Skipping.`);
+        return;
+      }
+
+      // 2. Perform the deductions and check for low stock
+      let deductionCount = 0;
+      for (const item of itemsToDeduct) {
+        // Prevent negative quantities
+        const newQuantity = Math.max(0, item.quantity - item.defaultDeduction);
+        
+        await prisma.inventoryItem.update({
+          where: { id: item.id },
+          data: { quantity: newQuantity }
+        });
+        deductionCount++;
+        
+        if (newQuantity < item.minThreshold && item.quantity >= item.minThreshold) {
+          console.log(`[Inventory Alert] ${item.name} dropped below minThreshold (${newQuantity} < ${item.minThreshold}).`);
+          // Could also emit a LOW_INVENTORY event here if needed later
+        }
+      }
+
+      console.log(`[Housekeeping Listener] Successfully deducted ${deductionCount} inventory items for Task ${payload.taskId}.`);
+    } catch (error) {
+      console.error("[Housekeeping Listener Error - HOUSEKEEPING_TASK_COMPLETED]", error);
+    }
+  });
+
   console.log("[Housekeeping Listeners] Successfully initialized.");
 }
