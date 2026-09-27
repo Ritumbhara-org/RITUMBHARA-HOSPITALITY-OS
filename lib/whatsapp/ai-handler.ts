@@ -40,6 +40,17 @@ export async function handleGuestAIChat(senderPhone: string, messageText: string
     contextStr = reservation 
       ? `User Type: Guest. Guest Name: ${guest.name}. Reservation Status: ${reservation.status}. Property: ${reservation.unit.property.name}. Unit: ${reservation.unit.name}. Check-in: ${reservation.checkIn.toLocaleDateString()}. Check-out: ${reservation.checkOut.toLocaleDateString()}.`
       : `User Type: Guest. Guest Name: ${guest.name}. No active reservation found.`;
+
+    // Fetch recent resolved tickets
+    const recentTickets = await prisma.ticket.findMany({
+      where: { guestId: guest.id, status: { in: ["RESOLVED", "CLOSED", "OPEN", "IN_PROGRESS", "ASSIGNED"] } },
+      orderBy: { updatedAt: 'desc' },
+      take: 3
+    });
+    
+    if (recentTickets.length > 0) {
+      contextStr += `\nRecent Tickets for this user:\n` + recentTickets.map(t => `- ID: ${t.id} | Status: ${t.status} | Issue: ${t.description}`).join('\n');
+    }
   } else if (teamMember) {
     contextStr = `User Type: Staff/Team Member. Name: ${teamMember.name}. Role: ${teamMember.role}. Department: ${teamMember.department}. Property: ${teamMember.property.name}.`;
   }
@@ -49,18 +60,21 @@ You are speaking to a user via WhatsApp.
 Context about this user: ${contextStr}
 
 Your goal is to answer the user's question politely and concisely. 
-If the user is reporting a maintenance issue, a complaint, or requesting an item, you MUST respond with a JSON object containing the intent to escalate. If it's a Team Member reporting an issue, look closely at their message to see if they mentioned a specific room/unit (e.g., "Room 204", "Studio 12"). Extract that unit name.
+If the user is reporting a NEW maintenance issue, a complaint, or requesting an item, you MUST respond with intent "ESCALATE_ISSUE".
+If the user is complaining that a previously resolved/closed issue is STILL NOT FIXED (refer to Recent Tickets context), you MUST respond with intent "REOPEN_ISSUE" and include the specific "ticketId".
+If it's a Team Member reporting an issue, look closely at their message to see if they mentioned a specific room/unit (e.g., "Room 204", "Studio 12"). Extract that unit name.
 Otherwise, respond with a JSON object containing your plain text answer to the user.
 
 IMPORTANT: Always output valid JSON in the following schema:
 {
-  "intent": "ANSWER_QUESTION" | "ESCALATE_ISSUE",
+  "intent": "ANSWER_QUESTION" | "ESCALATE_ISSUE" | "REOPEN_ISSUE",
   "replyText": "The message to send back to the user",
-  "escalationCategory": "MAINTENANCE" | "HOUSEKEEPING" | "GUEST_REQUEST" | "GUEST_COMPLAINT",
-  "unitName": "Optional. The room or unit name extracted from the message, if any."
+  "escalationCategory": "MAINTENANCE" | "HOUSEKEEPING" | "GUEST_REQUEST" | "GUEST_COMPLAINT" | null,
+  "unitName": "Optional. The room or unit name extracted from the message, if any.",
+  "ticketId": "Optional. The ID of the ticket to reopen if intent is REOPEN_ISSUE."
 }
 
-If intent is ESCALATE_ISSUE, replyText should assure the user that the team has been notified.
+If intent is ESCALATE_ISSUE or REOPEN_ISSUE, replyText should assure the user that the team has been notified.
 `;
 
   try {
@@ -121,6 +135,36 @@ If intent is ESCALATE_ISSUE, replyText should assure the user that the team has 
        
        // Automatically assign it to a team member in round-robin
        await assignTicketRoundRobin(ticket.id);
+    } else if (parsed.intent === "REOPEN_ISSUE" && parsed.ticketId) {
+       const existingTicket = await prisma.ticket.findUnique({ where: { id: parsed.ticketId } });
+       if (existingTicket) {
+         await prisma.ticket.update({
+           where: { id: existingTicket.id },
+           data: { 
+             status: "REOPENED", 
+             resolvedAt: null,
+             auditLogs: {
+               create: {
+                 action: "STATUS_CHANGED_TO_REOPENED",
+                 actorId: guest ? guest.id : (teamMember ? teamMember.id : "system"),
+                 actorType: guest ? "GUEST" : (teamMember ? "TEAM" : "SYSTEM"),
+                 toStatus: "REOPENED",
+                 notes: `Reopened by user via AI chat: ${messageText}`
+               }
+             }
+           }
+         });
+
+         const { eventBus } = await import("@/lib/events/bus");
+         await eventBus.emit('TICKET_UPDATED', {
+           ticketId: existingTicket.id,
+           assignedToId: existingTicket.assignedToId || undefined,
+           propertyId: existingTicket.propertyId,
+           unitId: existingTicket.unitId,
+           priority: existingTicket.priority,
+           status: "REOPENED"
+         });
+       }
     }
 
     if (parsed.replyText) {
