@@ -67,3 +67,75 @@ export async function getWhatsAppConversations() {
 
   return results.sort((a, b) => b.lastMessageAt.getTime() - a.lastMessageAt.getTime());
 }
+
+export async function sendBroadcast(campaignName: string, audience: string, messageContent: string, propertyId: string) {
+  const { sendWhatsAppMessage } = await import("@/lib/whatsapp/client");
+  
+  let targetPhones: string[] = [];
+
+  if (audience === "ALL_ACTIVE_GUESTS") {
+    const activeReservations = await prisma.reservation.findMany({
+      where: { propertyId, status: { in: ['CHECKED_IN', 'CONFIRMED'] } },
+      include: { guest: true }
+    });
+    targetPhones = activeReservations.map(r => r.guest.phone).filter(Boolean) as string[];
+  } else if (audience === "ALL_PAST_GUESTS") {
+    const pastReservations = await prisma.reservation.findMany({
+      where: { propertyId, status: 'CHECKED_OUT' },
+      include: { guest: true }
+    });
+    targetPhones = Array.from(new Set(pastReservations.map(r => r.guest.phone).filter(Boolean))) as string[];
+  } else if (audience === "ALL_TEAM") {
+    const team = await prisma.teamMember.findMany({
+      where: { propertyId, isActive: true }
+    });
+    targetPhones = team.map(t => t.whatsappNumber).filter(Boolean) as string[];
+  }
+
+  // Deduplicate
+  targetPhones = Array.from(new Set(targetPhones));
+
+  if (targetPhones.length === 0) {
+    return { success: false, error: "No audience found for this selection." };
+  }
+
+  let sentCount = 0;
+  for (const phone of targetPhones) {
+    // We prefix campaign name with property ID to keep them isolated if needed, or just use campaignName
+    const finalCampaignName = `${propertyId}_${campaignName}`;
+    const result = await sendWhatsAppMessage(phone, 'text', messageContent, undefined, 'BROADCAST', finalCampaignName);
+    if (result.success) sentCount++;
+  }
+
+  return { success: true, count: sentCount };
+}
+
+export async function getBroadcastCampaigns(propertyId: string) {
+  const broadcasts = await prisma.whatsAppMessage.findMany({
+    where: { relatedEntityType: 'BROADCAST' },
+    orderBy: { createdAt: 'desc' }
+  });
+
+  const campaignsMap = new Map<string, any>();
+  for (const b of broadcasts) {
+    if (!b.relatedEntityId || !b.relatedEntityId.startsWith(propertyId + "_")) continue;
+    
+    const campaignName = b.relatedEntityId.substring(propertyId.length + 1);
+    
+    if (!campaignsMap.has(campaignName)) {
+      campaignsMap.set(campaignName, {
+        name: campaignName,
+        sentCount: 0,
+        deliveredCount: 0,
+        failedCount: 0,
+        createdAt: b.createdAt
+      });
+    }
+    const c = campaignsMap.get(campaignName);
+    c.sentCount++;
+    if (b.status === 'DELIVERED' || b.status === 'SANDBOX_DELIVERED') c.deliveredCount++;
+    if (b.status === 'FAILED') c.failedCount++;
+  }
+  
+  return Array.from(campaignsMap.values()).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+}

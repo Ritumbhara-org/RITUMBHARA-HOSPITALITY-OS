@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation"
 import { cookies } from "next/headers"
-import { getWhatsAppConversations } from "@/app/actions/whatsapp"
+import { getWhatsAppConversations, getBroadcastCampaigns } from "@/app/actions/whatsapp"
 import { WhatsAppClient } from "@/components/whatsapp/whatsapp-client"
 
 import { prisma } from "@/lib/prisma"
@@ -35,11 +35,13 @@ export default async function WhatsAppPage({
   const activePropertyId = resolvedParams?.propertyId as string || user?.propertyId || properties[0]?.id;
 
   const threads = await getWhatsAppConversations()
+  const broadcasts = await getBroadcastCampaigns(activePropertyId)
 
   return (
     <div className="flex h-[calc(100vh-4rem)] flex-col">
       <WhatsAppClient 
         initialThreads={threads} 
+        initialBroadcasts={broadcasts}
         properties={properties} 
         activePropertyId={activePropertyId} 
       />

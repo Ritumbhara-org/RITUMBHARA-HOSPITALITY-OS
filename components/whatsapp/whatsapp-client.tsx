@@ -5,20 +5,30 @@ import { motion, AnimatePresence } from "framer-motion"
 import { MessageSquare, Settings, Users, Search, Phone, User, Send, Bot, Shield, Clock, PlusCircle } from "lucide-react"
 
 import { useRouter, useSearchParams } from "next/navigation"
+import { sendBroadcast } from "@/app/actions/whatsapp"
+import toast from "react-hot-toast"
 
 interface WhatsAppClientProps {
   initialThreads: any[]
+  initialBroadcasts: any[]
   properties: any[]
   activePropertyId: string
 }
 
-export function WhatsAppClient({ initialThreads, properties, activePropertyId }: WhatsAppClientProps) {
+export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, activePropertyId }: WhatsAppClientProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [activeTab, setActiveTab] = useState<"inbox" | "broadcasts" | "settings">("inbox")
   const [search, setSearch] = useState("")
   const [activeThreadId, setActiveThreadId] = useState<string | null>(initialThreads[0]?.phone || null)
   const [replyText, setReplyText] = useState("")
+
+  // Broadcast Modal State
+  const [isBroadcastModalOpen, setIsBroadcastModalOpen] = useState(false)
+  const [campaignName, setCampaignName] = useState("")
+  const [audience, setAudience] = useState("ALL_ACTIVE_GUESTS")
+  const [broadcastMessage, setBroadcastMessage] = useState("")
+  const [isSending, setIsSending] = useState(false)
 
   const filteredThreads = initialThreads.filter(t => {
     // Basic search filtering
@@ -40,6 +50,31 @@ export function WhatsAppClient({ initialThreads, properties, activePropertyId }:
     params.set("propertyId", propertyId)
     router.push(`/whatsapp?${params.toString()}`)
     setActiveThreadId(null) // Reset selection
+  }
+
+  const handleSendBroadcast = async () => {
+    if (!campaignName || !broadcastMessage) {
+      toast.error("Please fill in all fields.");
+      return;
+    }
+    
+    setIsSending(true);
+    try {
+      const result = await sendBroadcast(campaignName, audience, broadcastMessage, activePropertyId);
+      if (result.success) {
+        toast.success(`Sent successfully to ${result.count} contacts!`);
+        setIsBroadcastModalOpen(false);
+        setCampaignName("");
+        setBroadcastMessage("");
+        router.refresh();
+      } else {
+        toast.error(result.error || "Failed to send broadcast.");
+      }
+    } catch (e: any) {
+      toast.error(e.message || "An error occurred.");
+    } finally {
+      setIsSending(false);
+    }
   }
 
   return (
@@ -290,7 +325,10 @@ If they complain, apologize profusely and escalate the issue immediately.`}
                     <h2 className="text-xl font-bold flex items-center gap-2 mb-1"><Users className="h-6 w-6 text-primary" /> Campaigns & Broadcasts</h2>
                     <p className="text-muted-foreground text-sm">Send bulk updates or promotional offers to your guests.</p>
                   </div>
-                  <button className="px-4 py-2 bg-primary text-primary-foreground rounded-xl text-sm font-semibold flex items-center gap-2 hover:bg-primary/90 transition-colors shadow-sm">
+                  <button 
+                    onClick={() => setIsBroadcastModalOpen(true)}
+                    className="px-4 py-2 bg-primary text-primary-foreground rounded-xl text-sm font-semibold flex items-center gap-2 hover:bg-primary/90 transition-colors shadow-sm"
+                  >
                     <PlusCircle className="h-4 w-4" /> New Broadcast
                   </button>
                 </div>
@@ -298,20 +336,107 @@ If they complain, apologize profusely and escalate the issue immediately.`}
                 <div className="flex-1 rounded-2xl border bg-card overflow-hidden shadow-sm flex flex-col">
                   <div className="p-4 border-b bg-muted/30 grid grid-cols-4 font-semibold text-sm text-muted-foreground">
                     <div className="col-span-2">Campaign Name</div>
-                    <div>Audience</div>
-                    <div>Status</div>
+                    <div>Sent / Delivered</div>
+                    <div>Date</div>
                   </div>
-                  <div className="divide-y p-8 flex flex-col items-center justify-center text-center text-muted-foreground flex-1">
-                    <Clock className="h-12 w-12 opacity-20 mb-4" />
-                    <h3 className="text-lg font-medium text-foreground">No Broadcasts Yet</h3>
-                    <p className="max-w-sm mt-2 text-sm">You haven't sent any mass WhatsApp broadcasts. Click "New Broadcast" to get started.</p>
-                  </div>
+                  
+                  {initialBroadcasts.length > 0 ? (
+                    <div className="divide-y overflow-y-auto">
+                      {initialBroadcasts.map((campaign, idx) => (
+                        <div key={idx} className="p-4 grid grid-cols-4 items-center hover:bg-muted/10 transition-colors">
+                          <div className="col-span-2 font-medium">{campaign.name}</div>
+                          <div>
+                            <span className="text-emerald-600 font-semibold">{campaign.deliveredCount}</span> / {campaign.sentCount}
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            {new Date(campaign.createdAt).toLocaleDateString()}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="divide-y p-8 flex flex-col items-center justify-center text-center text-muted-foreground flex-1">
+                      <Clock className="h-12 w-12 opacity-20 mb-4" />
+                      <h3 className="text-lg font-medium text-foreground">No Broadcasts Yet</h3>
+                      <p className="max-w-sm mt-2 text-sm">You haven't sent any mass WhatsApp broadcasts. Click "New Broadcast" to get started.</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
+
+      {/* Broadcast Modal */}
+      <AnimatePresence>
+        {isBroadcastModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="bg-card w-full max-w-lg rounded-2xl shadow-xl overflow-hidden flex flex-col"
+            >
+              <div className="p-6 border-b">
+                <h3 className="text-xl font-bold">New Broadcast Campaign</h3>
+                <p className="text-sm text-muted-foreground">Send a mass message to a selected segment.</p>
+              </div>
+              <div className="p-6 space-y-4 flex-1 overflow-y-auto">
+                <div>
+                  <label className="block text-sm font-semibold mb-1">Campaign Name</label>
+                  <input 
+                    type="text" 
+                    placeholder="e.g. Pool Maintenance Notice"
+                    value={campaignName}
+                    onChange={(e) => setCampaignName(e.target.value)}
+                    className="w-full rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-primary outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold mb-1">Target Audience</label>
+                  <select 
+                    value={audience}
+                    onChange={(e) => setAudience(e.target.value)}
+                    className="w-full rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-primary outline-none"
+                  >
+                    <option value="ALL_ACTIVE_GUESTS">Current Checked-in Guests</option>
+                    <option value="ALL_PAST_GUESTS">Past Guests (Marketing)</option>
+                    <option value="ALL_TEAM">All Team Members (Alerts)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold mb-1">Message</label>
+                  <textarea 
+                    placeholder="Type your message here..."
+                    rows={4}
+                    value={broadcastMessage}
+                    onChange={(e) => setBroadcastMessage(e.target.value)}
+                    className="w-full rounded-xl border p-3 text-sm focus:ring-2 focus:ring-primary outline-none resize-none"
+                  />
+                  <p className="text-[10px] text-muted-foreground mt-1">Note: Twilio Sandbox only supports standard text to whitelisted numbers unless using pre-registered templates.</p>
+                </div>
+              </div>
+              <div className="p-4 border-t bg-muted/20 flex justify-end gap-2">
+                <button 
+                  onClick={() => setIsBroadcastModalOpen(false)}
+                  className="px-4 py-2 text-sm font-medium hover:bg-muted rounded-xl"
+                  disabled={isSending}
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={handleSendBroadcast}
+                  disabled={isSending}
+                  className="px-6 py-2 bg-primary text-primary-foreground text-sm font-bold rounded-xl hover:bg-primary/90 disabled:opacity-50"
+                >
+                  {isSending ? 'Sending...' : 'Send Broadcast'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
