@@ -191,6 +191,7 @@ model Ticket {
   propertyId      String
   unitId          String?
   guestId         String?
+  inventoryItemId String?
   reporterId      String
   reporterType    ReporterType
   category        TicketCategory
@@ -212,10 +213,12 @@ model Ticket {
   property Property @relation(fields: [propertyId], references: [id])
   unit     Unit?    @relation(fields: [unitId], references: [id])
   guest    Guest?   @relation(fields: [guestId], references: [id])
+  inventoryItem InventoryItem? @relation(fields: [inventoryItemId], references: [id])
   assignedTo TeamMember? @relation("AssignedTickets", fields: [assignedToId], references: [id])
   auditLogs TicketAuditLog[]
 
   @@index([propertyId])
+  @@index([inventoryItemId])
   @@index([status])
   @@index([priority])
   @@index([category])
@@ -292,6 +295,7 @@ model InventoryItem {
   updatedAt    DateTime @updatedAt
 
   property Property @relation(fields: [propertyId], references: [id])
+  tickets  Ticket[]
 
   @@index([propertyId])
 }

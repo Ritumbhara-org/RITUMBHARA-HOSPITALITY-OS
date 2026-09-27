@@ -33,6 +33,7 @@ export async function createTicket(formData: FormData) {
 
     const unitId = formData.get("unitId") as string
     const assigneeId = formData.get("assigneeId") as string
+    const inventoryItemId = formData.get("inventoryItemId") as string
     const isManuallyAssigned = assigneeId && assigneeId !== "unassigned"
 
     const fullDescription = `[${title || 'Alert'}] ${description}`
@@ -70,6 +71,7 @@ export async function createTicket(formData: FormData) {
         assignedToId: isManuallyAssigned ? assigneeId : null,
         slaDeadline: slaDeadline,
         unitId: (!unitId || unitId === 'property') ? null : unitId,
+        inventoryItemId: inventoryItemId || null,
         auditLogs: {
           create: {
             action: isManuallyAssigned ? "TICKET_ASSIGNED" : "TICKET_CREATED",

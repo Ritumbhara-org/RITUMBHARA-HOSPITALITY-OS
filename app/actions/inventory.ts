@@ -54,6 +54,7 @@ export async function updateInventoryQuantity(itemId: string, change: number, re
     formData.append("reporterType", "SYSTEM");
     formData.append("reporterId", reporterId);
     formData.append("assigneeId", "unassigned");
+    formData.append("inventoryItemId", item.id);
 
     await createTicket(formData);
   }

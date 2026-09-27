@@ -77,6 +77,34 @@ export async function handleWhatsAppAction(senderPhone: string, messageText: str
 
       if (messageText.includes("RESOLVE") || messageText.includes("COMPLETE") || mediaUrl) {
         
+        // Custom logic for INVENTORY tickets
+        if (activeTicket.category === "INVENTORY" && activeTicket.inventoryItemId) {
+          // Look for a number in the message
+          const match = messageText.match(/\d+/);
+          if (!match && !mediaUrl) {
+            // If they just typed RESOLVE without a number
+            return `To resolve an inventory alert, please include the amount you added. Example: RESOLVE 50`;
+          }
+          
+          if (match) {
+            const addedAmount = parseInt(match[0], 10);
+            
+            // Increment the inventory in the database
+            await prisma.inventoryItem.update({
+              where: { id: activeTicket.inventoryItemId },
+              data: { quantity: { increment: addedAmount } }
+            });
+            
+            // Mark the ticket as resolved
+            await prisma.ticket.update({
+              where: { id: activeTicket.id },
+              data: { status: "RESOLVED", resolvedAt: new Date() }
+            });
+
+            return `✅ Ticket Resolved! Added ${addedAmount} items to inventory. Thank you ${teamMember.name}!`;
+          }
+        }
+
         let attachmentsJson = "[]";
         if (mediaUrl) {
            const currentAttachments = Array.isArray(activeTicket.attachments) 
