@@ -28,7 +28,7 @@ const navigation = [
   { name: 'Operations', href: '/operations', icon: Wrench },
   { name: 'Inventory', href: '/inventory', icon: Package },
   { name: 'Team', href: '/team', icon: ShieldCheck },
-  { name: 'WhatsApp', href: '#', icon: MessageSquare },
+  { name: 'WhatsApp', href: '/whatsapp', icon: MessageSquare },
   { name: 'SEO Tools', href: '/seo', icon: Globe },
 ]
 
@@ -82,11 +82,6 @@ export function Sidebar() {
               >
                 {item.name}
               </motion.span>
-              {item.name === 'WhatsApp' && (
-                <span className="ml-auto rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">
-                  Soon
-                </span>
-              )}
             </Link>
           )
         })}
