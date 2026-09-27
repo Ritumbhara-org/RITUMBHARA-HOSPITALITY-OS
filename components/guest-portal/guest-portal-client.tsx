@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { format } from "date-fns";
+import { motion, AnimatePresence } from "framer-motion";
 import { 
   MapPin, 
   MessageSquare, 
@@ -142,22 +143,67 @@ export function GuestPortalClient({ reservation, whatsappNumber }: { reservation
     }
   };
 
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       {/* Premium Header */}
-      <div className="bg-gradient-to-br from-[#4a0518] via-[#5c0a20] to-[#3a0312] text-white px-6 pt-10 pb-8 rounded-b-[2.5rem] shadow-lg relative overflow-hidden border-b border-white/[0.08]">
+      <motion.div 
+        initial={{ y: -50, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ type: "spring", stiffness: 200, damping: 20 }}
+        className="bg-gradient-to-br from-[#4a0518] via-[#5c0a20] to-[#3a0312] text-white px-6 pt-10 pb-8 rounded-b-[2.5rem] shadow-lg relative overflow-hidden border-b border-white/[0.08]"
+      >
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-rose-500/10 via-transparent to-transparent" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-red-500/5 via-transparent to-transparent" />
         <div className="relative z-10">
           {/* Branding */}
-          <div className="flex items-center justify-center mb-10">
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="flex items-center justify-center mb-10"
+          >
             <img src="/logo.svg" alt="Ritumbhara Hotels" className="h-12 w-auto object-contain drop-shadow-lg" />
-          </div>
+          </motion.div>
 
-          <p className="text-gray-300 text-sm font-medium tracking-wide uppercase mb-1">Your Stay</p>
-          <h1 className="text-3xl font-bold mb-6">Welcome, {reservation.guest.name.split(' ')[0]}!</h1>
+          <motion.p 
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.3 }}
+            className="text-gray-300 text-sm font-medium tracking-wide uppercase mb-1"
+          >
+            Your Stay
+          </motion.p>
+          <motion.h1 
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.4 }}
+            className="text-3xl font-bold mb-6"
+          >
+            Welcome, {reservation.guest.name.split(' ')[0]}!
+          </motion.h1>
           
-          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-5 border border-white/20">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="bg-white/10 backdrop-blur-md rounded-2xl p-5 border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.12)]"
+          >
             <h2 className="font-semibold text-lg flex items-center gap-2">
               <MapPin className="w-5 h-5 text-rose-400" />
               {reservation.unit.name}
@@ -177,94 +223,119 @@ export function GuestPortalClient({ reservation, whatsappNumber }: { reservation
                 <p className="text-sm text-gray-300">Before 11:00 AM</p>
               </div>
             </div>
-          </div>
+          </motion.div>
         </div>
-      </div>
+      </motion.div>
 
-      <div className="px-6 mt-8 max-w-md mx-auto space-y-6">
+      <motion.div 
+        variants={containerVariants}
+        initial="hidden"
+        animate="show"
+        className="px-6 mt-8 max-w-md mx-auto space-y-6"
+      >
         
         {/* At a glance section */}
-        <div className="grid grid-cols-2 gap-4">
-          <a 
+        <motion.div variants={itemVariants} className="grid grid-cols-2 gap-4">
+          <motion.a 
+            whileHover={{ scale: 1.05, y: -5 }}
+            whileTap={{ scale: 0.95 }}
             href={reservation.unit.property?.googleMapsUrl || "#"} 
             target="_blank" 
             rel="noreferrer"
-            className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center gap-2 hover:shadow-md transition-shadow"
+            className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center gap-2 hover:shadow-lg transition-all"
           >
             <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center">
               <MapPin className="w-5 h-5" />
             </div>
             <span className="text-sm font-semibold text-gray-900">Directions</span>
-          </a>
-          <button 
+          </motion.a>
+          <motion.button 
+            whileHover={{ scale: 1.05, y: -5 }}
+            whileTap={{ scale: 0.95 }}
             onClick={() => alert(`Network: ${reservation.unit.property?.wifiNetwork || 'N/A'}\nPassword: ${reservation.unit.property?.wifiPassword || 'N/A'}`)}
-            className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center gap-2 hover:shadow-md transition-shadow"
+            className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center gap-2 hover:shadow-lg transition-all"
           >
             <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center">
               <Wifi className="w-5 h-5" />
             </div>
             <span className="text-sm font-semibold text-gray-900">Wi-Fi Details</span>
-          </button>
-        </div>
+          </motion.button>
+        </motion.div>
 
         {/* Services Section */}
-        <div>
+        <motion.div variants={itemVariants}>
           <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-3">At your service</h3>
           <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
             <button 
               onClick={() => setIsHousekeepingOpen(true)}
-              className="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-b border-gray-50 text-left"
+              className="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-b border-gray-50 text-left group"
             >
-              <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
+              <motion.div 
+                whileHover={{ rotate: 15 }}
+                className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0"
+              >
                 <Sparkles className="w-5 h-5" />
-              </div>
+              </motion.div>
               <div className="flex-1">
                 <h4 className="font-semibold text-gray-900">Request Housekeeping</h4>
                 <p className="text-xs text-gray-500">Fresh towels, cleaning, or restocking</p>
               </div>
-              <ChevronRight className="w-5 h-5 text-gray-300" />
+              <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-rose-500 transition-colors" />
             </button>
 
             <button 
               onClick={() => setIsIssueOpen(true)}
-              className="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-b border-gray-50 text-left"
+              className="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors border-b border-gray-50 text-left group"
             >
-              <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+              <motion.div 
+                whileHover={{ rotate: -15 }}
+                className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0"
+              >
                 <Wrench className="w-5 h-5" />
-              </div>
+              </motion.div>
               <div className="flex-1">
                 <h4 className="font-semibold text-gray-900">Report an Issue</h4>
                 <p className="text-xs text-gray-500">AC, plumbing, or maintenance</p>
               </div>
-              <ChevronRight className="w-5 h-5 text-gray-300" />
+              <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-rose-500 transition-colors" />
             </button>
 
             <a 
               href={`https://wa.me/${whatsappNumber}?text=Hi, I am staying at ${reservation.unit.name} (Booking ${reservation.id}). I have a question.`}
               target="_blank"
               rel="noreferrer"
-              className="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors text-left"
+              className="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors text-left group"
             >
-              <div className="w-10 h-10 rounded-xl bg-green-50 text-green-600 flex items-center justify-center shrink-0">
+              <motion.div 
+                whileHover={{ scale: 1.1 }}
+                className="w-10 h-10 rounded-xl bg-green-50 text-green-600 flex items-center justify-center shrink-0"
+              >
                 <MessageSquare className="w-5 h-5" />
-              </div>
+              </motion.div>
               <div className="flex-1">
                 <h4 className="font-semibold text-gray-900">Ask a Question</h4>
                 <p className="text-xs text-gray-500">Chat with our 24/7 support team</p>
               </div>
-              <ChevronRight className="w-5 h-5 text-gray-300" />
+              <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-rose-500 transition-colors" />
             </a>
           </div>
-        </div>
+        </motion.div>
 
         {/* Membership Section */}
-        <div>
+        <motion.div variants={itemVariants}>
           <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-3">Ritumbhara Rewards</h3>
           {membership ? (
-            <div className="bg-gradient-to-br from-[#5c0a20] to-[#3a0312] rounded-3xl p-6 text-white shadow-lg relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-4 opacity-10">
+            <motion.div 
+              whileHover={{ scale: 1.02 }}
+              className="bg-gradient-to-br from-[#5c0a20] to-[#3a0312] rounded-3xl p-6 text-white shadow-lg relative overflow-hidden group cursor-default"
+            >
+              <motion.div 
+                animate={{ rotate: [0, 5, -5, 0] }}
+                transition={{ repeat: Infinity, duration: 5, ease: "easeInOut" }}
+                className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity"
+              >
                 <Crown className="w-24 h-24" />
-              </div>
+              </motion.div>
               <div className="relative z-10">
                 <div className="flex items-center gap-2 mb-4">
                   <Crown className="w-5 h-5 text-yellow-400" />
@@ -278,7 +349,9 @@ export function GuestPortalClient({ reservation, whatsappNumber }: { reservation
                     <p className="text-xs text-gray-400 uppercase">Referral Code</p>
                     <p className="font-mono font-bold tracking-wider">{membership.referralCode}</p>
                   </div>
-                  <button 
+                  <motion.button 
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
                     onClick={() => {
                       navigator.clipboard.writeText(membership.referralCode);
                       toast.success("Referral code copied!");
@@ -286,12 +359,15 @@ export function GuestPortalClient({ reservation, whatsappNumber }: { reservation
                     className="p-2 hover:bg-white/20 rounded-lg transition-colors"
                   >
                     <Copy className="w-4 h-4" />
-                  </button>
+                  </motion.button>
                 </div>
               </div>
-            </div>
+            </motion.div>
           ) : (
-            <div className="bg-gradient-to-br from-rose-50 to-orange-50 rounded-3xl p-6 border border-rose-100 shadow-sm relative overflow-hidden">
+            <motion.div 
+              whileHover={{ scale: 1.02 }}
+              className="bg-gradient-to-br from-rose-50 to-orange-50 rounded-3xl p-6 border border-rose-100 shadow-sm relative overflow-hidden"
+            >
               <div className="relative z-10 flex gap-4">
                 <div className="w-12 h-12 rounded-full bg-gradient-to-br from-rose-500 to-orange-500 text-white flex items-center justify-center shrink-0 shadow-md">
                   <Gift className="w-6 h-6" />
@@ -299,21 +375,23 @@ export function GuestPortalClient({ reservation, whatsappNumber }: { reservation
                 <div>
                   <h4 className="font-bold text-gray-900 mb-1">Join Ritumbhara Rewards</h4>
                   <p className="text-sm text-gray-600 mb-4">Earn points for this stay and unlock exclusive perks, late checkouts, and future discounts.</p>
-                  <button 
+                  <motion.button 
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
                     onClick={handleJoinMembership}
                     disabled={isJoining}
-                    className="bg-rose-600 text-white font-semibold py-2 px-6 rounded-xl hover:bg-rose-700 transition-colors disabled:opacity-70"
+                    className="bg-rose-600 text-white font-semibold py-2 px-6 rounded-xl hover:bg-rose-700 transition-colors disabled:opacity-70 shadow-lg shadow-rose-200"
                   >
                     {isJoining ? "Joining..." : "Join for Free"}
-                  </button>
+                  </motion.button>
                 </div>
               </div>
-            </div>
+            </motion.div>
           )}
-        </div>
+        </motion.div>
 
         {/* Status Indicator */}
-        <div className="bg-gradient-to-br from-[#4a0518] to-[#3a0312] rounded-2xl p-5 text-white flex items-center gap-4 shadow-md">
+        <motion.div variants={itemVariants} className="bg-gradient-to-br from-[#4a0518] to-[#3a0312] rounded-2xl p-5 text-white flex items-center gap-4 shadow-md">
           <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center shrink-0">
             <Info className="w-6 h-6 text-white" />
           </div>
@@ -321,8 +399,8 @@ export function GuestPortalClient({ reservation, whatsappNumber }: { reservation
             <h4 className="font-semibold">Need Late Checkout?</h4>
             <p className="text-sm text-gray-300 mt-1">Contact us on WhatsApp to check availability.</p>
           </div>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
 
       {/* Housekeeping Modal */}
       {isHousekeepingOpen && (
@@ -388,12 +466,21 @@ export function GuestPortalClient({ reservation, whatsappNumber }: { reservation
       )}
 
       {/* AI Chat Bubble */}
-      <button 
-        onClick={() => setIsChatOpen(true)}
-        className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-tr from-rose-600 to-[#5c0a20] rounded-full shadow-xl flex items-center justify-center text-white hover:scale-105 transition-transform z-40"
-      >
-        <Bot className="w-7 h-7" />
-      </button>
+      <AnimatePresence>
+        {!isChatOpen && (
+          <motion.button 
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0, opacity: 0 }}
+            whileHover={{ scale: 1.1, rotate: 5 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={() => setIsChatOpen(true)}
+            className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-tr from-rose-600 to-[#5c0a20] rounded-full shadow-[0_8px_30px_rgba(225,29,72,0.4)] flex items-center justify-center text-white z-40"
+          >
+            <Bot className="w-7 h-7" />
+          </motion.button>
+        )}
+      </AnimatePresence>
 
       {/* AI Chat Modal */}
       {isChatOpen && (
