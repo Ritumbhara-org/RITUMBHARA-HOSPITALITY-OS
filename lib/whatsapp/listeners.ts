@@ -16,25 +16,26 @@ export function initWhatsAppListeners() {
 
       const messageContent = `Hi ${guest.name},
 
-Thanks for booking ${unit?.unit.name}! We are thrilled to host you and aim to deliver a seamless 5-star experience.
+Thanks for booking ${unit?.unit.name || 'our property'}! We are thrilled to host you and aim to deliver a seamless 5-star experience.
 
 Quick Details:
 
-Check-in: After 1PM ${payload.checkIn.toLocaleDateString()}
-Check-out: Before 11AM ${payload.checkOut.toLocaleDateString()}
-Directions the Studio : https://maps.app.goo.gl
+Check-in: After 1PM  ${payload.checkIn.toLocaleDateString()}
+Check-out: Before 11AM ${payload.checkOut.toLocaleDateString()} 
+
+Directions the Studio : ${unit?.unit.property?.googleMapsUrl || 'https://maps.app.goo.gl'} 
+
 Address: ${unit?.unit.property?.address || 'Ritumbhara Property'}
 
-Action Required:
-To ensure an uninterrupted check-in, please fill out our Guest Form here: https://forms.gle/NnCHqpCz1aj6c9T26
+Action Required: To ensure an uninterrupted check-in, please fill out our Guest Form here: https://forms.gle/NnCHqpCz1aj6c9T26
 
-Planning Your Trip:
-Feel free to browse our curated Guidebook https://ritumbhara.com/guide for our favorite local spots and hidden gems.
+Manage Your Stay:
+Access your directions, Wi-Fi password, AI support, and housekeeping requests at your personalized Guest Portal:
+${process.env.NEXT_PUBLIC_APP_URL || 'https://ritumbhara-hospitality-os-q6er.vercel.app'}/stay/${payload.reservationId}
 
 If you have any questions or need recommendations, just send us a message. We're here to help!
 
-Best,
-Ritumbhara Hospitality`;
+Best, Ritumbhara Hospitality`;
 
       await sendWhatsAppMessage(
         guest.phone,
@@ -50,7 +51,7 @@ Ritumbhara Hospitality`;
           '4': payload.checkOut.toLocaleDateString(),
           '5': unit?.unit.property?.googleMapsUrl || 'https://maps.app.goo.gl',
           '6': unit?.unit.property?.address || 'Ritumbhara Property',
-          '7': 'https://ritumbhara.com/guide'
+          '7': `${process.env.NEXT_PUBLIC_APP_URL || 'https://ritumbhara-hospitality-os-q6er.vercel.app'}/stay/${payload.reservationId}`
         }
       );
     } catch (error) {
@@ -117,6 +118,9 @@ Password: Ritumbhara@123
 
 Action Required: Please share photos of IDs for all guests in this chat. This is required by local regulations to complete your registration.
 
+Manage Your Stay:
+Access your personalized Guest Portal here: ${process.env.NEXT_PUBLIC_APP_URL || 'https://ritumbhara-hospitality-os-q6er.vercel.app'}/stay/${payload.reservationId}
+
 Good to know:
 Housekeeping: Complimentary, available in designated time slot on request.
 
@@ -145,7 +149,8 @@ Best, Ritumbhara Hospitality`;
           '4': unit?.unit?.property?.wifiNetwork || 'Ritumbhara_Guest',
           '5': unit?.unit?.property?.wifiPassword || 'Ritumbhara@123',
           '6': unit?.unit?.property?.address || 'Ritumbhara Property',
-          '7': unit?.unit?.property?.googleMapsUrl || 'https://maps.app.goo.gl'
+          '7': unit?.unit?.property?.googleMapsUrl || 'https://maps.app.goo.gl',
+          '8': `${process.env.NEXT_PUBLIC_APP_URL || 'https://ritumbhara-hospitality-os-q6er.vercel.app'}/stay/${payload.reservationId}`
         }
       );
     } catch (error) {
