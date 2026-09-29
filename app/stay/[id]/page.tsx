@@ -16,7 +16,13 @@ export default async function StayPage({ params }: { params: Promise<{ id: strin
       },
       guest: {
         include: {
-          membership: true
+          membership: {
+            include: {
+              transactions: {
+                orderBy: { createdAt: 'desc' }
+              }
+            }
+          }
         }
       }
     }

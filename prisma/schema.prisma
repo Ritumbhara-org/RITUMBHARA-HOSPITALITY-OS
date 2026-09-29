@@ -306,12 +306,26 @@ model Membership {
   tier         String    @default("SILVER")
   points       Int       @default(0)
   referralCode String    @unique @default(cuid())
+  referredBy   String?
   joinedAt     DateTime  @default(now())
   expiresAt    DateTime?
   createdAt    DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
   guest Guest @relation(fields: [guestId], references: [id])
+  transactions PointTransaction[]
+}
+
+model PointTransaction {
+  id           String     @id @default(cuid())
+  membershipId String
+  amount       Int        // Positive for earn, negative for redeem
+  type         String     // "JOIN_BONUS", "REFERRAL_BONUS", "REDEMPTION"
+  description  String
+  createdAt    DateTime   @default(now())
+
+  membership   Membership @relation(fields: [membershipId], references: [id])
+  @@index([membershipId])
 }
 
 enum SyncStatus {

@@ -326,65 +326,160 @@ export function GuestPortalClient({ reservation, whatsappNumber }: { reservation
           <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-3">Ritumbhara Rewards</h3>
           {membership ? (
             <motion.div 
-              whileHover={{ scale: 1.02 }}
-              className="bg-gradient-to-br from-[#5c0a20] to-[#3a0312] rounded-3xl p-6 text-white shadow-lg relative overflow-hidden group cursor-default"
+              className="bg-gradient-to-br from-[#5c0a20] to-[#3a0312] rounded-3xl p-6 text-white shadow-lg relative overflow-hidden flex flex-col gap-6"
             >
-              <motion.div 
-                animate={{ rotate: [0, 5, -5, 0] }}
-                transition={{ repeat: Infinity, duration: 5, ease: "easeInOut" }}
-                className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity"
-              >
+              <div className="absolute top-0 right-0 p-4 opacity-10">
                 <Crown className="w-24 h-24" />
-              </motion.div>
+              </div>
               <div className="relative z-10">
-                <div className="flex items-center gap-2 mb-4">
+                <div className="flex items-center gap-2 mb-2">
                   <Crown className="w-5 h-5 text-yellow-400" />
                   <span className="font-bold tracking-widest uppercase text-yellow-400 text-sm">{membership.tier} MEMBER</span>
                 </div>
-                <p className="text-3xl font-bold mb-1">{membership.points} <span className="text-lg font-medium text-gray-400">pts</span></p>
-                <p className="text-sm text-gray-300 mb-6">Earn more points on your next booking.</p>
-                
-                <div className="bg-white/10 rounded-xl p-3 flex items-center justify-between backdrop-blur-sm border border-white/10">
-                  <div>
-                    <p className="text-xs text-gray-400 uppercase">Referral Code</p>
-                    <p className="font-mono font-bold tracking-wider">{membership.referralCode}</p>
-                  </div>
-                  <motion.button 
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    onClick={() => {
-                      navigator.clipboard.writeText(membership.referralCode);
-                      toast.success("Referral code copied!");
-                    }}
-                    className="p-2 hover:bg-white/20 rounded-lg transition-colors"
-                  >
-                    <Copy className="w-4 h-4" />
-                  </motion.button>
+                <div className="flex items-end gap-3 mb-1">
+                  <p className="text-4xl font-bold">{membership.points} <span className="text-lg font-medium text-gray-400">pts</span></p>
+                  <p className="text-sm font-medium text-emerald-400 mb-2">≈ ₹{Math.floor(membership.points / 2)} Value</p>
                 </div>
+                <p className="text-sm text-gray-300 mb-6">Redeem points for discounts on walk-in bookings.</p>
+                
+                {/* Referral Code Box */}
+                <div className="bg-white/10 rounded-xl p-4 flex flex-col gap-2 backdrop-blur-sm border border-white/10 mb-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-gray-400 uppercase">Your Referral Code</p>
+                      <p className="font-mono font-bold tracking-wider text-lg">{membership.referralCode}</p>
+                    </div>
+                    <button 
+                      onClick={() => {
+                        navigator.clipboard.writeText(membership.referralCode);
+                        toast.success("Referral code copied!");
+                      }}
+                      className="p-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors"
+                    >
+                      <Copy className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-300">Share this code! They get 110 pts, you get 20 pts.</p>
+                </div>
+
+                {/* Redeem Section */}
+                {reservation.source !== "OTA" ? (
+                  <div className="bg-white/5 rounded-xl p-4 border border-white/10 mb-6">
+                    <h4 className="font-semibold text-sm mb-2">Redeem Points (Max 10% of booking)</h4>
+                    <form 
+                      onSubmit={async (e) => {
+                        e.preventDefault();
+                        const form = new FormData(e.currentTarget);
+                        const pts = parseInt(form.get("points") as string);
+                        if (!pts || pts <= 0) return;
+                        
+                        setIsJoining(true);
+                        const { redeemPoints } = await import("@/app/actions/membership");
+                        const res = await redeemPoints(reservation.id, pts);
+                        setIsJoining(false);
+                        
+                        if (res.success) {
+                          toast.success(`Redeemed! ₹${res.discount} has been deducted from your bill.`);
+                          router.refresh();
+                        } else {
+                          toast.error(res.error);
+                        }
+                      }}
+                      className="flex gap-2"
+                    >
+                      <input 
+                        type="number" 
+                        name="points" 
+                        placeholder="Points" 
+                        max={membership.points}
+                        className="bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-sm w-24 outline-none focus:border-rose-400"
+                        required
+                      />
+                      <button 
+                        type="submit"
+                        disabled={isJoining || membership.points <= 0}
+                        className="flex-1 bg-rose-600 hover:bg-rose-700 text-white font-semibold py-2 rounded-lg text-sm disabled:opacity-50 transition-colors"
+                      >
+                        {isJoining ? "Processing..." : "Redeem Now"}
+                      </button>
+                    </form>
+                  </div>
+                ) : (
+                  <div className="bg-white/5 rounded-xl p-3 border border-white/10 mb-6 text-sm text-gray-300 text-center">
+                    Points redemption is only available for Direct Walk-in bookings.
+                  </div>
+                )}
+
+                {/* Transaction History */}
+                <div>
+                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Recent Transactions</h4>
+                  <div className="space-y-3">
+                    {membership.transactions?.slice(0, 5).map((tx: any) => (
+                      <div key={tx.id} className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">{tx.description}</p>
+                          <p className="text-xs text-gray-400">{format(new Date(tx.createdAt), "MMM d, yyyy • h:mm a")}</p>
+                        </div>
+                        <div className={`text-sm font-bold shrink-0 ${tx.amount > 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                          {tx.amount > 0 ? "+" : ""}{tx.amount} pts
+                        </div>
+                      </div>
+                    ))}
+                    {(!membership.transactions || membership.transactions.length === 0) && (
+                      <p className="text-xs text-gray-400">No transactions yet.</p>
+                    )}
+                  </div>
+                </div>
+
               </div>
             </motion.div>
           ) : (
             <motion.div 
-              whileHover={{ scale: 1.02 }}
               className="bg-gradient-to-br from-rose-50 to-orange-50 rounded-3xl p-6 border border-rose-100 shadow-sm relative overflow-hidden"
             >
-              <div className="relative z-10 flex gap-4">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-rose-500 to-orange-500 text-white flex items-center justify-center shrink-0 shadow-md">
-                  <Gift className="w-6 h-6" />
+              <div className="relative z-10 flex flex-col gap-4">
+                <div className="flex gap-4">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-rose-500 to-orange-500 text-white flex items-center justify-center shrink-0 shadow-md">
+                    <Gift className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-gray-900 mb-1">Join Ritumbhara Rewards</h4>
+                    <p className="text-sm text-gray-600">Get 100 bonus points instantly, earn on referrals, and redeem for discounts!</p>
+                  </div>
                 </div>
-                <div>
-                  <h4 className="font-bold text-gray-900 mb-1">Join Ritumbhara Rewards</h4>
-                  <p className="text-sm text-gray-600 mb-4">Earn points for this stay and unlock exclusive perks, late checkouts, and future discounts.</p>
-                  <motion.button 
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={handleJoinMembership}
+
+                <form 
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    setIsJoining(true);
+                    const form = new FormData(e.currentTarget);
+                    const refCode = form.get("referralCode") as string;
+                    const { joinMembership } = await import("@/app/actions/membership");
+                    const res = await joinMembership(reservation.guest.id, refCode);
+                    setIsJoining(false);
+                    if (res.success) {
+                      toast.success("Welcome to Ritumbhara Rewards! 🎉");
+                      router.refresh();
+                    } else {
+                      toast.error(res.error || "Failed to join.");
+                    }
+                  }}
+                  className="flex flex-col gap-3 mt-2"
+                >
+                  <input 
+                    type="text" 
+                    name="referralCode" 
+                    placeholder="Referral Code (Optional)" 
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-rose-500/20 text-sm"
+                  />
+                  <button 
+                    type="submit"
                     disabled={isJoining}
-                    className="bg-rose-600 text-white font-semibold py-2 px-6 rounded-xl hover:bg-rose-700 transition-colors disabled:opacity-70 shadow-lg shadow-rose-200"
+                    className="w-full bg-rose-600 text-white font-semibold py-2.5 rounded-xl hover:bg-rose-700 transition-colors disabled:opacity-70 shadow-lg shadow-rose-200 text-sm"
                   >
                     {isJoining ? "Joining..." : "Join for Free"}
-                  </motion.button>
-                </div>
+                  </button>
+                </form>
               </div>
             </motion.div>
           )}
