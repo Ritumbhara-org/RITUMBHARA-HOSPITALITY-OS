@@ -4,76 +4,88 @@ const prisma = new PrismaClient();
 
 const locations = [
   {
-    name: 'Jaipur',
-    slug: 'jaipur',
-    address: 'Jaipur, Rajasthan',
+    name: 'Wonder Megacity Alwar',
+    slug: 'wonder-megacity-alwar',
+    address: 'Wonder Megacity',
+    city: 'Alwar',
+    state: 'Rajasthan',
+    country: 'India',
+    phone: '+918306312778',
+    email: 'info@ritumbhara.com',
+    timezone: 'Asia/Kolkata',
+    rooms: [
+      { name: 'Studio 502', type: 'Studio', floor: '5', capacity: 2 },
+      { name: 'Studio 603', type: 'Studio', floor: '6', capacity: 2 },
+      { name: 'Studio 808', type: 'Studio', floor: '8', capacity: 2 },
+      { name: 'Studio 807', type: 'Studio', floor: '8', capacity: 2 },
+      { name: 'Penthouse 813', type: 'Penthouse', floor: '8', capacity: 4 }
+    ]
+  },
+  {
+    name: 'Ashadeep Jagatpura',
+    slug: 'ashadeep-jagatpura',
+    address: 'Ashadeep Green Avenue',
     city: 'Jaipur',
-    state: 'RJ',
+    state: 'Rajasthan',
     country: 'India',
-    phone: '+91-9503002629',
-    email: 'jaipur@ritumbhara.com',
+    phone: '+918306312778',
+    email: 'info@ritumbhara.com',
     timezone: 'Asia/Kolkata',
-    units: [
-      { name: 'Studio 925', type: 'Studio', capacity: 2, floor: '9' },
-      { name: 'Studio 711', type: 'Studio', capacity: 2, floor: '7' },
-      { name: 'Studio 909', type: 'Studio', capacity: 2, floor: '9' },
-      { name: 'Studio 1210', type: 'Studio', capacity: 2, floor: '12' },
-      { name: 'Studio 1212', type: 'Studio', capacity: 2, floor: '12' },
+    rooms: [
+      { name: 'Studio 1211', type: 'Studio', floor: '12', capacity: 2 },
+      { name: 'Studio 1212', type: 'Studio', floor: '12', capacity: 2 },
+      { name: 'Studio 711', type: 'Studio', floor: '7', capacity: 2 },
+      { name: 'Studio 615', type: 'Studio', floor: '6', capacity: 2 },
+      { name: 'Studio 212', type: 'Studio', floor: '2', capacity: 2 },
+      { name: 'Studio 1210', type: 'Studio', floor: '12', capacity: 2 },
+      { name: 'Studio 909', type: 'Studio', floor: '9', capacity: 2 },
+      { name: 'Studio 616', type: 'Studio', floor: '6', capacity: 2 },
+      { name: 'Studio 1213', type: 'Studio', floor: '12', capacity: 2 }
     ]
   },
   {
-    name: 'Agra',
-    slug: 'agra',
-    address: 'Agra, Uttar Pradesh',
-    city: 'Agra',
-    state: 'UP',
+    name: 'Urban Jagatpura',
+    slug: 'urban-jagatpura',
+    address: 'Urban Suites',
+    city: 'Jaipur',
+    state: 'Rajasthan',
     country: 'India',
-    phone: '+91-9503002629',
-    email: 'agra@ritumbhara.com',
+    phone: '+918306312778',
+    email: 'info@ritumbhara.com',
     timezone: 'Asia/Kolkata',
-    units: [] // Coming Soon
-  },
-  {
-    name: 'Sariska',
-    slug: 'sariska',
-    address: 'Sariska, Rajasthan',
-    city: 'Alwar',
-    state: 'RJ',
-    country: 'India',
-    phone: '+91-9503002629',
-    email: 'sariska@ritumbhara.com',
-    timezone: 'Asia/Kolkata',
-    units: [
-      { name: 'Villa 65 Sariska', type: 'Villa', capacity: 6, floor: 'Ground' },
+    rooms: [
+      { name: 'Studio 925', type: 'Studio', floor: '9', capacity: 2 }
     ]
   },
   {
-    name: 'Alwar',
-    slug: 'alwar',
-    address: 'Alwar, Rajasthan',
-    city: 'Alwar',
-    state: 'RJ',
+    name: 'MS Valley Sariska',
+    slug: 'ms-valley-sariska',
+    address: 'MS Valley',
+    city: 'Sariska',
+    state: 'Rajasthan',
     country: 'India',
-    phone: '+91-9503002629',
-    email: 'alwar@ritumbhara.com',
+    phone: '+918306312778',
+    email: 'info@ritumbhara.com',
     timezone: 'Asia/Kolkata',
-    units: [
-      { name: 'Apartment 813', type: 'Serviced Apartment', capacity: 4, floor: '8' },
-      { name: 'Studio 502 Alwar', type: 'Studio', capacity: 2, floor: '5' },
-      { name: 'Studio 807 Alwar', type: 'Studio', capacity: 2, floor: '8' },
-      { name: 'Studio 808 Alwar', type: 'Studio', capacity: 2, floor: '8' },
-      { name: 'Studio 603 Alwar', type: 'Studio', capacity: 2, floor: '6' },
+    rooms: [
+      { name: 'Villa 65', type: 'Villa', floor: 'G', capacity: 4 }
     ]
   }
 ];
 
 async function main() {
-  console.log('Starting seed...');
+  console.log('Seeding real locations and units...');
 
   for (const loc of locations) {
+    // Upsert the property
     const property = await prisma.property.upsert({
       where: { slug: loc.slug },
-      update: {},
+      update: {
+        name: loc.name,
+        address: loc.address,
+        city: loc.city,
+        state: loc.state
+      },
       create: {
         name: loc.name,
         slug: loc.slug,
@@ -83,40 +95,52 @@ async function main() {
         country: loc.country,
         phone: loc.phone,
         email: loc.email,
-        timezone: loc.timezone,
-      },
+        timezone: loc.timezone
+      }
     });
 
-    console.log(`Created/Ensured Property: ${property.name}`);
+    console.log(`✓ Property: ${property.name}`);
 
-    for (const unit of loc.units) {
-      // Avoid recreating duplicate units if script runs multiple times
-      const existing = await prisma.unit.findFirst({
-        where: { name: unit.name, propertyId: property.id }
+    // Upsert the units
+    for (const room of loc.rooms) {
+      // Find existing unit by propertyId + name to avoid duplicates
+      const existingUnit = await prisma.unit.findFirst({
+        where: {
+          propertyId: property.id,
+          name: room.name
+        }
       });
-      if (!existing) {
-        await prisma.unit.create({
-          data: {
-            propertyId: property.id,
-            name: unit.name,
-            type: unit.type,
-            floor: unit.floor,
-            capacity: unit.capacity,
-            status: 'AVAILABLE',
-          }
-        });
-        console.log(`  -> Created Unit: ${unit.name}`);
+
+      if (existingUnit) {
+         await prisma.unit.update({
+           where: { id: existingUnit.id },
+           data: {
+             type: room.type,
+             floor: room.floor,
+             capacity: room.capacity
+           }
+         });
+         console.log(`  ~ Updated Unit: ${room.name}`);
       } else {
-        console.log(`  -> Unit already exists: ${unit.name}`);
+         await prisma.unit.create({
+           data: {
+             propertyId: property.id,
+             name: room.name,
+             type: room.type,
+             floor: room.floor,
+             capacity: room.capacity
+           }
+         });
+         console.log(`  + Created Unit: ${room.name}`);
       }
     }
   }
 
-  console.log('Seeding complete.');
+  console.log('Location seeding complete!');
 }
 
 main()
-  .catch(e => {
+  .catch((e) => {
     console.error(e);
     process.exit(1);
   })
