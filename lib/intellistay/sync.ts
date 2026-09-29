@@ -184,6 +184,19 @@ export async function syncBookings() {
           }
 
         } else {
+          let inferredSource = "Walk-In";
+          const paymentDetails = booking.paymentDetails || [];
+          if (Array.isArray(paymentDetails)) {
+             const hasOta = paymentDetails.some((p: any) => p.paymentType && p.paymentType.toLowerCase().includes('ota'));
+             if (hasOta) {
+               inferredSource = "OTA";
+             }
+          }
+          if (booking.channelName && typeof booking.channelName === 'string' && booking.channelName.toLowerCase() !== 'walkin' && booking.channelName.toLowerCase() !== 'walk-in') {
+             // If channelName is something like 'MakeMyTrip' or 'Airbnb', it's an OTA
+             inferredSource = "OTA";
+          }
+
           const newRes = await prisma.reservation.create({
             data: {
               intellistayReservationId: intellistayBookingId,
@@ -193,7 +206,7 @@ export async function syncBookings() {
               checkIn: checkInDate,
               checkOut: checkOutDate,
               status,
-              source: "INTELLISTAY",
+              source: inferredSource,
               totalAmount,
               bookingNotes
             }
