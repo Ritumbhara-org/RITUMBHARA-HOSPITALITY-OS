@@ -159,6 +159,16 @@ export async function redeemPoints(reservationId: string, pointsToRedeem: number
       }
     });
 
+    // Notify Front Desk via WhatsApp
+    const { eventBus } = await import('@/lib/events/bus');
+    await eventBus.emit('POINTS_REDEEMED', {
+      guestId: reservation.guestId,
+      propertyId: reservation.propertyId,
+      reservationId: reservation.id,
+      pointsRedeemed: pointsToRedeem,
+      rupeeDiscount: rupeeDiscount
+    });
+
     revalidatePath(`/stay`);
     return { success: true, discount: rupeeDiscount };
   } catch (error: any) {

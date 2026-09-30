@@ -371,5 +371,42 @@ Ritumbhara Hospitality`;
     }
   });
 
+  // 8. Points Redemption Alert for Front Desk
+  eventBus.on<import('@/lib/events/bus').PointsRedemptionPayload>('POINTS_REDEEMED', async (payload) => {
+    try {
+      const frontDeskStaff = await prisma.teamMember.findMany({
+        where: { role: { in: ["ADMIN", "FRONT_DESK", "MANAGER"] }, propertyId: payload.propertyId, isActive: true }
+      });
+
+      const guest = await prisma.guest.findUnique({ where: { id: payload.guestId } });
+      const reservation = await prisma.reservation.findUnique({ where: { id: payload.reservationId }, include: { unit: true } });
+
+      if (!guest || !reservation) return;
+
+      const messageContent = `POINTS REDEMPTION ALERT\nGuest: ${guest.name}\nRoom: ${reservation.unit.name}\nPoints Redeemed: ${payload.pointsRedeemed}\nValue: ₹${payload.rupeeDiscount}\n\nAction Required: Deduct ₹${payload.rupeeDiscount} from their walk-in bill.`;
+
+      for (const staff of frontDeskStaff) {
+        if (!staff.whatsappNumber) continue;
+
+        await sendWhatsAppMessage(
+          staff.whatsappNumber,
+          'template',
+          messageContent,
+          'points_redemption_alert',
+          'Ticket', // Treating this broadly as an internal ticket alert
+          payload.reservationId,
+          {
+            '1': guest.name,
+            '2': reservation.unit.name,
+            '3': String(payload.pointsRedeemed),
+            '4': String(payload.rupeeDiscount)
+          }
+        );
+      }
+    } catch (error) {
+      console.error("[WhatsApp Listener Error - POINTS_REDEEMED]", error);
+    }
+  });
+
   console.log("[WhatsApp Listeners] Successfully initialized.");
 }

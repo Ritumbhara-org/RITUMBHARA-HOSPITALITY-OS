@@ -24,7 +24,16 @@ export type EventType =
   | 'TICKET_UPDATED'
   | 'TICKET_RESOLVED'
   | 'SLA_BREACHED'
-  | 'HOUSEKEEPING_TASK_COMPLETED';
+  | 'HOUSEKEEPING_TASK_COMPLETED'
+  | 'POINTS_REDEEMED';
+
+export interface PointsRedemptionPayload {
+  guestId: string;
+  propertyId: string;
+  reservationId: string;
+  pointsRedeemed: number;
+  rupeeDiscount: number;
+}
 
 export interface TicketEventPayload {
   ticketId: string;
