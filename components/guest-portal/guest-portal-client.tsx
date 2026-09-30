@@ -413,8 +413,8 @@ export function GuestPortalClient({ reservation, whatsappNumber }: { reservation
                 {/* Transaction History */}
                 <div>
                   <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Recent Transactions</h4>
-                  <div className="space-y-3">
-                    {membership.transactions?.slice(0, 5).map((tx: any) => (
+                  <div className="space-y-3 max-h-48 overflow-y-auto pr-2" style={{ scrollbarWidth: 'thin' }}>
+                    {membership.transactions?.map((tx: any) => (
                       <div key={tx.id} className="flex items-center justify-between">
                         <div className="flex-1">
                           <p className="text-sm font-medium">{tx.description}</p>
