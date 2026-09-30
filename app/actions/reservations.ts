@@ -118,6 +118,36 @@ export async function createReservation(formData: FormData) {
       checkOut: reservation.checkOut 
     });
 
+    const now = new Date();
+    const todayStr = now.toLocaleDateString();
+    const checkInStr = reservation.checkIn.toLocaleDateString();
+    
+    if (checkInStr === todayStr) {
+      await eventBus.emit('TODAY_CHECK_IN', {
+        reservationId: reservation.id,
+        guestId: reservation.guestId,
+        propertyId: reservation.propertyId,
+        intellistayBookingId: "direct",
+        status: reservation.status,
+        checkIn: reservation.checkIn,
+        checkOut: reservation.checkOut
+      });
+    } else {
+      const tomorrow = new Date(now);
+      tomorrow.setDate(now.getDate() + 1);
+      if (checkInStr === tomorrow.toLocaleDateString()) {
+        await eventBus.emit('UPCOMING_CHECK_IN', {
+          reservationId: reservation.id,
+          guestId: reservation.guestId,
+          propertyId: reservation.propertyId,
+          intellistayBookingId: "direct",
+          status: reservation.status,
+          checkIn: reservation.checkIn,
+          checkOut: reservation.checkOut
+        });
+      }
+    }
+
     revalidatePath("/reservations")
     revalidatePath("/dashboard")
     return { success: true }

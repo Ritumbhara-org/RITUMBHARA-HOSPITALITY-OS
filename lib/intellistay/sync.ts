@@ -214,6 +214,20 @@ export async function syncBookings() {
           newCount++;
 
           eventPromises.push(eventBus.emit('BOOKING_CREATED', { reservationId: newRes.id, guestId: guest.id, propertyId, intellistayBookingId, status: newRes.status, checkIn: checkInDate, checkOut: checkOutDate }));
+
+          const now = new Date();
+          const todayStr = now.toLocaleDateString();
+          const checkInStr = checkInDate.toLocaleDateString();
+          
+          if (checkInStr === todayStr) {
+            eventPromises.push(eventBus.emit('TODAY_CHECK_IN', { reservationId: newRes.id, guestId: guest.id, propertyId, intellistayBookingId, status: newRes.status, checkIn: checkInDate, checkOut: checkOutDate }));
+          } else {
+            const tomorrow = new Date(now);
+            tomorrow.setDate(now.getDate() + 1);
+            if (checkInStr === tomorrow.toLocaleDateString()) {
+              eventPromises.push(eventBus.emit('UPCOMING_CHECK_IN', { reservationId: newRes.id, guestId: guest.id, propertyId, intellistayBookingId, status: newRes.status, checkIn: checkInDate, checkOut: checkOutDate }));
+            }
+          }
         }
         
         successCount++;
