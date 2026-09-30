@@ -56,8 +56,10 @@ Best, Ritumbhara Hospitality`;
       );
     } catch (error) {
       console.error("[WhatsApp Listener Error - BOOKING_CREATED]", error);
-  // (Skipped GUEST_CHECKED_IN / check_in_welcome per CEO)
+    }
+  });
 
+  // (Skipped GUEST_CHECKED_IN / check_in_welcome per CEO)
   // 3. Post-stay / Review
   eventBus.on<BookingEventPayload>('GUEST_CHECKED_OUT', async (payload) => {
     try {
