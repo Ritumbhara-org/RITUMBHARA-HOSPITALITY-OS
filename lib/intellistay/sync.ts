@@ -81,23 +81,39 @@ export async function syncBookings() {
         const customerEmail = customer?.email || null;
         const customerName = customer?.customerName || "Unknown Guest";
         
-        // We use the phone number to idempotently identify guests if they don't have an ID
-        const intellistayGuestId = String(customer?.customerId || customerPhone);
+        // Use customerId if it exists and is not 0, otherwise use phone
+        const rawCustomerId = customer?.customerId;
+        const intellistayGuestId = (rawCustomerId && rawCustomerId !== 0) ? String(rawCustomerId) : customerPhone;
 
-        const guest = await prisma.guest.upsert({
-          where: { intellistayGuestId },
-          update: {
-            name: customerName,
-            email: customerEmail,
-            phone: customerPhone
-          },
-          create: {
-            intellistayGuestId,
-            name: customerName,
-            email: customerEmail,
-            phone: customerPhone
+        let guest = await prisma.guest.findFirst({
+          where: {
+            OR: [
+              { intellistayGuestId: intellistayGuestId },
+              { phone: customerPhone }
+            ]
           }
         });
+
+        if (guest) {
+          guest = await prisma.guest.update({
+            where: { id: guest.id },
+            data: {
+              name: customerName,
+              email: customerEmail,
+              phone: customerPhone,
+              intellistayGuestId: intellistayGuestId
+            }
+          });
+        } else {
+          guest = await prisma.guest.create({
+            data: {
+              intellistayGuestId,
+              name: customerName,
+              email: customerEmail,
+              phone: customerPhone
+            }
+          });
+        }
 
         // --- UNIT & PROPERTY MAPPING ---
         let unitId = null;
