@@ -44,10 +44,16 @@ export async function processAutoCheckinCheckout() {
 
         // Auto check-in if past 1 PM (13:00) on the checkIn date, or if the date has entirely passed
         if ((isTodayCheckIn && hour >= 13) || isPastCheckInDate) {
-          await prisma.reservation.update({
-            where: { id: res.id },
-            data: { status: 'CHECKED_IN' }
-          });
+          await prisma.$transaction([
+            prisma.reservation.update({
+              where: { id: res.id },
+              data: { status: 'CHECKED_IN' }
+            }),
+            prisma.unit.update({
+              where: { id: res.unitId },
+              data: { status: 'OCCUPIED' }
+            })
+          ]);
           
           eventBus.emit('GUEST_CHECKED_IN', {
              reservationId: res.id,
@@ -57,7 +63,7 @@ export async function processAutoCheckinCheckout() {
              status: 'CHECKED_IN'
           });
           checkedInCount++;
-          console.log(`[Auto Status] Checked IN reservation ${res.id}`);
+          console.log(`[Auto Status] Checked IN reservation ${res.id} and set unit to OCCUPIED`);
         }
       }
 
@@ -69,10 +75,16 @@ export async function processAutoCheckinCheckout() {
 
         // Auto check-out if past 11 AM (11:00) on the checkOut date, or if the date has entirely passed
         if ((isTodayCheckOut && hour >= 11) || isPastCheckOutDate) {
-          await prisma.reservation.update({
-            where: { id: res.id },
-            data: { status: 'CHECKED_OUT' }
-          });
+          await prisma.$transaction([
+            prisma.reservation.update({
+              where: { id: res.id },
+              data: { status: 'CHECKED_OUT' }
+            }),
+            prisma.unit.update({
+              where: { id: res.unitId },
+              data: { status: 'DIRTY' }
+            })
+          ]);
           
           eventBus.emit('GUEST_CHECKED_OUT', {
              reservationId: res.id,
@@ -82,7 +94,7 @@ export async function processAutoCheckinCheckout() {
              status: 'CHECKED_OUT'
           });
           checkedOutCount++;
-          console.log(`[Auto Status] Checked OUT reservation ${res.id}`);
+          console.log(`[Auto Status] Checked OUT reservation ${res.id} and set unit to DIRTY`);
         }
       }
     }
