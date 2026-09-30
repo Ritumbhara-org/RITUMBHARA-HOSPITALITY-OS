@@ -63,7 +63,7 @@ export async function processAutoCheckinCheckout() {
              status: 'CHECKED_IN'
           });
           checkedInCount++;
-          console.log(`[Auto Status] Checked IN reservation ${res.id} and set unit to OCCUPIED`);
+          console.log(`[Auto Status] Checked IN reservation ${res.id}`);
         }
       }
 
@@ -94,7 +94,7 @@ export async function processAutoCheckinCheckout() {
              status: 'CHECKED_OUT'
           });
           checkedOutCount++;
-          console.log(`[Auto Status] Checked OUT reservation ${res.id} and set unit to DIRTY`);
+          console.log(`[Auto Status] Checked OUT reservation ${res.id}`);
         }
       }
     }
