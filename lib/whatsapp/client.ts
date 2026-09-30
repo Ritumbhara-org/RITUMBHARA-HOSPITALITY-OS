@@ -40,7 +40,7 @@ export async function sendWhatsAppMessage(
          'pre_arrival_instructions': 'HXc53995bd6a9f7fd3323fa409d57a9e67',
          'checkout_instructions': 'HX6972f5c3804258c5ddb58dd11d299d21',
          'sla_breach_alert': 'HX65186e10f421d8084b22951e7bc23692',
-         'booking_confirmation': 'HX1cb670505a31a3ca1a65a6791e5542ec'
+         'booking_confirmation': 'HX1218dec0f31aefbd7a0e122486ffed40'
       };
 
       let createParams: any = {

@@ -53,6 +53,8 @@ export interface HousekeepingTaskPayload {
 
 class EventBus {
   private handlers: Map<EventType, EventHandler[]> = new Map();
+  private isInitialized = false;
+  private initPromise: Promise<void> | null = null;
 
   on<T>(event: EventType, handler: EventHandler<T>) {
     if (!this.handlers.has(event)) {
@@ -61,10 +63,28 @@ class EventBus {
     this.handlers.get(event)!.push(handler);
   }
 
+  private async ensureInitialized() {
+    if (typeof window !== 'undefined') return;
+    if (this.isInitialized) return;
+    
+    if (!this.initPromise) {
+      this.initPromise = Promise.all([
+        import('../whatsapp/listeners').then(m => m.initWhatsAppListeners()),
+        import('../housekeeping/listeners').then(m => m.initHousekeepingListeners())
+      ]).then(() => {
+        this.isInitialized = true;
+      }).catch(console.error);
+    }
+    await this.initPromise;
+  }
+
   async emit<T>(event: EventType, payload: T) {
     console.log(`[EventBus] Emitting ${event}`);
+    await this.ensureInitialized();
+    
     const eventHandlers = this.handlers.get(event);
     if (!eventHandlers || eventHandlers.length === 0) {
+      console.log(`[EventBus] No handlers registered for ${event}`);
       return;
     }
 
@@ -74,9 +94,3 @@ class EventBus {
 }
 
 export const eventBus = new EventBus();
-
-if (typeof window === 'undefined') {
-  // Server-side only: dynamically import to prevent circular dependencies
-  import('../whatsapp/listeners').then(m => m.initWhatsAppListeners()).catch(console.error);
-  import('../housekeeping/listeners').then(m => m.initHousekeepingListeners()).catch(console.error);
-}
