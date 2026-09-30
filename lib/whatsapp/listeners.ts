@@ -59,8 +59,38 @@ Best, Ritumbhara Hospitality`;
     }
   });
 
-  // (Skipped GUEST_CHECKED_IN / check_in_welcome per CEO)
-  
+  // 2. Guest Welcome (Check-In)
+  eventBus.on<BookingEventPayload>('GUEST_CHECKED_IN', async (payload) => {
+    try {
+      const guest = await prisma.guest.findUnique({ where: { id: payload.guestId } });
+      const unit = await prisma.reservation.findUnique({ 
+        where: { id: payload.reservationId },
+        include: { unit: { include: { property: true } } }
+      });
+      if (!guest?.phone || !unit) return;
+
+      const messageContent = `Welcome to ${unit.unit.property?.name || 'our property'}, ${guest.name}! 🏨\nYou have successfully checked in to ${unit.unit.name}.\n\n📶 Wi-Fi: ${unit.unit.property?.wifiNetwork || 'Ritumbhara_Guest'}\n🔑 Password: ${unit.unit.property?.wifiPassword || 'Ritumbhara@123'}\n\nIf you need any housekeeping or maintenance during your stay, simply reply to this message directly, or use your Guest Portal:\n${process.env.NEXT_PUBLIC_APP_URL || 'https://ritumbhara-hospitality-os-q6er.vercel.app'}/stay/${payload.reservationId}`;
+
+      await sendWhatsAppMessage(
+        guest.phone,
+        'template',
+        messageContent,
+        'guest_welcome',
+        'Reservation',
+        payload.reservationId,
+        {
+          '1': unit.unit.property?.name || 'our property',
+          '2': guest.name,
+          '3': unit.unit.name,
+          '4': unit.unit.property?.wifiNetwork || 'Ritumbhara_Guest',
+          '5': unit.unit.property?.wifiPassword || 'Ritumbhara@123',
+          '6': `${process.env.NEXT_PUBLIC_APP_URL || 'https://ritumbhara-hospitality-os-q6er.vercel.app'}/stay/${payload.reservationId}`
+        }
+      );
+    } catch (error) {
+      console.error("[WhatsApp Listener Error - GUEST_CHECKED_IN]", error);
+    }
+  });
   // 3. Post-stay / Review
   eventBus.on<BookingEventPayload>('GUEST_CHECKED_OUT', async (payload) => {
     try {
