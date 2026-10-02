@@ -4,31 +4,35 @@ import { OperationsClient } from "@/components/operations/operations-client"
 export const dynamic = 'force-dynamic'
 
 export default async function OperationsPage() {
-  const tickets = await prisma.ticket.findMany({
-    include: {
-      property: true,
-      unit: true,
-      guest: true,
-      assignedTo: true,
-      auditLogs: {
-        orderBy: { createdAt: 'desc' }
-      }
-    },
-    orderBy: {
-      createdAt: 'desc'
-    }
-  })
-
-  const housekeepingTasks = await prisma.housekeepingTask.findMany({
-    include: {
-      property: true,
-      unit: true,
-      assignedTo: true,
-    },
-    orderBy: {
-      createdAt: 'desc'
-    }
-  })
+  const [tickets, housekeepingTasks, properties, units, teamMembers] = await Promise.all([
+    prisma.ticket.findMany({
+      include: {
+        property: true,
+        unit: true,
+        guest: true,
+        assignedTo: true,
+        auditLogs: { orderBy: { createdAt: 'desc' } }
+      },
+      orderBy: { createdAt: 'desc' }
+    }),
+    prisma.housekeepingTask.findMany({
+      include: { property: true, unit: true, assignedTo: true },
+      orderBy: { createdAt: 'desc' }
+    }),
+    prisma.property.findMany({
+      orderBy: { name: 'asc' },
+      select: { id: true, name: true }
+    }),
+    prisma.unit.findMany({
+      orderBy: { name: 'asc' },
+      select: { id: true, name: true, propertyId: true }
+    }),
+    prisma.teamMember.findMany({
+      where: { isActive: true },
+      orderBy: { name: 'asc' },
+      select: { id: true, name: true, role: true, propertyId: true, department: true }
+    })
+  ])
 
   const formattedTasks = housekeepingTasks.map(task => {
     let mappedStatus = 'OPEN'
@@ -57,25 +61,6 @@ export default async function OperationsPage() {
   })
 
   const combinedData = [...tickets, ...formattedTasks].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-
-  // Fetch all properties so they can be selected in filters
-  const properties = await prisma.property.findMany({
-    orderBy: { name: 'asc' },
-    select: { id: true, name: true }
-  })
-
-  // Fetch all units so they can be selected when creating a ticket
-  const units = await prisma.unit.findMany({
-    orderBy: { name: 'asc' },
-    select: { id: true, name: true, propertyId: true }
-  })
-
-  // Fetch team members for assignment (need propertyId and department for round-robin/filtering)
-  const teamMembers = await prisma.teamMember.findMany({
-    where: { isActive: true },
-    orderBy: { name: 'asc' },
-    select: { id: true, name: true, role: true, propertyId: true, department: true }
-  })
 
   // Calculate stats
   const total = combinedData.length
