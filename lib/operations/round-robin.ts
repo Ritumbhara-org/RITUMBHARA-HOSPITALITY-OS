@@ -4,16 +4,10 @@ import { sendWhatsAppMessage } from "@/lib/whatsapp/client";
 
 // Utility to map TicketCategory (enum) to typical Department names (string)
 function mapCategoryToDepartment(category: string): string {
+  // As per CEO request: all departments go to housekeeping except front desk (for membership redeemed tickets/guest requests)
   switch (category) {
-    case "HOUSEKEEPING": return "Housekeeping";
-    case "MAINTENANCE": return "Maintenance";
     case "GUEST_REQUEST": return "Front Desk";
-    case "GUEST_COMPLAINT": return "Management";
-    case "INVENTORY": return "Inventory";
-    case "IT_SYSTEM": return "IT";
-    case "PROPERTY": return "Property";
-    case "SAFETY": return "Security";
-    default: return "General";
+    default: return "Housekeeping";
   }
 }
 
