@@ -29,6 +29,12 @@ function parseIstDate(dateString: string): Date {
   return new Date(`${dateString}+05:30`);
 }
 
+// Normalizes text by removing all spaces, punctuation, and converting to lowercase
+function normalizeText(text: string): string {
+  if (!text) return '';
+  return text.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+}
+
 export async function syncBookings() {
   console.log("Starting Intellistay Booking Sync...");
   
@@ -68,6 +74,11 @@ export async function syncBookings() {
     // Intellistay pagination response wraps bookings in data.bookings
     const bookings = data?.data?.bookings || [];
     console.log(`Fetched ${bookings.length} bookings from Intellistay.`);
+
+    // Fetch all units once to perform intelligent matching on names
+    const allLocalUnits = await prisma.unit.findMany({
+      select: { id: true, propertyId: true, name: true, type: true }
+    });
 
     // 2. Normalize and Upsert each booking
     for (const booking of bookings) {
@@ -120,19 +131,12 @@ export async function syncBookings() {
         let propertyId = null;
         
         if (booking.roomDetails && Array.isArray(booking.roomDetails) && booking.roomDetails.length > 0) {
-          const rawRoomNumber = String(booking.roomDetails[0].roomNo || booking.roomDetails[0].roomId || 'Unassigned');
+          const roomNumber = String(booking.roomDetails[0].roomNo || booking.roomDetails[0].roomId || 'Unassigned');
           
-          // Normalize spacing: remove leading/trailing spaces and collapse multiple spaces into one
-          const roomNumber = rawRoomNumber.trim().replace(/\s+/g, ' ');
-          
-          const localUnit = await prisma.unit.findFirst({
-            where: { 
-              name: {
-                equals: roomNumber,
-                mode: 'insensitive'
-              }
-            }
-          });
+          const normalizedIncoming = normalizeText(roomNumber);
+          const localUnit = allLocalUnits.find(u => 
+            normalizeText(u.name) === normalizedIncoming && u.type !== 'SYNCED_ROOM'
+          );
           
           if (localUnit) {
             unitId = localUnit.id;
