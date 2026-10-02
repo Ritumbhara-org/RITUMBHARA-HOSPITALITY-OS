@@ -22,7 +22,7 @@ export async function handleWhatsAppAction(senderPhone: string, messageText: str
 
     // 2. Look for active TICKETS or TASKS across all matching members (crucial for testing shared numbers)
     for (const member of matchingMembers) {
-      // Check tickets
+      // Check tickets specifically assigned to them
       const ticket = await prisma.ticket.findFirst({
         where: {
           assignedToId: member.id,
@@ -36,6 +36,27 @@ export async function handleWhatsAppAction(senderPhone: string, messageText: str
         activeTicket = ticket;
         actingTeamMember = member;
         break; // Found an active ticket, stop looking
+      }
+
+      // Check for UNASSIGNED points redemption (or general) tickets at their property
+      // if they are Front Desk or Admin
+      if (member.role === "ADMIN" || member.department === "FRONT_DESK") {
+        const unassignedTicket = await prisma.ticket.findFirst({
+          where: {
+            propertyId: member.propertyId,
+            assignedToId: null,
+            status: "OPEN",
+            subcategory: "POINTS_REDEMPTION"
+          },
+          orderBy: { createdAt: 'desc' },
+          include: { unit: true }
+        });
+
+        if (unassignedTicket) {
+          activeTicket = unassignedTicket;
+          actingTeamMember = member;
+          break;
+        }
       }
 
       // Check tasks
@@ -73,9 +94,7 @@ export async function handleWhatsAppAction(senderPhone: string, messageText: str
           data: { status: "IN_PROGRESS" }
         });
         return `✅ Ticket In Progress. Reply 'RESOLVE' when the issue is fixed.`;
-      }
-
-      if (messageText.includes("RESOLVE") || messageText.includes("COMPLETE") || mediaUrl) {
+           if (messageText.includes("RESOLVE") || messageText.includes("COMPLETE") || messageText.includes("DONE") || messageText.includes("NOTED") || mediaUrl) {
         
         // Custom logic for INVENTORY tickets
         if (activeTicket.category === "INVENTORY" && activeTicket.inventoryItemId) {
@@ -119,6 +138,7 @@ export async function handleWhatsAppAction(senderPhone: string, messageText: str
           data: { 
             status: "RESOLVED", 
             resolvedAt: new Date(),
+            assignedToId: teamMember.id, // Assign to whoever resolved it (if it was unassigned)
             attachments: attachmentsJson 
           }
         });
@@ -133,10 +153,10 @@ export async function handleWhatsAppAction(senderPhone: string, messageText: str
           status: resolvedTicket.status
         });
 
-        return `🌟 Great job, ${teamMember.name}! The ticket has been resolved${mediaUrl ? ' with photo evidence' : ''}.`;
+        return `🎉 Great job, ${teamMember.name}! The ticket has been resolved${mediaUrl ? ' with photo evidence' : ''}.`;
       }
 
-      const isActionCommand = ["ACCEPT", "START", "RESOLVE", "COMPLETE"].some(cmd => messageText.includes(cmd));
+      const isActionCommand = ["ACCEPT", "START", "RESOLVE", "COMPLETE", "DONE", "NOTED"].some(cmd => messageText.includes(cmd));
       if (isActionCommand) {
         return `You have an active ticket: ${activeTicket.description}\nReply ACCEPT, START, or RESOLVE.`;
       }
@@ -148,7 +168,7 @@ export async function handleWhatsAppAction(senderPhone: string, messageText: str
     if (!activeTask) {
       // If they explicitly typed a command, we can tell them they have no tasks.
       // Otherwise, return null so they can chat normally as a guest.
-      const isActionCommand = ["ACCEPT", "START", "RESOLVE", "COMPLETE"].some(cmd => messageText.includes(cmd));
+      const isActionCommand = ["ACCEPT", "START", "RESOLVE", "COMPLETE", "DONE", "NOTED"].some(cmd => messageText.includes(cmd));
       if (isActionCommand) {
         return `Hello ${teamMember.name}! You currently have no active tasks or tickets. Enjoy your break!`;
       }
@@ -172,7 +192,7 @@ export async function handleWhatsAppAction(senderPhone: string, messageText: str
       return `✅ Task Accepted! You are now assigned to clean Room ${activeTask.unit.name}. Send COMPLETE when finished.`;
     } 
     
-    if (messageText.includes("COMPLETE") || messageText.includes("RESOLVE") || mediaUrl) {
+    if (messageText.includes("COMPLETE") || messageText.includes("RESOLVE") || messageText.includes("DONE") || messageText.includes("NOTED") || mediaUrl) {
       if (activeTask.status === "PENDING") {
         return `Please ACCEPT the task for Room ${activeTask.unit.name} first before completing it.`;
       }
@@ -216,7 +236,7 @@ export async function handleWhatsAppAction(senderPhone: string, messageText: str
     // 5. Default Fallback
     // Only send the fallback if they sent an unrecognized command that might have been a typo,
     // or just return null to ignore normal chat messages so they can chat as a guest.
-    const isActionCommand = ["ACCEPT", "START", "RESOLVE", "COMPLETE"].some(cmd => messageText.includes(cmd));
+    const isActionCommand = ["ACCEPT", "START", "RESOLVE", "COMPLETE", "DONE", "NOTED"].some(cmd => messageText.includes(cmd));
     
     if (isActionCommand) {
        return `Command not recognized for your current task status. Please check your active task.`;
