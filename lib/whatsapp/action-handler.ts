@@ -94,7 +94,9 @@ export async function handleWhatsAppAction(senderPhone: string, messageText: str
           data: { status: "IN_PROGRESS" }
         });
         return `✅ Ticket In Progress. Reply 'RESOLVE' when the issue is fixed.`;
-           if (messageText.includes("RESOLVE") || messageText.includes("COMPLETE") || messageText.includes("DONE") || messageText.includes("NOTED") || mediaUrl) {
+      }
+
+      if (messageText.includes("RESOLVE") || messageText.includes("COMPLETE") || messageText.includes("DONE") || messageText.includes("NOTED") || mediaUrl) {
         
         // Custom logic for INVENTORY tickets
         if (activeTicket.category === "INVENTORY" && activeTicket.inventoryItemId) {
