@@ -64,6 +64,9 @@ export async function processAutoCheckinCheckout() {
           });
           checkedInCount++;
           console.log(`[Auto Status] Checked IN reservation ${res.id}`);
+          
+          // Update in-memory status so the checkout logic below can evaluate it in the same sweep if necessary
+          res.status = 'CHECKED_IN';
         }
       }
 
