@@ -416,8 +416,17 @@ Ritumbhara Hospitality`;
   eventBus.on<import('@/lib/events/bus').PointsRedemptionPayload>('POINTS_REDEEMED', async (payload) => {
     try {
       const frontDeskStaff = await prisma.teamMember.findMany({
-        where: { role: { in: ["ADMIN", "FRONT_DESK", "MANAGER"] }, propertyId: payload.propertyId, isActive: true }
+        where: { 
+          OR: [
+            { role: { in: ["ADMIN", "FRONT_DESK", "MANAGER"] } },
+            { department: { in: ["FRONT_DESK", "ADMIN", "FRONT DESK"] } }
+          ],
+          propertyId: payload.propertyId, 
+          isActive: true 
+        }
       });
+
+      console.log(`[Points Redemption] Found ${frontDeskStaff.length} front desk staff to notify for property ${payload.propertyId}`);
 
       const guest = await prisma.guest.findUnique({ where: { id: payload.guestId } });
       const reservation = await prisma.reservation.findUnique({ where: { id: payload.reservationId }, include: { unit: true } });
