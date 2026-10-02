@@ -120,10 +120,18 @@ export async function syncBookings() {
         let propertyId = null;
         
         if (booking.roomDetails && Array.isArray(booking.roomDetails) && booking.roomDetails.length > 0) {
-          const roomNumber = String(booking.roomDetails[0].roomNo || booking.roomDetails[0].roomId || 'Unassigned');
+          const rawRoomNumber = String(booking.roomDetails[0].roomNo || booking.roomDetails[0].roomId || 'Unassigned');
+          
+          // Normalize spacing: remove leading/trailing spaces and collapse multiple spaces into one
+          const roomNumber = rawRoomNumber.trim().replace(/\s+/g, ' ');
           
           const localUnit = await prisma.unit.findFirst({
-            where: { name: roomNumber }
+            where: { 
+              name: {
+                equals: roomNumber,
+                mode: 'insensitive'
+              }
+            }
           });
           
           if (localUnit) {
