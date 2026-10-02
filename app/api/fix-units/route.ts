@@ -36,7 +36,7 @@ export async function GET(request: Request) {
       });
 
       // 2. Reassign Housekeeping Tasks
-      const hkUpdate = await prisma.task.updateMany({
+      const hkUpdate = await prisma.housekeepingTask.updateMany({
         where: { unitId: badUnit.id },
         data: { unitId: goodUnit.id }
       });
