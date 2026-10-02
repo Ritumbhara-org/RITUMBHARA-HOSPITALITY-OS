@@ -4,21 +4,30 @@ import { ReservationsClient } from "@/components/reservations/reservations-clien
 export const dynamic = 'force-dynamic'
 
 export default async function ReservationsPage() {
-  const reservations = await prisma.reservation.findMany({
-    include: {
-      guest: true,
-      unit: true,
-      property: true
-    },
-    orderBy: {
-      checkIn: 'desc'
-    }
-  })
-
-  // Calculate summary stats
   const today = new Date()
   today.setHours(0, 0, 0, 0)
-  
+
+  // Run all independent queries simultaneously
+  const [reservations, guests, units] = await Promise.all([
+    prisma.reservation.findMany({
+      include: {
+        guest: true,
+        unit: true,
+        property: true
+      },
+      orderBy: { checkIn: 'desc' }
+    }),
+    prisma.guest.findMany({ 
+      orderBy: { name: 'asc' }, 
+      select: { id: true, name: true, phone: true } 
+    }),
+    prisma.unit.findMany({ 
+      orderBy: { name: 'asc' }, 
+      select: { id: true, name: true, type: true } 
+    })
+  ])
+
+  // Calculate summary stats
   const activeCount = reservations.filter(r => r.status === 'CHECKED_IN').length
   const upcomingCount = reservations.filter(r => r.status === 'CONFIRMED' && r.checkIn >= today).length
   const cancelledCount = reservations.filter(r => r.status === 'CANCELLED').length
@@ -29,12 +38,6 @@ export default async function ReservationsPage() {
     upcoming: upcomingCount,
     cancelled: cancelledCount
   }
-
-  // Fetch guests and units for the New Booking form
-  const [guests, units] = await Promise.all([
-    prisma.guest.findMany({ orderBy: { name: 'asc' }, select: { id: true, name: true, phone: true } }),
-    prisma.unit.findMany({ orderBy: { name: 'asc' }, select: { id: true, name: true, type: true } })
-  ])
 
   return <ReservationsClient initialData={reservations} stats={stats} guests={guests} units={units} />
 }
