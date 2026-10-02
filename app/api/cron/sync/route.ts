@@ -20,23 +20,21 @@ export async function GET(request: Request) {
     const result = await syncBookings();
 
     if (!result.success) {
-      // Return 200 OK to prevent cron-job.org from deactivating the job due to upstream API failures
-      return NextResponse.json(
-        { status: "skipped", reason: result.error || "Intellistay API in maintenance" }, 
-        { status: 200 }
-      );
+      console.warn("Intellistay sync failed:", result.error);
     }
     
-    // After syncing, run the automated check-in and check-out logic
+    // After syncing, run the automated check-in and check-out logic EVEN IF sync failed
     console.log("Triggering auto check-in/out logic...");
     const autoStatusResult = await processAutoCheckinCheckout();
 
     return NextResponse.json({
       status: "success",
-      message: `Sync completed successfully.`,
+      message: `Cron job completed.`,
       details: {
-        newBookings: result.newCount,
-        updatedBookings: result.updateCount,
+        syncStatus: result.success ? "success" : "failed",
+        syncError: result.error || null,
+        newBookings: result.success ? result.newCount : 0,
+        updatedBookings: result.success ? result.updateCount : 0,
         autoCheckIns: autoStatusResult.checkedInCount,
         autoCheckOuts: autoStatusResult.checkedOutCount
       },
