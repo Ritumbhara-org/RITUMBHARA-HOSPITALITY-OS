@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma"
 import { UnitsClient } from "@/components/units/units-client"
 
-export const dynamic = 'force-dynamic'
+export const revalidate = 15
 
 export default async function UnitsPage() {
   const units = await prisma.unit.findMany({

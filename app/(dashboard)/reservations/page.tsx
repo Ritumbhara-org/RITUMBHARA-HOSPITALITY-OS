@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma"
 import { ReservationsClient } from "@/components/reservations/reservations-client"
 
-export const dynamic = 'force-dynamic'
+export const revalidate = 15
 
 export default async function ReservationsPage() {
   const today = new Date()

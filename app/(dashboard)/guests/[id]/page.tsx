@@ -2,7 +2,7 @@ import { notFound } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import { GuestProfileClient } from "./guest-profile-client"
 
-export const dynamic = 'force-dynamic'
+export const revalidate = 15
 
 export default async function GuestProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params

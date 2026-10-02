@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { LocationsClient } from "@/components/locations/locations-client";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 15;
 
 export default async function LocationsPage() {
   const properties = await prisma.property.findMany({

@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma"
 import { DashboardClient } from "@/components/dashboard/dashboard-client"
 
-export const dynamic = 'force-dynamic'
+export const revalidate = 15
 
 export default async function DashboardPage() {
   const today = new Date()
