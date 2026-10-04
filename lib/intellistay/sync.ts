@@ -58,31 +58,20 @@ export async function syncBookings() {
 
   try {
     let bookings: any[] = [];
-    // The API forces a max limit of 10 per page. 
-    // We use Promise.all to fetch the first 3 pages (30 most recent bookings) concurrently.
-    // Since this cron runs every 5 mins, 30 bookings is more than enough to capture new activity.
-    const fetchPromises = [];
-    for (let page = 1; page <= 3; page++) {
-      fetchPromises.push(
-        intellistay.fetch('/api/Booking/GetAllBookingsByPagination', {
-          method: 'POST',
-          body: JSON.stringify({ pageNumber: page, pageSize: 10 })
-        }).then(async (res) => {
-          if (res.ok) return res.json();
-          return null;
-        })
-      );
+    // For Vercel Serverless limits (10 seconds), we ONLY fetch Page 1 (the 10 most recent bookings).
+    // Because this cron runs every 5 minutes, 10 bookings is more than enough to capture any new activity.
+    // (A hotel rarely gets >10 bookings in a 5-minute window).
+    const response = await intellistay.fetch('/api/Booking/GetAllBookingsByPagination', {
+      method: 'POST',
+      body: JSON.stringify({ pageNumber: 1, pageSize: 10 })
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      bookings = data?.data?.items || data?.data?.bookings || [];
     }
     
-    const results = await Promise.all(fetchPromises);
-    for (const data of results) {
-      if (data) {
-        const pageBookings = data?.data?.items || data?.data?.bookings || [];
-        bookings = bookings.concat(pageBookings);
-      }
-    }
-    
-    console.log(`Fetched ${bookings.length} bookings from Intellistay concurrently.`);
+    console.log(`Fetched ${bookings.length} bookings from Intellistay for the 5-minute delta.`);
 
     // Fetch all units once to perform intelligent matching on names
     let allLocalUnits = await prisma.unit.findMany({
