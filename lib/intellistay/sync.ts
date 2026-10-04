@@ -57,21 +57,31 @@ export async function syncBookings() {
 
   try {
     let bookings: any[] = [];
-    // The API forces a max limit of 10 per page regardless of pageSize. We must loop to get 50.
-    for (let page = 1; page <= 5; page++) {
-      const response = await intellistay.fetch('/api/Booking/GetAllBookingsByPagination', {
-        method: 'POST',
-        body: JSON.stringify({ pageNumber: page, pageSize: 10 })
-      });
-      if (response.ok) {
-        const data = await response.json();
+    // The API forces a max limit of 10 per page. 
+    // We use Promise.all to fetch the first 3 pages (30 most recent bookings) concurrently.
+    // Since this cron runs every 5 mins, 30 bookings is more than enough to capture new activity.
+    const fetchPromises = [];
+    for (let page = 1; page <= 3; page++) {
+      fetchPromises.push(
+        intellistay.fetch('/api/Booking/GetAllBookingsByPagination', {
+          method: 'POST',
+          body: JSON.stringify({ pageNumber: page, pageSize: 10 })
+        }).then(async (res) => {
+          if (res.ok) return res.json();
+          return null;
+        })
+      );
+    }
+    
+    const results = await Promise.all(fetchPromises);
+    for (const data of results) {
+      if (data) {
         const pageBookings = data?.data?.items || data?.data?.bookings || [];
         bookings = bookings.concat(pageBookings);
-        if (pageBookings.length === 0) break;
       }
     }
     
-    console.log(`Fetched ${bookings.length} bookings from Intellistay across multiple pages.`);
+    console.log(`Fetched ${bookings.length} bookings from Intellistay concurrently.`);
 
     // Fetch all units once to perform intelligent matching on names
     let allLocalUnits = await prisma.unit.findMany({
