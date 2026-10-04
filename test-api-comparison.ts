@@ -1,6 +1,6 @@
 import { IntellistayClient } from './lib/intellistay/client';
 
-async function testApi(url, username, password) {
+async function testApi(url: string, username: string, password: string) {
   console.log(`\n======================================`);
   console.log(`Testing URL: ${url}`);
   console.log(`Username: ${username}, Password: ${password}`);

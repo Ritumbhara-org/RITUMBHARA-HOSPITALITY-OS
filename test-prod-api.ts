@@ -1,6 +1,6 @@
 import { IntellistayClient } from './lib/intellistay/client';
 
-async function testCredentials(username, password) {
+async function testCredentials(username: string, password: string) {
   console.log(`\nTesting username: ${username}, password: ${password}`);
   process.env.INTELLISTAY_API_URL = "https://ritumbhara.intellistay.in";
   process.env.INTELLISTAY_USERNAME = username;

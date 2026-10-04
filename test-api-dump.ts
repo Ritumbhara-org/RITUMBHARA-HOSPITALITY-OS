@@ -1,6 +1,6 @@
 import { IntellistayClient } from './lib/intellistay/client';
 
-async function testApi(url, username, password) {
+async function testApi(url: string, username: string, password: string) {
   process.env.INTELLISTAY_API_URL = url;
   process.env.INTELLISTAY_USERNAME = username;
   process.env.INTELLISTAY_PASSWORD = password;
