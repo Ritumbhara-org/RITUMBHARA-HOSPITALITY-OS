@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma"
 import { intellistay } from "./client"
 import { eventBus } from "../events/bus"
 import { normalizePhoneNumber } from "@/lib/utils/phone"
+import { calculateEffectiveStatus } from "@/lib/reservations/auto-status"
 
 // Helper function to map Intellistay status IDs to our statuses
 function mapBookingStatus(statusId: number | string): string {
@@ -180,7 +181,8 @@ export async function syncBookings() {
         // --- RESERVATION UPSERT ---
         const checkInDate = parseIstDate(booking.checkInDate);
         const checkOutDate = parseIstDate(booking.checkOutDate);
-        const status = mapBookingStatus(booking.bookingStatusId || booking.status);
+        const rawStatus = mapBookingStatus(booking.bookingStatusId || booking.status);
+        const status = calculateEffectiveStatus(rawStatus, checkInDate, checkOutDate);
         const totalAmount = parseFloat(booking.grandTotal) || 0;
         
         const specialRequest = booking.specialRequest ? `Special Request: ${booking.specialRequest}\n` : '';
@@ -260,20 +262,25 @@ export async function syncBookings() {
           });
           newCount++;
 
-          eventPromises.push(eventBus.emit('BOOKING_CREATED', { reservationId: newRes.id, guestId: guest.id, propertyId, intellistayBookingId, status: newRes.status, checkIn: checkInDate, checkOut: checkOutDate }));
+          // Prevent blasting messages to users for past historical bookings we just imported!
+          if (status !== 'CHECKED_OUT' && status !== 'CANCELLED') {
+            eventPromises.push(eventBus.emit('BOOKING_CREATED', { reservationId: newRes.id, guestId: guest.id, propertyId, intellistayBookingId, status: newRes.status, checkIn: checkInDate, checkOut: checkOutDate }));
 
-          const now = new Date();
-          const todayStr = now.toLocaleDateString();
-          const checkInStr = checkInDate.toLocaleDateString();
-          
-          if (checkInStr === todayStr) {
-            eventPromises.push(eventBus.emit('TODAY_CHECK_IN', { reservationId: newRes.id, guestId: guest.id, propertyId, intellistayBookingId, status: newRes.status, checkIn: checkInDate, checkOut: checkOutDate }));
-          } else {
-            const tomorrow = new Date(now);
-            tomorrow.setDate(now.getDate() + 1);
-            if (checkInStr === tomorrow.toLocaleDateString()) {
-              eventPromises.push(eventBus.emit('UPCOMING_CHECK_IN', { reservationId: newRes.id, guestId: guest.id, propertyId, intellistayBookingId, status: newRes.status, checkIn: checkInDate, checkOut: checkOutDate }));
+            const now = new Date();
+            const todayStr = now.toLocaleDateString();
+            const checkInStr = checkInDate.toLocaleDateString();
+            
+            if (checkInStr === todayStr) {
+              eventPromises.push(eventBus.emit('TODAY_CHECK_IN', { reservationId: newRes.id, guestId: guest.id, propertyId, intellistayBookingId, status: newRes.status, checkIn: checkInDate, checkOut: checkOutDate }));
+            } else {
+              const tomorrow = new Date(now);
+              tomorrow.setDate(now.getDate() + 1);
+              if (checkInStr === tomorrow.toLocaleDateString()) {
+                eventPromises.push(eventBus.emit('UPCOMING_CHECK_IN', { reservationId: newRes.id, guestId: guest.id, propertyId, intellistayBookingId, status: newRes.status, checkIn: checkInDate, checkOut: checkOutDate }));
+              }
             }
+          } else {
+            console.log(`Booking ${intellistayBookingId} imported as historical (${status}). Silencing welcome messages.`);
           }
         }
         

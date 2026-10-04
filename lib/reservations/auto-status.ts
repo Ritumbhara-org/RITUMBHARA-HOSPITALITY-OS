@@ -1,6 +1,41 @@
 import { prisma } from "@/lib/prisma";
 import { eventBus } from "@/lib/events/bus";
 
+export function calculateEffectiveStatus(originalStatus: string, checkIn: Date, checkOut: Date): string {
+  if (originalStatus === 'CANCELLED') return 'CANCELLED';
+  
+  const now = new Date();
+  const formatter = new Intl.DateTimeFormat('en-CA', { 
+    timeZone: 'Asia/Kolkata', 
+    year: 'numeric', month: '2-digit', day: '2-digit', 
+    hour: '2-digit', hour12: false 
+  });
+  const parts = formatter.formatToParts(now);
+  const p = Object.fromEntries(parts.map(x => [x.type, x.value]));
+  
+  let hour = parseInt(p.hour, 10);
+  if (hour === 24) hour = 0;
+
+  const localDateStr = `${p.year}-${p.month}-${p.day}`;
+  let currentStatus = originalStatus;
+
+  if (currentStatus === 'CONFIRMED') {
+    const checkInStr = `${checkIn.getUTCFullYear()}-${String(checkIn.getUTCMonth()+1).padStart(2,'0')}-${String(checkIn.getUTCDate()).padStart(2,'0')}`;
+    if ((localDateStr === checkInStr && hour >= 13) || (localDateStr > checkInStr)) {
+      currentStatus = 'CHECKED_IN';
+    }
+  }
+
+  if (currentStatus === 'CHECKED_IN') {
+    const checkOutStr = `${checkOut.getUTCFullYear()}-${String(checkOut.getUTCMonth()+1).padStart(2,'0')}-${String(checkOut.getUTCDate()).padStart(2,'0')}`;
+    if ((localDateStr === checkOutStr && hour >= 11) || (localDateStr > checkOutStr)) {
+      currentStatus = 'CHECKED_OUT';
+    }
+  }
+
+  return currentStatus;
+}
+
 export async function processAutoCheckinCheckout() {
   const now = new Date();
   
