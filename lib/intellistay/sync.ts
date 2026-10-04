@@ -56,30 +56,25 @@ export async function syncBookings() {
   const eventPromises: Promise<void>[] = [];
 
   try {
-    // 1. Fetch bookings from Intellistay
-    // Using a POST for pagination, typical for such endpoints
-    const response = await intellistay.fetch('/api/Booking/GetAllBookingsByPagination', {
-      method: 'POST',
-      body: JSON.stringify({
-        pageNumber: 1,
-        pageSize: 50 // Fetch the latest 50 bookings for this sync interval
-      })
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`Failed to fetch bookings: ${response.status} - ${errorText}`);
-      return { success: false, error: "API fetch failed" };
+    let bookings: any[] = [];
+    // The API forces a max limit of 10 per page regardless of pageSize. We must loop to get 50.
+    for (let page = 1; page <= 5; page++) {
+      const response = await intellistay.fetch('/api/Booking/GetAllBookingsByPagination', {
+        method: 'POST',
+        body: JSON.stringify({ pageNumber: page, pageSize: 10 })
+      });
+      if (response.ok) {
+        const data = await response.json();
+        const pageBookings = data?.data?.items || data?.data?.bookings || [];
+        bookings = bookings.concat(pageBookings);
+        if (pageBookings.length === 0) break;
+      }
     }
-
-    const data = await response.json();
     
-    // Intellistay pagination response wraps bookings in data.items or data.bookings
-    const bookings = data?.data?.items || data?.data?.bookings || [];
-    console.log(`Fetched ${bookings.length} bookings from Intellistay.`);
+    console.log(`Fetched ${bookings.length} bookings from Intellistay across multiple pages.`);
 
     // Fetch all units once to perform intelligent matching on names
-    const allLocalUnits = await prisma.unit.findMany({
+    let allLocalUnits = await prisma.unit.findMany({
       select: { id: true, propertyId: true, name: true, type: true }
     });
 
@@ -137,9 +132,28 @@ export async function syncBookings() {
           const roomNumber = String(booking.roomDetails[0].roomNo || booking.roomDetails[0].roomId || 'Unassigned');
           
           const normalizedIncoming = normalizeText(roomNumber);
-          const localUnit = allLocalUnits.find(u => 
+          let localUnit = allLocalUnits.find(u => 
             normalizeText(u.name) === normalizedIncoming && u.type !== 'SYNCED_ROOM'
           );
+          
+          if (!localUnit && normalizedIncoming === 'unassigned') {
+            // Get the first property to attach the unassigned unit to
+            const firstProperty = await prisma.property.findFirst();
+            if (firstProperty) {
+              localUnit = await prisma.unit.create({
+                data: {
+                  name: 'Unassigned',
+                  type: 'SYNCED_ROOM',
+                  status: 'AVAILABLE',
+                  propertyId: firstProperty.id,
+                  floor: '0',
+                  capacity: 2
+                },
+                select: { id: true, propertyId: true, name: true, type: true }
+              });
+              allLocalUnits.push(localUnit);
+            }
+          }
           
           if (localUnit) {
             unitId = localUnit.id;
