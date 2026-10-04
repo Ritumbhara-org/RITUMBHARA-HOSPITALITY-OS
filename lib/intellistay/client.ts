@@ -10,7 +10,7 @@ export class IntellistayClient {
 
   private constructor() {
     this.baseUrl = process.env.INTELLISTAY_API_URL || 'https://ritumbhara.intellistay.in';
-    this.username = process.env.INTELLISTAY_USERNAME || 'hms';
+    this.username = process.env.INTELLISTAY_USERNAME || 'Shivam';
     this.password = process.env.INTELLISTAY_PASSWORD || '1234';
   }
 

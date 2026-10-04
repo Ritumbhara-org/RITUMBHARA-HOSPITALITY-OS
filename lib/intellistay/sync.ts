@@ -12,6 +12,9 @@ function mapBookingStatus(statusId: number | string): string {
     case '2': return 'CHECKED_IN';
     case '3': return 'CHECKED_OUT';
     case '4': return 'CANCELLED';
+    case '5': return 'CANCELLED'; // From live data, 5 is Cancelled
+    case 'CheckedOut': return 'CHECKED_OUT';
+    case 'Cancelled': return 'CANCELLED';
     default: return 'CONFIRMED';
   }
 }
@@ -71,8 +74,8 @@ export async function syncBookings() {
 
     const data = await response.json();
     
-    // Intellistay pagination response wraps bookings in data.bookings
-    const bookings = data?.data?.bookings || [];
+    // Intellistay pagination response wraps bookings in data.items or data.bookings
+    const bookings = data?.data?.items || data?.data?.bookings || [];
     console.log(`Fetched ${bookings.length} bookings from Intellistay.`);
 
     // Fetch all units once to perform intelligent matching on names
@@ -212,16 +215,8 @@ export async function syncBookings() {
           }
 
         } else {
-          let inferredSource = "Walk-In";
-          const paymentDetails = booking.paymentDetails || [];
-          if (Array.isArray(paymentDetails)) {
-             const hasOta = paymentDetails.some((p: any) => p.paymentType && p.paymentType.toLowerCase().includes('ota'));
-             if (hasOta) {
-               inferredSource = "OTA";
-             }
-          }
-          if (booking.channelName && typeof booking.channelName === 'string' && booking.channelName.toLowerCase() !== 'walkin' && booking.channelName.toLowerCase() !== 'walk-in') {
-             // If channelName is something like 'MakeMyTrip' or 'Airbnb', it's an OTA
+          let inferredSource = booking.source || "Walk-In";
+          if (inferredSource.toLowerCase() !== 'walk-in' && inferredSource.toLowerCase() !== 'walkin') {
              inferredSource = "OTA";
           }
 

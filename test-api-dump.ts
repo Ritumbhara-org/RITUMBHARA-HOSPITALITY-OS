@@ -20,4 +20,4 @@ async function testApi(url: string, username: string, password: string) {
   console.log(JSON.stringify(data, null, 2));
 }
 
-testApi("https://ritumbharatest.aastratech.com", "hms", "1234");
+testApi("https://ritumbhara.intellistay.in", "Shivam", "1234");
