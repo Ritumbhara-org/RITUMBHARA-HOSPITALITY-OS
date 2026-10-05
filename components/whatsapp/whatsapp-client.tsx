@@ -1,11 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { MessageSquare, Settings, Users, Search, Phone, User, Send, Bot, Shield, Clock, PlusCircle } from "lucide-react"
 
 import { useRouter, useSearchParams } from "next/navigation"
 import { sendBroadcast } from "@/app/actions/whatsapp"
+import { updateLocationKnowledge } from "@/app/actions/knowledge"
 import { toast } from "sonner"
 
 interface WhatsAppClientProps {
@@ -13,9 +14,10 @@ interface WhatsAppClientProps {
   initialBroadcasts: any[]
   properties: any[]
   activePropertyId: string
+  initialKnowledge?: any
 }
 
-export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, activePropertyId }: WhatsAppClientProps) {
+export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, activePropertyId, initialKnowledge }: WhatsAppClientProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [activeTab, setActiveTab] = useState<"inbox" | "broadcasts" | "settings">("inbox")
@@ -29,6 +31,25 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
   const [audience, setAudience] = useState("ALL_ACTIVE_GUESTS")
   const [broadcastMessage, setBroadcastMessage] = useState("")
   const [isSending, setIsSending] = useState(false)
+
+  // Knowledge Base State
+  const [isSavingKnowledge, setIsSavingKnowledge] = useState(false)
+  const [knowledge, setKnowledge] = useState({
+    sops: initialKnowledge?.sops || "1. Greet guests politely.\n2. Verify booking details.\n3. Hand over keys.",
+    policies: initialKnowledge?.policies || "Check-in: 2 PM\nCheck-out: 11 AM\nNo smoking.",
+    prices: initialKnowledge?.prices || "Late Check-out: ₹500/hour\nExtra Bed: ₹1000/night",
+    facts: initialKnowledge?.facts || "Wi-Fi: GUEST_NET (Pass: stay123)\nBreakfast: 7 AM - 10 AM",
+  })
+
+  // Sync state when property (and thus initialKnowledge) changes
+  useEffect(() => {
+    setKnowledge({
+      sops: initialKnowledge?.sops || "1. Greet guests politely.\n2. Verify booking details.\n3. Hand over keys.",
+      policies: initialKnowledge?.policies || "Check-in: 2 PM\nCheck-out: 11 AM\nNo smoking.",
+      prices: initialKnowledge?.prices || "Late Check-out: ₹500/hour\nExtra Bed: ₹1000/night",
+      facts: initialKnowledge?.facts || "Wi-Fi: GUEST_NET (Pass: stay123)\nBreakfast: 7 AM - 10 AM",
+    });
+  }, [initialKnowledge]);
 
   const filteredThreads = initialThreads.filter(t => {
     // Basic search filtering
@@ -279,34 +300,68 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
                 
                 <div className="space-y-6">
                   <div className="rounded-2xl border bg-card p-6 shadow-sm">
-                    <div className="flex items-center justify-between mb-4">
-                      <div>
-                        <h3 className="font-semibold">AI Assistant Status</h3>
-                        <p className="text-sm text-muted-foreground">Enable or disable automated AI replies for guests.</p>
-                      </div>
-                      <div className="h-6 w-11 rounded-full bg-emerald-500 relative cursor-pointer shadow-inner">
-                        <div className="absolute right-1 top-1 h-4 w-4 rounded-full bg-white shadow-sm" />
-                      </div>
-                    </div>
+                    <h3 className="font-semibold mb-2">Standard Operating Procedures (SOPs)</h3>
+                    <p className="text-sm text-muted-foreground mb-4">Step-by-step instructions for the AI to handle common scenarios.</p>
+                    <textarea 
+                      value={knowledge.sops}
+                      onChange={(e) => setKnowledge({...knowledge, sops: e.target.value})}
+                      className="w-full h-32 p-4 rounded-xl border bg-background text-sm focus:ring-2 focus:ring-primary/20 outline-none resize-none"
+                      placeholder="e.g. If a guest complains about AC, apologize and escalate immediately."
+                    />
                   </div>
 
                   <div className="rounded-2xl border bg-card p-6 shadow-sm">
-                    <h3 className="font-semibold mb-2">System Prompt</h3>
-                    <p className="text-sm text-muted-foreground mb-4">The core instructions that dictate the AI's behavior and tone.</p>
+                    <h3 className="font-semibold mb-2">Hotel Policies</h3>
+                    <p className="text-sm text-muted-foreground mb-4">Rules and regulations the AI must enforce.</p>
                     <textarea 
-                      className="w-full h-40 p-4 rounded-xl border bg-background text-sm font-mono focus:ring-2 focus:ring-primary/20 outline-none"
-                      defaultValue={`You are a helpful, polite, and professional AI assistant for Ritumbhara Hospitality. 
-Always aim for 5-star service. Keep answers concise.
-If they ask for late checkout, mention it is subject to availability and costs $20/hour.
-If they complain, apologize profusely and escalate the issue immediately.`}
+                      value={knowledge.policies}
+                      onChange={(e) => setKnowledge({...knowledge, policies: e.target.value})}
+                      className="w-full h-32 p-4 rounded-xl border bg-background text-sm focus:ring-2 focus:ring-primary/20 outline-none resize-none"
+                      placeholder="e.g. Check-in is at 2 PM. Check-out is at 11 AM. Pets are not allowed."
                     />
-                    <div className="mt-4 flex justify-end">
-                      <button className="px-4 py-2 bg-primary text-primary-foreground rounded-xl text-sm font-semibold hover:bg-primary/90 transition-colors shadow-sm">
-                        Save Changes
+                  </div>
+
+                  <div className="rounded-2xl border bg-card p-6 shadow-sm">
+                    <h3 className="font-semibold mb-2">Pricing & Upsells</h3>
+                    <p className="text-sm text-muted-foreground mb-4">Cost of additional services so the AI can quote accurately.</p>
+                    <textarea 
+                      value={knowledge.prices}
+                      onChange={(e) => setKnowledge({...knowledge, prices: e.target.value})}
+                      className="w-full h-32 p-4 rounded-xl border bg-background text-sm focus:ring-2 focus:ring-primary/20 outline-none resize-none"
+                      placeholder="e.g. Late checkout costs ₹500 per hour. Extra bed is ₹1000 per night."
+                    />
+                  </div>
+
+                  <div className="rounded-2xl border bg-card p-6 shadow-sm">
+                    <h3 className="font-semibold mb-2">Property Facts</h3>
+                    <p className="text-sm text-muted-foreground mb-4">General information about this location.</p>
+                    <textarea 
+                      value={knowledge.facts}
+                      onChange={(e) => setKnowledge({...knowledge, facts: e.target.value})}
+                      className="w-full h-32 p-4 rounded-xl border bg-background text-sm focus:ring-2 focus:ring-primary/20 outline-none resize-none"
+                      placeholder="e.g. Wi-Fi password is 'stay123'. Breakfast is from 7 AM to 10 AM on the ground floor."
+                    />
+                    <div className="mt-6 flex justify-end">
+                      <button 
+                        onClick={async () => {
+                          setIsSavingKnowledge(true);
+                          const res = await updateLocationKnowledge(activePropertyId, knowledge);
+                          if (res.success) {
+                            toast.success("AI Brain updated successfully!");
+                          } else {
+                            toast.error("Failed to update AI Brain");
+                          }
+                          setIsSavingKnowledge(false);
+                        }}
+                        disabled={isSavingKnowledge}
+                        className="px-6 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-semibold hover:bg-primary/90 transition-colors shadow-sm disabled:opacity-50"
+                      >
+                        {isSavingKnowledge ? "Saving..." : "Save AI Brain Sync"}
                       </button>
                     </div>
                   </div>
-                </div>
+
+
               </div>
             </motion.div>
           )}

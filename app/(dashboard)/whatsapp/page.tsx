@@ -36,6 +36,7 @@ export default async function WhatsAppPage({
 
   const threads = await getWhatsAppConversations()
   const broadcasts = await getBroadcastCampaigns(activePropertyId)
+  const knowledge = await prisma.locationKnowledge.findUnique({ where: { propertyId: activePropertyId } });
 
   return (
     <div className="flex h-[calc(100vh-4rem)] flex-col">
@@ -43,7 +44,8 @@ export default async function WhatsAppPage({
         initialThreads={threads} 
         initialBroadcasts={broadcasts}
         properties={properties} 
-        activePropertyId={activePropertyId} 
+        activePropertyId={activePropertyId}
+        initialKnowledge={knowledge}
       />
     </div>
   )
