@@ -3,6 +3,12 @@
 import { prisma } from "@/lib/prisma";
 import { normalizePhoneNumber } from "@/lib/utils/phone";
 
+export async function sendManualReply(phone: string, text: string) {
+  const { sendWhatsAppMessage } = await import("@/lib/whatsapp/client");
+  await sendWhatsAppMessage(phone, text);
+  return { success: true };
+}
+
 export async function getWhatsAppConversations() {
   const messages = await prisma.whatsAppMessage.findMany({
     orderBy: { createdAt: 'desc' },

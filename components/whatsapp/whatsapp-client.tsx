@@ -313,18 +313,26 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
                           className="flex-1 rounded-full border border-border bg-background px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
                           value={replyText}
                           onChange={(e) => setReplyText(e.target.value)}
-                          onKeyDown={(e) => {
+                          onKeyDown={async (e) => {
                             if (e.key === 'Enter' && replyText) {
+                              const text = replyText;
                               setReplyText("");
-                              toast.success("Message sent! (Demo)");
+                              toast.success("Sending message...");
+                              await import("@/app/actions/whatsapp").then(m => m.sendManualReply(activeThread.phone, text));
+                              toast.success("Message sent!");
+                              window.location.reload();
                             }
                           }}
                         />
                         <button 
-                          onClick={() => {
+                          onClick={async () => {
                             if (replyText) {
+                              const text = replyText;
                               setReplyText("");
-                              toast.success("Message sent! (Demo)");
+                              toast.success("Sending message...");
+                              await import("@/app/actions/whatsapp").then(m => m.sendManualReply(activeThread.phone, text));
+                              toast.success("Message sent!");
+                              window.location.reload();
                             }
                           }}
                           className="h-10 w-10 shrink-0 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-colors shadow-sm"
