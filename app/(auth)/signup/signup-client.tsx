@@ -89,7 +89,7 @@ export default function SignupClient({ properties }: { properties: any[] }) {
               </SelectTrigger>
               <SelectContent>
                 {properties.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                  <SelectItem key={p.id} value={p.id} label={p.name}>{p.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -101,12 +101,9 @@ export default function SignupClient({ properties }: { properties: any[] }) {
                 <SelectValue placeholder="Select role" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="RECEPTIONIST">Receptionist</SelectItem>
-                <SelectItem value="HOUSEKEEPING">Housekeeping</SelectItem>
-                <SelectItem value="MAINTENANCE">Maintenance</SelectItem>
-                <SelectItem value="MANAGER">Manager</SelectItem>
-                <SelectItem value="ADMIN">Admin</SelectItem>
-                <SelectItem value="MANAGEMENT">Management</SelectItem>
+                <SelectItem value="ADMIN" label="Admin">Admin</SelectItem>
+                <SelectItem value="MANAGEMENT" label="Management">Management</SelectItem>
+                <SelectItem value="STAFF" label="Staff">Staff</SelectItem>
               </SelectContent>
             </Select>
           </div>

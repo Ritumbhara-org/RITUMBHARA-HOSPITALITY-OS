@@ -109,7 +109,7 @@ export function InventoryClient({ initialItems, activePropertyId, properties, re
               </SelectTrigger>
               <SelectContent>
                 {properties.map(p => (
-                  <SelectItem key={p.id} value={p.id} className="font-medium">
+                  <SelectItem key={p.id} value={p.id} label={p.name} className="font-medium">
                     {p.name}
                   </SelectItem>
                 ))}

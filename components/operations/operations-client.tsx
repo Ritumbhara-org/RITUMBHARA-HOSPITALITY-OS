@@ -403,7 +403,7 @@ function OperationsClientContent({
                       <SelectTrigger className="h-8 rounded-lg text-xs"><SelectValue placeholder="All Properties" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="ALL">All Properties</SelectItem>
-                        {properties.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                        {properties.map(p => <SelectItem key={p.id} value={p.id} label={p.name}>{p.name}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>

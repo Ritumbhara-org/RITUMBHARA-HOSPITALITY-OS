@@ -139,7 +139,7 @@ export function UnitsClient({
                         </SelectTrigger>
                         <SelectContent>
                           {properties.map(p => (
-                            <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                            <SelectItem key={p.id} value={p.id} label={p.name}>{p.name}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
@@ -238,7 +238,7 @@ export function UnitsClient({
               <SelectContent>
                 <SelectItem value="ALL">All Locations</SelectItem>
                 {properties.map(p => (
-                  <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                  <SelectItem key={p.id} value={p.id} label={p.name}>{p.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
