@@ -192,7 +192,7 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
                           <p className="font-semibold text-sm truncate">
                             {thread.teamMember ? thread.teamMember.name : (thread.guest ? thread.guest.name : thread.phone)}
                           </p>
-                          <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                          <span suppressHydrationWarning className="text-[10px] text-muted-foreground whitespace-nowrap">
                             {new Date(thread.lastMessageAt).toLocaleDateString()}
                           </span>
                         </div>
@@ -247,7 +247,7 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
                                 </div>
                               )}
                               <p className="text-sm whitespace-pre-wrap">{msg.content || (msg.mediaUrl ? '[Media File Attached]' : '')}</p>
-                              <div className={`text-[10px] mt-1 text-right ${isSystem ? 'text-black/40 dark:text-white/60' : 'text-muted-foreground'}`}>
+                              <div suppressHydrationWarning className={`text-[10px] mt-1 text-right ${isSystem ? 'text-black/40 dark:text-white/60' : 'text-muted-foreground'}`}>
                                 {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                               </div>
                             </div>
