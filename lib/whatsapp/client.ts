@@ -41,7 +41,8 @@ export async function sendWhatsAppMessage(
          'checkout_instructions': 'HX6972f5c3804258c5ddb58dd11d299d21',
          'sla_breach_alert': 'HX65186e10f421d8084b22951e7bc23692',
          'booking_confirmation': 'HX1218dec0f31aefbd7a0e122486ffed40',
-         'points_redemption_alert': 'HX3d80b33321468c4479577a1df798fae9'
+         'points_redemption_alert': 'HX3d80b33321468c4479577a1df798fae9',
+         'staff_password_reset': 'HX1c931caabf3a185f4a2aa55fcf61b078'
       };
 
       let createParams: any = {

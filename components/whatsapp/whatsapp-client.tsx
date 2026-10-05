@@ -17,9 +17,10 @@ interface WhatsAppClientProps {
   properties: any[]
   activePropertyId: string
   initialKnowledge?: any
+  userRole?: string
 }
 
-export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, activePropertyId, initialKnowledge }: WhatsAppClientProps) {
+export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, activePropertyId, initialKnowledge, userRole }: WhatsAppClientProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [activeTab, setActiveTab] = useState<"inbox" | "broadcasts" | "settings">("inbox")
@@ -111,18 +112,20 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
             <p className="text-muted-foreground mt-1">Manage guest communications, broadcasts, and AI settings.</p>
           </div>
           
-          {/* Property Selector */}
-          <div className="h-10 px-3 bg-muted/20 border rounded-xl flex items-center">
-            <select 
-              value={activePropertyId} 
-              onChange={(e) => handlePropertyChange(e.target.value)}
-              className="bg-transparent font-medium border-none outline-none focus:ring-0 cursor-pointer text-sm"
-            >
-              {properties.map(p => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </select>
-          </div>
+          {/* Property Selector - RBAC Enforcement */}
+          {(userRole === 'MANAGEMENT' || userRole === 'ADMIN') && (
+            <div className="h-10 px-3 bg-muted/20 border rounded-xl flex items-center">
+              <select 
+                value={activePropertyId} 
+                onChange={(e) => handlePropertyChange(e.target.value)}
+                className="bg-transparent font-medium border-none outline-none focus:ring-0 cursor-pointer text-sm"
+              >
+                {properties.map(p => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-2 rounded-xl border bg-card p-1 shadow-sm">
           {[

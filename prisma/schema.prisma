@@ -177,6 +177,10 @@ model TeamMember {
   role           String
   department     String
   propertyId     String
+  email          String?  @unique
+  password       String?
+  resetCode      String?
+  resetCodeExpiry DateTime?
   aiContext      String?  @db.Text
   isActive       Boolean  @default(true)
   createdAt      DateTime @default(now())

@@ -5,21 +5,17 @@ import { WhatsAppClient } from "@/components/whatsapp/whatsapp-client"
 
 import { prisma } from "@/lib/prisma"
 
+import { getSession } from "@/app/actions/auth"
+
 export default async function WhatsAppPage({
   searchParams,
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }) {
-  const cookieStore = await cookies()
-  const token = cookieStore.get("auth-token")
-
+  const session = await getSession();
+  
   // Fallback to first admin for demo purposes
-  let user = null;
-  if (token) {
-    user = await prisma.teamMember.findUnique({
-      where: { id: token.value }
-    });
-  }
+  let user = session?.user;
 
   if (!user) {
     user = await prisma.teamMember.findFirst({
@@ -46,6 +42,7 @@ export default async function WhatsAppPage({
         properties={properties} 
         activePropertyId={activePropertyId}
         initialKnowledge={knowledge}
+        userRole={user?.role}
       />
     </div>
   )
