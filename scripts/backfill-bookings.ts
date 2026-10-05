@@ -108,7 +108,8 @@ async function runBackfill() {
         let unitId = null;
         let propertyId = null;
         if (booking.roomDetails && Array.isArray(booking.roomDetails) && booking.roomDetails.length > 0) {
-          const roomNumber = String(booking.roomDetails[0].roomNo || booking.roomDetails[0].roomId || 'Unassigned');
+          const r = booking.roomDetails[0];
+          const roomNumber = String(r.roomNo || r.roomId || r.roomTypeName || 'Unassigned'); 
           const normalizedIncoming = normalizeText(roomNumber);
           
           let localUnit = allLocalUnits.find(u => {
