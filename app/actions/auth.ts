@@ -24,7 +24,7 @@ export async function decrypt(input: string): Promise<any> {
   return payload;
 }
 
-export async function login(email: string, pass: string) {
+export async function login(email: string, pass: string): Promise<{ success?: boolean; error?: string }> {
   const user = await prisma.teamMember.findUnique({
     where: { email },
   });
@@ -59,7 +59,7 @@ export async function verifyAndSignup(data: {
   role: string;
   email: string;
   pass: string;
-}) {
+}): Promise<{ success?: boolean; error?: string }> {
   // 1. Verify existence in DB exactly matching parameters
   const existingUser = await prisma.teamMember.findFirst({
     where: {
@@ -93,7 +93,7 @@ export async function verifyAndSignup(data: {
   return { success: true };
 }
 
-export async function requestWhatsAppOTP(email: string) {
+export async function requestWhatsAppOTP(email: string): Promise<{ success: boolean; error?: string }> {
   const user = await prisma.teamMember.findUnique({
     where: { email },
   });
@@ -126,7 +126,7 @@ export async function requestWhatsAppOTP(email: string) {
   return { success: true };
 }
 
-export async function verifyOTPAndReset(email: string, otp: string, newPass: string) {
+export async function verifyOTPAndReset(email: string, otp: string, newPass: string): Promise<{ success?: boolean; error?: string }> {
   const user = await prisma.teamMember.findUnique({
     where: { email },
   });
