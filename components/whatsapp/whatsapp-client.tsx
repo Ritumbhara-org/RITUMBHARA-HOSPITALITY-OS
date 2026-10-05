@@ -277,7 +277,7 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
                             setIsDrafting(true);
                             const recentMsgs = activeThread.messages.slice(-5).map((m: any) => m.content);
                             const res = await draftAIReply(activeThread.phone, recentMsgs);
-                            if (res.success) setReplyText(res.draft);
+                            if (res.success) setReplyText(res.draft || "");
                             else toast.error("Failed to draft reply");
                             setIsDrafting(false);
                           }}
@@ -423,7 +423,6 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
 
                   </div>
                 </div>
-              </div>
             </motion.div>
           )}
 
