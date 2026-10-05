@@ -5,7 +5,7 @@ import { normalizePhoneNumber } from "@/lib/utils/phone";
 
 export async function sendManualReply(phone: string, text: string) {
   const { sendWhatsAppMessage } = await import("@/lib/whatsapp/client");
-  await sendWhatsAppMessage(phone, text);
+  await sendWhatsAppMessage(phone, 'text', text);
   return { success: true };
 }
 
