@@ -130,6 +130,7 @@ model Guest {
   idType               String?
   idNumber             String?
   intellistayGuestId   String?  @unique
+  aiContext            String?  @db.Text
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 
@@ -176,6 +177,7 @@ model TeamMember {
   role           String
   department     String
   propertyId     String
+  aiContext      String?  @db.Text
   isActive       Boolean  @default(true)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
