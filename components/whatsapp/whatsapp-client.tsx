@@ -7,7 +7,9 @@ import { MessageSquare, Settings, Users, Search, Phone, User, Send, Bot, Shield,
 import { useRouter, useSearchParams } from "next/navigation"
 import { sendBroadcast } from "@/app/actions/whatsapp"
 import { updateLocationKnowledge } from "@/app/actions/knowledge"
+import { summarizeUserMemory, draftAIReply } from "@/app/actions/memory"
 import { toast } from "sonner"
+import { Sparkles, BrainCircuit } from "lucide-react"
 
 interface WhatsAppClientProps {
   initialThreads: any[]
@@ -24,6 +26,8 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
   const [search, setSearch] = useState("")
   const [activeThreadId, setActiveThreadId] = useState<string | null>(initialThreads[0]?.phone || null)
   const [replyText, setReplyText] = useState("")
+  const [isDrafting, setIsDrafting] = useState(false)
+  const [isSummarizing, setIsSummarizing] = useState(false)
 
   // Broadcast Modal State
   const [isBroadcastModalOpen, setIsBroadcastModalOpen] = useState(false)
@@ -252,8 +256,56 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
                       })}
                     </div>
 
+                    {/* AI Memory Context Banner */}
+                    {(activeThread.guest?.aiContext || activeThread.teamMember?.aiContext) && (
+                      <div className="mx-6 mt-2 mb-4 rounded-xl border border-amber-200/50 bg-amber-50/50 p-3 shadow-sm flex items-start gap-3">
+                        <BrainCircuit className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                        <div>
+                          <h4 className="text-xs font-bold text-amber-800 uppercase tracking-wider mb-1">AI Context Memory</h4>
+                          <p className="text-xs text-amber-900/80 leading-relaxed whitespace-pre-wrap">
+                            {activeThread.guest?.aiContext || activeThread.teamMember?.aiContext}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Chat Input */}
                     <div className="p-4 bg-card border-t">
+                      <div className="flex items-center gap-2 mb-3">
+                        <button 
+                          onClick={async () => {
+                            setIsDrafting(true);
+                            const recentMsgs = activeThread.messages.slice(-5).map((m: any) => m.content);
+                            const res = await draftAIReply(activeThread.phone, recentMsgs);
+                            if (res.success) setReplyText(res.draft);
+                            else toast.error("Failed to draft reply");
+                            setIsDrafting(false);
+                          }}
+                          disabled={isDrafting}
+                          className="text-xs font-semibold flex items-center gap-1.5 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-full transition-colors disabled:opacity-50"
+                        >
+                          <Sparkles className="w-3.5 h-3.5" />
+                          {isDrafting ? "Drafting..." : "AI Draft Reply"}
+                        </button>
+                        
+                        <button 
+                          onClick={async () => {
+                            setIsSummarizing(true);
+                            const res = await summarizeUserMemory(activeThread.phone);
+                            if (res.success) {
+                              toast.success("AI Memory Updated!");
+                              window.location.reload();
+                            } else toast.error("Failed to update memory");
+                            setIsSummarizing(false);
+                          }}
+                          disabled={isSummarizing}
+                          className="text-xs font-semibold flex items-center gap-1.5 text-amber-600 bg-amber-50 hover:bg-amber-100 px-3 py-1.5 rounded-full transition-colors ml-auto disabled:opacity-50"
+                        >
+                          <BrainCircuit className="w-3.5 h-3.5" />
+                          {isSummarizing ? "Updating Memory..." : "Update Memory"}
+                        </button>
+                      </div>
+                      
                       <div className="flex gap-2">
                         <input 
                           type="text" 
@@ -264,11 +316,19 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
                           onKeyDown={(e) => {
                             if (e.key === 'Enter' && replyText) {
                               setReplyText("");
-                              // In a real app, this would call an action to send a WhatsApp message
+                              toast.success("Message sent! (Demo)");
                             }
                           }}
                         />
-                        <button className="h-10 w-10 shrink-0 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-colors shadow-sm">
+                        <button 
+                          onClick={() => {
+                            if (replyText) {
+                              setReplyText("");
+                              toast.success("Message sent! (Demo)");
+                            }
+                          }}
+                          className="h-10 w-10 shrink-0 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-colors shadow-sm"
+                        >
                           <Send className="h-4 w-4 ml-0.5" />
                         </button>
                       </div>
@@ -361,7 +421,8 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
                     </div>
                   </div>
 
-
+                  </div>
+                </div>
               </div>
             </motion.div>
           )}
