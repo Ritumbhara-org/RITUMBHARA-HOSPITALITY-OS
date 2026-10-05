@@ -26,12 +26,16 @@ export function ReservationsClient({
   initialData, 
   stats,
   guests,
-  units
+  units,
+  currentPage = 1,
+  totalPages = 1
 }: { 
   initialData: any[],
   stats: ReservationStats,
   guests: { id: string, name: string, phone: string }[],
-  units: { id: string, name: string, type: string }[]
+  units: { id: string, name: string, type: string }[],
+  currentPage?: number,
+  totalPages?: number
 }) {
   return (
     <Suspense fallback={<div className="flex items-center justify-center h-64 text-muted-foreground">Loading reservations...</div>}>
@@ -39,7 +43,9 @@ export function ReservationsClient({
         initialData={initialData} 
         stats={stats} 
         guests={guests} 
-        units={units} 
+        units={units}
+        currentPage={currentPage}
+        totalPages={totalPages}
       />
     </Suspense>
   )
@@ -49,12 +55,16 @@ function ReservationsClientContent({
   initialData, 
   stats,
   guests,
-  units
+  units,
+  currentPage,
+  totalPages
 }: { 
   initialData: any[],
   stats: ReservationStats,
   guests: { id: string, name: string, phone: string }[],
-  units: { id: string, name: string, type: string }[]
+  units: { id: string, name: string, type: string }[],
+  currentPage: number,
+  totalPages: number
 }) {
   const [searchTerm, setSearchTerm] = useState("")
   const [filterStatus, setFilterStatus] = useState("ALL")
@@ -393,6 +403,30 @@ function ReservationsClientContent({
               )}
             </tbody>
           </table>
+          
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between px-6 py-4 border-t border-white/5 bg-white/[0.02]">
+              <div className="text-sm text-slate-400">
+                Page {currentPage} of {totalPages}
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => router.push(`?page=${currentPage > 1 ? currentPage - 1 : 1}`)}
+                  disabled={currentPage <= 1}
+                  className="px-3 py-1 text-sm bg-white/5 rounded hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Previous
+                </button>
+                <button
+                  onClick={() => router.push(`?page=${currentPage < totalPages ? currentPage + 1 : totalPages}`)}
+                  disabled={currentPage >= totalPages}
+                  className="px-3 py-1 text-sm bg-white/5 rounded hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </motion.div>
     </div>

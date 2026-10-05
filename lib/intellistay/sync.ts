@@ -132,27 +132,15 @@ export async function syncBookings() {
           const roomNumber = String(booking.roomDetails[0].roomNo || booking.roomDetails[0].roomId || 'Unassigned');
           
           const normalizedIncoming = normalizeText(roomNumber);
-          let localUnit = allLocalUnits.find(u => 
-            normalizeText(u.name) === normalizedIncoming && u.type !== 'SYNCED_ROOM'
-          );
+          let localUnit = allLocalUnits.find(u => {
+            if (u.type === 'SYNCED_ROOM') return false;
+            const normLocal = normalizeText(u.name);
+            return normLocal === normalizedIncoming || normLocal.includes(normalizedIncoming) || normalizedIncoming.includes(normLocal);
+          });
           
-          if (!localUnit && normalizedIncoming === 'unassigned') {
-            // Get the first property to attach the unassigned unit to
-            const firstProperty = await prisma.property.findFirst();
-            if (firstProperty) {
-              localUnit = await prisma.unit.create({
-                data: {
-                  name: 'Unassigned',
-                  type: 'SYNCED_ROOM',
-                  status: 'AVAILABLE',
-                  propertyId: firstProperty.id,
-                  floor: '0',
-                  capacity: 2
-                },
-                select: { id: true, propertyId: true, name: true, type: true }
-              });
-              allLocalUnits.push(localUnit);
-            }
+          if (!localUnit) {
+            console.log(`Skipping booking ${booking.bookingId} as room ${roomNumber} is not in our original units.`);
+            continue; // Skip this booking entirely
           }
           
           if (localUnit) {
