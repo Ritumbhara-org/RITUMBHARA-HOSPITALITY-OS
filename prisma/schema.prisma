@@ -345,6 +345,7 @@ model SyncLog {
   recordsUpdated   Int        @default(0)
   recordsCreated   Int        @default(0)
   error           String?
+  source          String      @default("INTELLISTAY")
 }
 
 model LocationKnowledge {
