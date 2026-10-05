@@ -97,6 +97,8 @@ model Property {
   tickets          Ticket[]
   housekeepingTasks HousekeepingTask[]
   inventoryItems   InventoryItem[]
+  knowledgeBase    LocationKnowledge?
+  agentActionLogs  AgentActionLog[]
 }
 
 model Unit {
@@ -343,5 +345,34 @@ model SyncLog {
   recordsUpdated   Int        @default(0)
   recordsCreated   Int        @default(0)
   error           String?
-  source          String      @default("INTELLISTAY")
+}
+
+model LocationKnowledge {
+  id          String   @id @default(cuid())
+  propertyId  String   @unique
+  sops        String   @db.Text
+  policies    String   @db.Text
+  prices      String   @db.Text
+  facts       String   @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  property    Property @relation(fields: [propertyId], references: [id])
+}
+
+model AgentActionLog {
+  id          String   @id @default(cuid())
+  agentName   String
+  actionType  String
+  inputs      Json
+  decision    String   @db.Text
+  outcome     String   @db.Text
+  timestamp   DateTime @default(now())
+  propertyId  String?
+
+  property    Property? @relation(fields: [propertyId], references: [id])
+
+  @@index([agentName])
+  @@index([actionType])
+  @@index([propertyId])
 }

@@ -353,7 +353,7 @@ function ReservationsClientContent({
                       {getStatusBadge(res.status)}
                     </td>
                     <td className="px-6 py-3.5">
-                      <div className="font-semibold">${res.totalAmount.toFixed(2)}</div>
+                      <div className="font-semibold">₹{res.totalAmount.toFixed(2)}</div>
                       <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">{res.source}</div>
                     </td>
                     <td className="px-6 py-3.5 text-right">

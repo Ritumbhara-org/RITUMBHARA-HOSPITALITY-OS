@@ -290,7 +290,7 @@ export function GuestsClient({
                         <div className="font-semibold">{totalStays}</div>
                       </td>
                       <td className="px-6 py-3.5">
-                        <div className="font-semibold text-emerald-600 dark:text-emerald-400">${totalSpend.toFixed(2)}</div>
+                        <div className="font-semibold text-emerald-600 dark:text-emerald-400">₹{totalSpend.toFixed(2)}</div>
                       </td>
                       <td className="px-6 py-3.5 text-right">
                         <DropdownMenu>

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { startOfMonth, endOfMonth, startOfDay, subMonths, startOfYear, endOfYear } from "date-fns";
+import { startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths, differenceInDays } from "date-fns";
 
 export async function GET(request: Request) {
   try {
@@ -26,15 +26,66 @@ export async function GET(request: Request) {
     const whereUnitProperty = propertyId ? { propertyId } : {};
     const whereTicketProperty = propertyId ? { propertyId } : {};
 
-    // 1. REVENUE METRICS
-    const reservations = await prisma.reservation.findMany({
-      where: {
-        ...whereProperty,
-        checkIn: { gte: startDate, lte: endDate },
-        status: { not: "CANCELLED" }
-      }
-    });
+    // Execute queries in parallel to drastically speed up first load
+    const [
+      reservations,
+      totalUnits,
+      openTicketsCount,
+      completedTicketsCount,
+      overdueTicketsCount,
+      maintenanceTickets,
+      completedHousekeeping,
+      guestsWithCounts,
+      members,
+      whatsappEngagement
+    ] = await Promise.all([
+      // 1. REVENUE METRICS
+      prisma.reservation.findMany({
+        where: {
+          ...whereProperty,
+          checkIn: { gte: startDate, lte: endDate },
+          status: { not: "CANCELLED" }
+        },
+        select: { checkIn: true, checkOut: true, totalAmount: true, source: true }
+      }),
+      // Total Units
+      prisma.unit.count({ where: whereUnitProperty }),
+      // 2. OPERATIONS METRICS
+      prisma.ticket.count({
+        where: { ...whereTicketProperty, status: { notIn: ["RESOLVED", "CLOSED"] } }
+      }),
+      prisma.ticket.count({
+        where: { ...whereTicketProperty, status: { in: ["RESOLVED", "CLOSED"] } }
+      }),
+      prisma.ticket.count({
+        where: { 
+          ...whereTicketProperty, 
+          status: { notIn: ["RESOLVED", "CLOSED"] },
+          slaDeadline: { lt: now } 
+        }
+      }),
+      prisma.ticket.findMany({
+        where: { ...whereTicketProperty, category: "MAINTENANCE", resolvedAt: { not: null } },
+        select: { createdAt: true, resolvedAt: true }
+      }),
+      prisma.housekeepingTask.findMany({
+        where: {
+          ...whereProperty,
+          status: "COMPLETED",
+          startedAt: { not: null },
+          completedAt: { not: null }
+        },
+        select: { startedAt: true, completedAt: true }
+      }),
+      // 3. GUEST METRICS
+      prisma.guest.findMany({
+        select: { _count: { select: { reservations: true } } }
+      }),
+      prisma.membership.count(),
+      prisma.whatsAppMessage.count()
+    ]);
 
+    // Revenue aggregations
     const totalRevenue = reservations.reduce((sum, r) => sum + r.totalAmount, 0);
     const totalNights = reservations.reduce((sum, r) => {
       const nights = Math.ceil((new Date(r.checkOut).getTime() - new Date(r.checkIn).getTime()) / (1000 * 60 * 60 * 24));
@@ -49,74 +100,36 @@ export async function GET(request: Request) {
     }, {});
     const bookingSources = Object.entries(sources).map(([name, value]) => ({ name, value }));
 
-    // Occupancy
-    const totalUnits = await prisma.unit.count({ where: whereUnitProperty });
-    const currentlyOccupied = await prisma.unit.count({
-      where: { ...whereUnitProperty, status: "OCCUPIED" }
-    });
-    const occupancyRate = totalUnits > 0 ? (currentlyOccupied / totalUnits) * 100 : 0;
+    // Accurate Occupancy Formula: (Total Rooms Sold) / (Total Inventory * Days)
+    const daysInPeriod = differenceInDays(endDate, startDate) + 1;
+    const totalAvailableInventory = totalUnits * daysInPeriod;
+    const occupancyRate = totalAvailableInventory > 0 ? (totalNights / totalAvailableInventory) * 100 : 0;
 
-    // 2. OPERATIONS METRICS
-    const tickets = await prisma.ticket.findMany({
-      where: { ...whereTicketProperty }
-    });
-    
-    const openTickets = tickets.filter(t => t.status !== "RESOLVED" && t.status !== "CLOSED").length;
-    const completedTickets = tickets.filter(t => t.status === "RESOLVED" || t.status === "CLOSED").length;
-    const overdueTickets = tickets.filter(t => 
-      (t.status !== "RESOLVED" && t.status !== "CLOSED") && 
-      (new Date(t.slaDeadline).getTime() < now.getTime())
-    ).length;
-
-    // Average Maintenance Resolution Time (hours)
-    const resolvedMaintenance = tickets.filter(t => 
-      t.category === "MAINTENANCE" && t.resolvedAt
-    );
-    const avgMaintenanceTime = resolvedMaintenance.length > 0 
-      ? resolvedMaintenance.reduce((sum, t) => sum + (new Date(t.resolvedAt!).getTime() - new Date(t.createdAt).getTime()), 0) / resolvedMaintenance.length / (1000 * 60 * 60)
+    // Maintenance Time
+    const avgMaintenanceTime = maintenanceTickets.length > 0 
+      ? maintenanceTickets.reduce((sum, t) => sum + (new Date(t.resolvedAt!).getTime() - new Date(t.createdAt).getTime()), 0) / maintenanceTickets.length / (1000 * 60 * 60)
       : 0;
 
-    // Average Cleaning Time (minutes)
-    const completedHousekeeping = await prisma.housekeepingTask.findMany({
-      where: {
-        ...whereProperty,
-        status: "COMPLETED",
-        startedAt: { not: null },
-        completedAt: { not: null }
-      }
-    });
+    // Cleaning Time
     const avgCleaningTime = completedHousekeeping.length > 0
       ? completedHousekeeping.reduce((sum, t) => sum + (new Date(t.completedAt!).getTime() - new Date(t.startedAt!).getTime()), 0) / completedHousekeeping.length / (1000 * 60)
       : 0;
 
-    // 3. GUEST METRICS
-    const allGuests = await prisma.guest.findMany({
-      include: {
-        _count: {
-          select: { reservations: true }
-        }
-      }
-    });
-
-    const newGuests = allGuests.filter(g => g._count.reservations === 1).length;
-    const repeatGuests = allGuests.filter(g => g._count.reservations > 1).length;
-    
-    const members = await prisma.membership.count();
-
-    // WhatsApp Engagement (Total inbound/outbound messages)
-    const whatsappEngagement = await prisma.whatsAppMessage.count();
+    // Guest segmentation
+    const newGuests = guestsWithCounts.filter(g => g._count.reservations === 1).length;
+    const repeatGuests = guestsWithCounts.filter(g => g._count.reservations > 1).length;
 
     return NextResponse.json({
       revenue: {
         total: totalRevenue,
         adr,
-        occupancyRate,
+        occupancyRate: Math.min(100, occupancyRate), // Cap at 100% just in case of overbooking
         bookingSources
       },
       operations: {
-        openTickets,
-        completedTickets,
-        overdueTickets,
+        openTickets: openTicketsCount,
+        completedTickets: completedTicketsCount,
+        overdueTickets: overdueTicketsCount,
         avgCleaningTime, // in minutes
         avgMaintenanceTime // in hours
       },

@@ -1,0 +1,1 @@
+import { prisma } from "./lib/prisma"; async function main() { const rs = await prisma.reservation.findMany({ select: { intellistayReservationId: true, status: true, checkIn: true, checkOut: true } }); console.log(rs); } main();
