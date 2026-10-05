@@ -117,12 +117,9 @@ async function runBackfill() {
             return normLocal === normalizedIncoming || normLocal.includes(normalizedIncoming) || normalizedIncoming.includes(normLocal);
           });
           
-          if (!localUnit && normalizedIncoming === 'unassigned') {
-            localUnit = await prisma.unit.create({
-              data: { name: 'Unassigned', type: 'SYNCED_ROOM', status: 'AVAILABLE', propertyId: firstProperty.id, floor: '0', capacity: 2 },
-              select: { id: true, propertyId: true, name: true, type: true }
-            });
-            allLocalUnits.push(localUnit);
+          if (!localUnit) {
+            console.log(`Skipping backfill for booking ${intellistayBookingId} as room ${roomNumber} is not matched.`);
+            continue; // Skip invalid rooms
           }
           
           if (localUnit) {
