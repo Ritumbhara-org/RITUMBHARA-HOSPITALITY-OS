@@ -47,12 +47,18 @@ export async function handleGuestAIChat(senderPhone: string, messageText: string
       orderBy: { updatedAt: 'desc' },
       take: 3
     });
+    if (guest.aiContext) {
+      contextStr += `\nPast Memory/Context about this user: ${guest.aiContext}`;
+    }
     
     if (recentTickets.length > 0) {
       contextStr += `\nRecent Tickets for this user:\n` + recentTickets.map(t => `- ID: ${t.id} | Status: ${t.status} | Issue: ${t.description}`).join('\n');
     }
   } else if (teamMember) {
     contextStr = `User Type: Staff/Team Member. Name: ${teamMember.name}. Role: ${teamMember.role}. Department: ${teamMember.department}. Property: ${teamMember.property.name}.`;
+    if (teamMember.aiContext) {
+      contextStr += `\nPast Memory/Context about this staff member: ${teamMember.aiContext}`;
+    }
   }
 
   const systemPrompt = `You are an AI assistant for Ritumbhara Hospitality. 
@@ -60,6 +66,7 @@ You are speaking to a user via WhatsApp.
 Context about this user: ${contextStr}
 
 Your goal is to answer the user's question politely and concisely. 
+If the user asks if you remember them or have memory, confidently say YES and use the "Past Memory/Context" provided above to prove it. Never say you don't retain personal data.
 If the user is reporting a NEW maintenance issue, a complaint, or requesting an item, you MUST respond with intent "ESCALATE_ISSUE".
 If the user is complaining that a previously resolved/closed issue is STILL NOT FIXED (refer to Recent Tickets context), you MUST respond with intent "REOPEN_ISSUE" and include the specific "ticketId".
 If it's a Team Member reporting an issue, look closely at their message to see if they mentioned a specific room/unit (e.g., "Room 204", "Studio 12"). Extract that unit name.
