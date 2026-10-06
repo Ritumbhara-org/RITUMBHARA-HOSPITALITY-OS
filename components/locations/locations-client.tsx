@@ -26,9 +26,11 @@ interface PropertyWithCounts {
 
 interface LocationsClientProps {
   initialLocations: PropertyWithCounts[];
+  userRole?: string;
 }
 
-export function LocationsClient({ initialLocations }: LocationsClientProps) {
+export function LocationsClient({ initialLocations, userRole }: LocationsClientProps) {
+  const isStaff = userRole === 'STAFF';
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<PropertyWithCounts | null>(null);
 
@@ -59,33 +61,37 @@ export function LocationsClient({ initialLocations }: LocationsClientProps) {
           </h1>
           <p className="text-gray-500 mt-1">Manage all physical properties and branches in your portfolio.</p>
         </div>
-        <button
-          onClick={handleAddNew}
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm shadow-primary/20 transition-all duration-200 hover:bg-primary/90 hover:shadow-md hover:shadow-primary/25 active:scale-[0.98]"
-        >
-          <Plus className="w-5 h-5" />
-          Add Location
-        </button>
+        {!isStaff && (
+          <button
+            onClick={handleAddNew}
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm shadow-primary/20 transition-all duration-200 hover:bg-primary/90 hover:shadow-md hover:shadow-primary/25 active:scale-[0.98]"
+          >
+            <Plus className="w-5 h-5" />
+            Add Location
+          </button>
+        )}
       </div>
 
       {/* Data Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {initialLocations.map((location) => (
           <div key={location.id} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow relative group flex flex-col">
-            <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2 bg-white/90 backdrop-blur-sm p-1 rounded-lg">
-              <button
-                onClick={() => handleEdit(location)}
-                className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors"
-              >
-                <Edit2 className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => handleDelete(location.id)}
-                className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </div>
+            {!isStaff && (
+              <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2 bg-white/90 backdrop-blur-sm p-1 rounded-lg">
+                <button
+                  onClick={() => handleEdit(location)}
+                  className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors"
+                >
+                  <Edit2 className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => handleDelete(location.id)}
+                  className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            )}
             
             <h3 className="text-xl font-semibold text-gray-900 mb-1">{location.name}</h3>
             <p className="text-sm text-gray-500 mb-4 flex items-center gap-1.5">
