@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { MessageSquare, Settings, Users, Search, Phone, User, Send, Bot, Shield, Clock, PlusCircle } from "lucide-react"
+import { MessageSquare, Settings, Users, Search, Phone, User, Send, Bot, Shield, Clock, PlusCircle, ChevronLeft } from "lucide-react"
 
 import { useRouter, useSearchParams } from "next/navigation"
 import { sendBroadcast } from "@/app/actions/whatsapp"
@@ -29,6 +29,7 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
   const [replyText, setReplyText] = useState("")
   const [isDrafting, setIsDrafting] = useState(false)
   const [isSummarizing, setIsSummarizing] = useState(false)
+  const [showChatOnMobile, setShowChatOnMobile] = useState(false)
 
   // Broadcast Modal State
   const [isBroadcastModalOpen, setIsBroadcastModalOpen] = useState(false)
@@ -104,9 +105,9 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
   }
 
   return (
-    <div className="flex h-full w-full flex-col bg-background p-6">
-      <div className="mb-6 flex items-center justify-between">
-        <div className="flex items-center gap-6">
+    <div className="flex h-full w-full flex-col bg-background p-4 sm:p-6 overflow-hidden">
+      <div className="mb-6 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4 xl:gap-6">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">WhatsApp Control Center</h1>
             <p className="text-muted-foreground mt-1">Manage guest communications, broadcasts, and AI settings.</p>
@@ -127,7 +128,7 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
             </div>
           )}
         </div>
-        <div className="flex items-center gap-2 rounded-xl border bg-card p-1 shadow-sm">
+        <div className="flex items-center gap-1 sm:gap-2 rounded-xl border bg-card p-1 shadow-sm overflow-x-auto no-scrollbar w-full xl:w-auto whitespace-nowrap">
           {[
             { id: "inbox", label: "Live Inbox", icon: MessageSquare },
             { id: "broadcasts", label: "Broadcasts", icon: Users },
@@ -165,7 +166,7 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
               className="flex h-full"
             >
               {/* Sidebar */}
-              <div className="w-80 border-r flex flex-col bg-muted/10">
+              <div className={`w-full md:w-80 border-r flex flex-col bg-muted/10 ${showChatOnMobile ? 'hidden md:flex' : 'flex'}`}>
                 <div className="p-4 border-b">
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -182,7 +183,10 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
                   {filteredThreads.map(thread => (
                     <button
                       key={thread.phone}
-                      onClick={() => setActiveThreadId(thread.phone)}
+                      onClick={() => {
+                        setActiveThreadId(thread.phone)
+                        setShowChatOnMobile(true)
+                      }}
                       className={`w-full flex items-start gap-3 p-3 rounded-xl text-left transition-colors ${
                         activeThreadId === thread.phone ? "bg-primary/5 ring-1 ring-primary/20" : "hover:bg-muted"
                       }`}
@@ -209,12 +213,18 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
               </div>
 
               {/* Main Chat Area */}
-              <div className="flex-1 flex flex-col bg-background">
+              <div className={`flex-1 flex flex-col bg-background ${showChatOnMobile ? 'flex' : 'hidden md:flex'}`}>
                 {activeThread ? (
                   <>
                     {/* Chat Header */}
                     <div className="h-16 border-b flex items-center px-6 justify-between bg-card">
                       <div className="flex items-center gap-3">
+                        <button 
+                          onClick={() => setShowChatOnMobile(false)}
+                          className="md:hidden p-2 -ml-3 rounded-lg hover:bg-muted text-muted-foreground"
+                        >
+                          <ChevronLeft className="w-5 h-5" />
+                        </button>
                         <div className={`h-10 w-10 rounded-full flex items-center justify-center ${activeThread.teamMember ? 'bg-blue-100 text-blue-600' : 'bg-rose-100 text-rose-600'}`}>
                           {activeThread.teamMember ? <Shield className="h-5 w-5" /> : <User className="h-5 w-5" />}
                         </div>
