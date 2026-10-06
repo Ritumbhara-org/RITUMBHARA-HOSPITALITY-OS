@@ -3,9 +3,35 @@
 import { prisma } from "@/lib/prisma";
 import { normalizePhoneNumber } from "@/lib/utils/phone";
 
-export async function sendManualReply(phone: string, text: string) {
+export async function sendManualReply(
+  phone: string, 
+  text: string, 
+  options?: { isInternalNote?: boolean; templateName?: string }
+) {
+  if (options?.isInternalNote) {
+    await prisma.whatsAppMessage.create({
+      data: {
+        direction: 'OUTBOUND',
+        from: 'SYSTEM_INTERNAL',
+        to: phone,
+        messageType: 'note',
+        content: text,
+        status: 'internal',
+        channel: 'INTERNAL',
+        isInternalNote: true
+      }
+    });
+    return { success: true };
+  }
+
   const { sendWhatsAppMessage } = await import("@/lib/whatsapp/client");
-  await sendWhatsAppMessage(phone, 'text', text);
+  
+  if (options?.templateName) {
+    await sendWhatsAppMessage(phone, 'template', '', options.templateName);
+  } else {
+    await sendWhatsAppMessage(phone, 'text', text);
+  }
+  
   return { success: true };
 }
 

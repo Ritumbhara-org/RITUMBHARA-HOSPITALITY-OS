@@ -284,6 +284,8 @@ model WhatsAppMessage {
   status           String
   relatedEntityType String?
   relatedEntityId   String?
+  channel          String           @default("WHATSAPP") // WHATSAPP, EMAIL, IG, WEB
+  isInternalNote   Boolean          @default(false)
   createdAt        DateTime         @default(now())
 
   @@index([from])
