@@ -1,33 +1,27 @@
 import { redirect } from "next/navigation"
-import { cookies } from "next/headers"
 import { prisma } from "@/lib/prisma"
 import { getInventoryItems } from "@/app/actions/inventory"
 import { InventoryClient } from "@/components/inventory/inventory-client"
+import { getSession } from "@/app/actions/auth"
 
 export default async function InventoryPage({
   searchParams,
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }) {
-  const cookieStore = await cookies()
-  const token = cookieStore.get("auth-token")
-
-  // Try to get current user from token, or fallback to the first admin for demo purposes
-  let user = null;
-  if (token) {
-    user = await prisma.teamMember.findUnique({
-      where: { id: token.value }
-    });
-  }
-
+  const session = await getSession();
+  const user = session?.user;
+  
   if (!user) {
-    user = await prisma.teamMember.findFirst({
-      orderBy: { createdAt: 'asc' }
-    });
+    redirect('/login');
   }
 
-  // Fetch all properties available
+  const isStaff = user.role === 'STAFF';
+  const propertyFilter = isStaff && user.propertyId ? { id: user.propertyId } : {};
+
+  // Fetch properties (filtered by STAFF)
   const properties = await prisma.property.findMany({
+    where: propertyFilter,
     orderBy: { name: 'asc' }
   });
 
@@ -40,10 +34,10 @@ export default async function InventoryPage({
   const paramPropertyId = resolvedParams?.propertyId as string | undefined;
 
   // Determine which property to show: 
-  // 1. The one selected in the URL
-  // 2. The user's assigned property
+  // 1. If STAFF, always their own.
+  // 2. The one selected in the URL
   // 3. The first property in the database
-  const activePropertyId = paramPropertyId || user?.propertyId || properties[0].id;
+  const activePropertyId = isStaff && user.propertyId ? user.propertyId : (paramPropertyId || properties[0].id);
   
   // Fetch items for the active property
   const items = await getInventoryItems(activePropertyId)
@@ -57,7 +51,8 @@ export default async function InventoryPage({
         initialItems={items} 
         activePropertyId={activePropertyId}
         properties={properties}
-        reporterId={user?.id || "system"} 
+        reporterId={user.id}
+        userRole={user.role}
       />
     </div>
   )

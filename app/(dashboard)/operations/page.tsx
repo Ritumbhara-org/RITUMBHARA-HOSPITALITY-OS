@@ -1,11 +1,18 @@
 import { prisma } from "@/lib/prisma"
 import { OperationsClient } from "@/components/operations/operations-client"
 
+import { getSession } from "@/app/actions/auth"
+
 export const revalidate = 15
 
 export default async function OperationsPage() {
+  const session = await getSession();
+  const isStaff = session?.user?.role === 'STAFF';
+  const propertyFilter = isStaff && session?.user?.propertyId ? { propertyId: session.user.propertyId } : {};
+
   const [tickets, housekeepingTasks, properties, units, teamMembers] = await Promise.all([
     prisma.ticket.findMany({
+      where: propertyFilter,
       include: {
         property: true,
         unit: true,
@@ -16,6 +23,7 @@ export default async function OperationsPage() {
       orderBy: { createdAt: 'desc' }
     }),
     prisma.housekeepingTask.findMany({
+      where: propertyFilter,
       include: { property: true, unit: true, assignedTo: true },
       orderBy: { createdAt: 'desc' }
     }),
@@ -24,11 +32,12 @@ export default async function OperationsPage() {
       select: { id: true, name: true }
     }),
     prisma.unit.findMany({
+      where: propertyFilter,
       orderBy: { name: 'asc' },
       select: { id: true, name: true, propertyId: true }
     }),
     prisma.teamMember.findMany({
-      where: { isActive: true },
+      where: { isActive: true, ...propertyFilter },
       orderBy: { name: 'asc' },
       select: { id: true, name: true, role: true, propertyId: true, department: true }
     })
@@ -75,5 +84,5 @@ export default async function OperationsPage() {
     resolved
   }
 
-  return <OperationsClient initialData={combinedData} stats={stats} properties={properties} units={units} teamMembers={teamMembers} />
+  return <OperationsClient initialData={combinedData} stats={stats} properties={properties} units={units} teamMembers={teamMembers} userRole={session?.user?.role} userPropertyId={session?.user?.propertyId} />
 }

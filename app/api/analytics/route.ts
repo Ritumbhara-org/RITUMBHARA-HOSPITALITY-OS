@@ -1,11 +1,19 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths, differenceInDays } from "date-fns";
+import { getSession } from "@/app/actions/auth";
 
 export async function GET(request: Request) {
   try {
+    const session = await getSession();
+    const isStaff = session?.user?.role === "STAFF";
+    
     const url = new URL(request.url);
-    const propertyId = url.searchParams.get("propertyId");
+    const requestedPropertyId = url.searchParams.get("propertyId");
+    
+    // RBAC: Staff can only query their own property. Others can query whatever they requested.
+    const propertyId = isStaff ? session.user.propertyId : (requestedPropertyId && requestedPropertyId !== 'ALL' ? requestedPropertyId : null);
+    
     const timeframe = url.searchParams.get("timeframe") || "This Month";
     
     // Timeframes

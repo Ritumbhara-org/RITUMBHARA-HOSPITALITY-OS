@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { createTicket } from "./operations";
+import { getSession } from "@/app/actions/auth";
 
 export async function getInventoryItems(propertyId: string) {
   return prisma.inventoryItem.findMany({
@@ -20,6 +21,13 @@ export async function addInventoryItem(data: {
   minThreshold: number;
   defaultDeduction?: number;
 }) {
+  const session = await getSession();
+  const user = session?.user;
+  if (!user) throw new Error("Unauthorized");
+  if (user.role === 'STAFF' && user.propertyId !== data.propertyId) {
+    throw new Error("Forbidden: You can only add inventory to your assigned property.");
+  }
+
   const item = await prisma.inventoryItem.create({
     data
   });
@@ -31,6 +39,13 @@ export async function updateInventoryQuantity(itemId: string, change: number, re
   // 1. Fetch current item
   const item = await prisma.inventoryItem.findUnique({ where: { id: itemId } });
   if (!item) throw new Error("Item not found");
+
+  const session = await getSession();
+  const user = session?.user;
+  if (!user) throw new Error("Unauthorized");
+  if (user.role === 'STAFF' && user.propertyId !== item.propertyId) {
+    throw new Error("Forbidden: You can only update inventory for your assigned property.");
+  }
 
   // 2. Update stock
   const newQuantity = Math.max(0, item.quantity + change);

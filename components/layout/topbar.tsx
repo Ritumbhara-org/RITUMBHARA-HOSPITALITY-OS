@@ -1,3 +1,5 @@
+'use client'
+
 import { Bell, Search, Menu } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -11,8 +13,20 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from '@/components/ui/sheet'
 import { Sidebar } from './sidebar'
+import { logout } from '@/app/actions/auth'
+import { useRouter } from 'next/navigation'
 
-export function Topbar() {
+export function Topbar({ user }: { user?: any }) {
+  const router = useRouter()
+  const name = user?.name || "Admin"
+  const email = user?.email || "admin@ritumbhara.com"
+  const initials = name.substring(0, 2).toUpperCase()
+
+  const handleLogout = async () => {
+    await logout()
+    router.push('/login')
+  }
+
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-border/40 bg-background/80 backdrop-blur-xl px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:backdrop-blur-none sm:px-6">
       <Sheet>
@@ -51,22 +65,22 @@ export function Topbar() {
               <Button variant="ghost" size="icon" className="ml-1 h-9 w-9 rounded-xl hover:bg-accent" />
             }>
               <Avatar className="h-7 w-7 ring-2 ring-border">
-                <AvatarImage src="" alt="Admin" />
-                <AvatarFallback className="text-[10px] font-bold bg-primary/10 text-primary">AD</AvatarFallback>
+                <AvatarImage src="" alt={name} />
+                <AvatarFallback className="text-[10px] font-bold bg-primary/10 text-primary">{initials}</AvatarFallback>
               </Avatar>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-semibold">Admin</p>
-                  <p className="text-xs text-muted-foreground">admin@ritumbhara.com</p>
+                  <p className="text-sm font-semibold">{name}</p>
+                  <p className="text-xs text-muted-foreground truncate">{email}</p>
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem>Settings</DropdownMenuItem>
               <DropdownMenuItem>Support</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-destructive focus:text-destructive">Logout</DropdownMenuItem>
+              <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive cursor-pointer">Logout</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

@@ -11,12 +11,15 @@ type TeamMemberWithProperty = TeamMember & { property?: Property };
 interface TeamClientProps {
   initialMembers: TeamMemberWithProperty[];
   properties: Property[];
+  userRole?: string;
+  userPropertyId?: string;
 }
 
-export function TeamClient({ initialMembers, properties }: TeamClientProps) {
+export function TeamClient({ initialMembers, properties, userRole, userPropertyId }: TeamClientProps) {
+  const isStaff = userRole === 'STAFF';
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
-  const [locationFilter, setLocationFilter] = useState<string>("ALL");
+  const [locationFilter, setLocationFilter] = useState<string>(isStaff && userPropertyId ? userPropertyId : "ALL");
 
   const filteredMembers = useMemo(() => {
     if (locationFilter === "ALL") return initialMembers;
@@ -53,24 +56,32 @@ export function TeamClient({ initialMembers, properties }: TeamClientProps) {
         <div className="flex items-center gap-4">
           <div className="relative">
             <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <select
-              value={locationFilter}
-              onChange={(e) => setLocationFilter(e.target.value)}
-              className="pl-9 pr-8 py-2 rounded-xl border border-gray-200 bg-white text-sm font-medium focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 outline-none appearance-none"
-            >
-              <option value="ALL">All Locations</option>
-              {properties.map(p => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </select>
+            {!isStaff ? (
+              <select
+                value={locationFilter}
+                onChange={(e) => setLocationFilter(e.target.value)}
+                className="pl-9 pr-8 py-2 rounded-xl border border-gray-200 bg-white text-sm font-medium focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 outline-none appearance-none"
+              >
+                <option value="ALL">All Locations</option>
+                {properties.map(p => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+            ) : (
+              <div className="pl-9 pr-8 py-2 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-gray-600">
+                {properties.find(p => p.id === locationFilter)?.name || "Assigned Property"}
+              </div>
+            )}
           </div>
-          <button
-            onClick={handleAddNew}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm shadow-primary/20 transition-all duration-200 hover:bg-primary/90 hover:shadow-md hover:shadow-primary/25 active:scale-[0.98]"
-          >
-            <Plus className="w-5 h-5" />
-            Add Team Member
-          </button>
+          {!isStaff && (
+            <button
+              onClick={handleAddNew}
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm shadow-primary/20 transition-all duration-200 hover:bg-primary/90 hover:shadow-md hover:shadow-primary/25 active:scale-[0.98]"
+            >
+              <Plus className="w-5 h-5" />
+              Add Team Member
+            </button>
+          )}
         </div>
       </div>
 

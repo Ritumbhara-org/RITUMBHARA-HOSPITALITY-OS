@@ -28,14 +28,16 @@ export function ReservationsClient({
   guests,
   units,
   currentPage = 1,
-  totalPages = 1
+  totalPages = 1,
+  userRole
 }: { 
   initialData: any[],
   stats: ReservationStats,
   guests: { id: string, name: string, phone: string }[],
   units: { id: string, name: string, type: string }[],
   currentPage?: number,
-  totalPages?: number
+  totalPages?: number,
+  userRole?: string
 }) {
   return (
     <Suspense fallback={<div className="flex items-center justify-center h-64 text-muted-foreground">Loading reservations...</div>}>
@@ -46,6 +48,7 @@ export function ReservationsClient({
         units={units}
         currentPage={currentPage}
         totalPages={totalPages}
+        userRole={userRole}
       />
     </Suspense>
   )
@@ -57,14 +60,16 @@ function ReservationsClientContent({
   guests,
   units,
   currentPage,
-  totalPages
+  totalPages,
+  userRole
 }: { 
   initialData: any[],
   stats: ReservationStats,
   guests: { id: string, name: string, phone: string }[],
   units: { id: string, name: string, type: string }[],
   currentPage: number,
-  totalPages: number
+  totalPages: number,
+  userRole?: string
 }) {
   const [searchTerm, setSearchTerm] = useState("")
   const [filterStatus, setFilterStatus] = useState("ALL")

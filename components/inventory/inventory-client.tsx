@@ -14,9 +14,11 @@ interface InventoryClientProps {
   activePropertyId: string
   properties: Property[]
   reporterId: string
+  userRole?: string
 }
 
-export function InventoryClient({ initialItems, activePropertyId, properties, reporterId }: InventoryClientProps) {
+export function InventoryClient({ initialItems, activePropertyId, properties, reporterId, userRole }: InventoryClientProps) {
+  const isStaff = userRole === 'STAFF';
   const router = useRouter()
   const searchParams = useSearchParams()
   const [items, setItems] = useState<InventoryItem[]>(initialItems)
@@ -101,20 +103,26 @@ export function InventoryClient({ initialItems, activePropertyId, properties, re
           </div>
           <div>
             <h3 className="text-sm font-medium text-muted-foreground">Select Location</h3>
-            <Select value={activePropertyId} onValueChange={handlePropertyChange}>
-              <SelectTrigger className="w-[240px] h-9 border-none bg-transparent hover:bg-muted/50 focus:ring-0 px-2 -ml-2 rounded-lg font-bold text-lg">
-                <SelectValue placeholder="Select property...">
-                  {properties.find(p => p.id === activePropertyId)?.name}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {properties.map(p => (
-                  <SelectItem key={p.id} value={p.id} label={p.name} className="font-medium">
-                    {p.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {isStaff ? (
+              <div className="w-[240px] h-9 px-2 -ml-2 flex items-center font-bold text-lg">
+                {properties.find(p => p.id === activePropertyId)?.name}
+              </div>
+            ) : (
+              <Select value={activePropertyId} onValueChange={handlePropertyChange}>
+                <SelectTrigger className="w-[240px] h-9 border-none bg-transparent hover:bg-muted/50 focus:ring-0 px-2 -ml-2 rounded-lg font-bold text-lg">
+                  <SelectValue placeholder="Select property...">
+                    {properties.find(p => p.id === activePropertyId)?.name}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {properties.map(p => (
+                    <SelectItem key={p.id} value={p.id} label={p.name} className="font-medium">
+                      {p.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
         </div>
         

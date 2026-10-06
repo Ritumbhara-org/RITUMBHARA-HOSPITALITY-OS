@@ -17,7 +17,7 @@ type DashboardData = {
   lowInventory: any[];
 }
 
-export function DashboardClient({ data }: { data: DashboardData }) {
+export function DashboardClient({ data, user }: { data: DashboardData, user?: any }) {
   const stats = [
     { 
       name: "Today's Check-ins", 
@@ -72,7 +72,7 @@ export function DashboardClient({ data }: { data: DashboardData }) {
               transition={{ duration: 0.5, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
               className="text-2xl font-bold tracking-tight text-white"
             >
-              Welcome back, Admin
+              Welcome back, {user?.name || "Admin"}
             </motion.h1>
             <motion.p 
               initial={{ opacity: 0, x: -10 }}

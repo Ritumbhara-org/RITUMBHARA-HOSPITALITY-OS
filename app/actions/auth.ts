@@ -39,7 +39,7 @@ export async function login(email: string, pass: string): Promise<{ success?: bo
   }
 
   const expires = new Date(Date.now() + 24 * 60 * 60 * 1000);
-  const session = await encrypt({ user: { id: user.id, role: user.role, propertyId: user.propertyId } });
+  const session = await encrypt({ user: { id: user.id, name: user.name, email: user.email, role: user.role, propertyId: user.propertyId } });
 
   const cookieStore = await cookies();
   cookieStore.set("auth-token", session, { expires, httpOnly: true });

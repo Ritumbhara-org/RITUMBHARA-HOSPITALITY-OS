@@ -1,10 +1,17 @@
 import { prisma } from "@/lib/prisma"
 import { UnitsClient } from "@/components/units/units-client"
 
+import { getSession } from "@/app/actions/auth"
+
 export const revalidate = 15
 
 export default async function UnitsPage() {
+  const session = await getSession();
+  const isStaff = session?.user?.role === 'STAFF';
+  const propertyFilter = isStaff && session?.user?.propertyId ? { propertyId: session.user.propertyId } : {};
+
   const units = await prisma.unit.findMany({
+    where: propertyFilter,
     include: {
       property: true,
       reservations: {
@@ -42,8 +49,9 @@ export default async function UnitsPage() {
   }
 
   const properties = await prisma.property.findMany({
+    where: isStaff && session?.user?.propertyId ? { id: session.user.propertyId } : {},
     orderBy: { name: 'asc' }
   })
 
-  return <UnitsClient initialData={units} stats={stats} properties={properties} />
+  return <UnitsClient initialData={units} stats={stats} properties={properties} userRole={session?.user?.role} userPropertyId={session?.user?.propertyId} />
 }

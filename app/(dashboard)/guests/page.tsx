@@ -1,10 +1,18 @@
 import { prisma } from "@/lib/prisma"
 import { GuestsClient } from "@/components/guests/guests-client"
 
+import { getSession } from "@/app/actions/auth"
+
 export const revalidate = 15
 
 export default async function GuestsPage() {
+  const session = await getSession();
+  const isStaff = session?.user?.role === 'STAFF';
+  const propertyFilter = isStaff && session?.user?.propertyId ? {
+    reservations: { some: { propertyId: session.user.propertyId } }
+  } : {};
   const guests = await prisma.guest.findMany({
+    where: propertyFilter,
     include: {
       membership: true,
       reservations: {

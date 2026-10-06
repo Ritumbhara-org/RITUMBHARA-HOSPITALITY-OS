@@ -6,8 +6,14 @@ export const metadata = {
   description: "Manage your hospitality staff and their operational roles.",
 };
 
+import { getSession } from "@/app/actions/auth";
+
 export default async function TeamPage() {
+  const session = await getSession();
+  const isStaff = session?.user?.role === 'STAFF';
+  const propertyFilter = isStaff && session?.user?.propertyId ? { propertyId: session.user.propertyId } : {};
   const teamMembers = await prisma.teamMember.findMany({
+    where: propertyFilter,
     orderBy: { createdAt: "desc" },
     include: { property: true }
   });
@@ -16,5 +22,5 @@ export default async function TeamPage() {
     orderBy: { name: "asc" },
   });
 
-  return <TeamClient initialMembers={teamMembers} properties={properties} />;
+  return <TeamClient initialMembers={teamMembers} properties={properties} userRole={session?.user?.role} userPropertyId={session?.user?.propertyId} />;
 }

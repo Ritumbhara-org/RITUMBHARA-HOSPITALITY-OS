@@ -21,15 +21,20 @@ type UnitStats = {
 export function UnitsClient({ 
   initialData, 
   stats,
-  properties
+  properties,
+  userRole,
+  userPropertyId
 }: { 
   initialData: any[],
   stats: UnitStats,
-  properties: any[]
+  properties: any[],
+  userRole?: string,
+  userPropertyId?: string
 }) {
+  const isStaff = userRole === 'STAFF';
   const [searchTerm, setSearchTerm] = useState("")
   const [filterStatus, setFilterStatus] = useState("ALL")
-  const [filterLocation, setFilterLocation] = useState("ALL")
+  const [filterLocation, setFilterLocation] = useState(isStaff && userPropertyId ? userPropertyId : "ALL")
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -131,19 +136,23 @@ export function UnitsClient({
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="grid gap-2 col-span-2">
-                      <Label htmlFor="propertyId">Location / Property *</Label>
-                      <Select name="propertyId" required>
-                        <SelectTrigger className="rounded-xl">
-                          <SelectValue placeholder="Select Location" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {properties.map(p => (
-                            <SelectItem key={p.id} value={p.id} label={p.name}>{p.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    {!isStaff ? (
+                      <div className="grid gap-2 col-span-2">
+                        <Label htmlFor="propertyId">Location / Property *</Label>
+                        <Select name="propertyId" required>
+                          <SelectTrigger className="rounded-xl">
+                            <SelectValue placeholder="Select Location" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {properties.map(p => (
+                              <SelectItem key={p.id} value={p.id} label={p.name}>{p.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    ) : (
+                      userPropertyId && <input type="hidden" name="propertyId" value={userPropertyId} />
+                    )}
                     <div className="grid gap-2">
                       <Label htmlFor="name">Unit Name / Number *</Label>
                       <Input id="name" name="name" placeholder="e.g. 101 or Presidential Suite" required className="rounded-xl" />
@@ -228,20 +237,22 @@ export function UnitsClient({
             />
           </div>
           <div className="flex items-center gap-3">
-            <Select value={filterLocation} onValueChange={(val) => setFilterLocation(val || "ALL")}>
-              <SelectTrigger className="w-[180px] bg-background rounded-xl">
-                <div className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4" />
-                  <span className="truncate">{filterLocation === 'ALL' ? 'All Locations' : properties.find(p => p.id === filterLocation)?.name || 'Unknown'}</span>
-                </div>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ALL">All Locations</SelectItem>
-                {properties.map(p => (
-                  <SelectItem key={p.id} value={p.id} label={p.name}>{p.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {!isStaff && (
+              <Select value={filterLocation} onValueChange={(val) => setFilterLocation(val || "ALL")}>
+                <SelectTrigger className="w-[180px] bg-background rounded-xl">
+                  <div className="flex items-center gap-2">
+                    <MapPin className="h-4 w-4" />
+                    <span className="truncate">{filterLocation === 'ALL' ? 'All Locations' : properties.find(p => p.id === filterLocation)?.name || 'Unknown'}</span>
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">All Locations</SelectItem>
+                  {properties.map(p => (
+                    <SelectItem key={p.id} value={p.id} label={p.name}>{p.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
             <Select value={filterStatus} onValueChange={(val) => setFilterStatus(val || "ALL")}>
               <SelectTrigger className="w-[180px] bg-background rounded-xl">
                 <div className="flex items-center gap-2">

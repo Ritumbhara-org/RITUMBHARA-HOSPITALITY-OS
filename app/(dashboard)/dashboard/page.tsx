@@ -1,9 +1,15 @@
 import { prisma } from "@/lib/prisma"
 import { DashboardClient } from "@/components/dashboard/dashboard-client"
 
+import { getSession } from "@/app/actions/auth"
+
 export const dynamic = 'force-dynamic'
 
 export default async function DashboardPage() {
+  const session = await getSession();
+  const isStaff = session?.user?.role === 'STAFF';
+  const propertyFilter = isStaff && session?.user?.propertyId ? { propertyId: session.user.propertyId } : {};
+
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   const tomorrow = new Date(today)
@@ -21,17 +27,18 @@ export default async function DashboardPage() {
     unitStatusCounts,
     lowInventoryItems
   ] = await Promise.all([
-    prisma.unit.count(),
-    prisma.unit.count({ where: { status: 'AVAILABLE' } }),
-    prisma.unit.count({ where: { status: 'DIRTY' } }),
-    prisma.reservation.count({ where: { status: 'CHECKED_IN' } }),
+    prisma.unit.count({ where: propertyFilter }),
+    prisma.unit.count({ where: { status: 'AVAILABLE', ...propertyFilter } }),
+    prisma.unit.count({ where: { status: 'DIRTY', ...propertyFilter } }),
+    prisma.reservation.count({ where: { status: 'CHECKED_IN', ...propertyFilter } }),
     prisma.reservation.findMany({
       where: {
         checkIn: {
           gte: today,
           lt: tomorrow
         },
-        status: 'CONFIRMED'
+        status: 'CONFIRMED',
+        ...propertyFilter
       },
       include: {
         guest: true,
@@ -41,7 +48,8 @@ export default async function DashboardPage() {
     }),
     prisma.ticket.findMany({
       where: {
-        status: { notIn: ['RESOLVED', 'CLOSED'] }
+        status: { notIn: ['RESOLVED', 'CLOSED'] },
+        ...propertyFilter
       },
       include: {
         unit: true
@@ -55,7 +63,8 @@ export default async function DashboardPage() {
           gte: new Date(today.getTime() - 24 * 60 * 60 * 1000),
           lt: today
         },
-        status: { not: 'CANCELLED' }
+        status: { not: 'CANCELLED' },
+        ...propertyFilter
       }
     }),
     prisma.reservation.findMany({
@@ -64,7 +73,8 @@ export default async function DashboardPage() {
           gte: today,
           lt: tomorrow
         },
-        status: 'CHECKED_IN'
+        status: 'CHECKED_IN',
+        ...propertyFilter
       },
       include: {
         guest: true,
@@ -74,13 +84,15 @@ export default async function DashboardPage() {
     }),
     prisma.unit.groupBy({
       by: ['status'],
+      where: propertyFilter,
       _count: {
         id: true
       }
     }),
     prisma.inventoryItem.findMany({
       where: {
-        quantity: { lt: prisma.inventoryItem.fields.minThreshold }
+        quantity: { lt: prisma.inventoryItem.fields.minThreshold },
+        ...propertyFilter
       },
       include: {
         property: true
@@ -112,5 +124,5 @@ export default async function DashboardPage() {
     lowInventory: lowInventoryItems
   }
 
-  return <DashboardClient data={dashboardData} />
+  return <DashboardClient data={dashboardData} user={session?.user} />
 }

@@ -27,17 +27,21 @@ export function OperationsClient({
   stats,
   properties,
   units,
-  teamMembers
+  teamMembers,
+  userRole,
+  userPropertyId
 }: { 
   initialData: any[],
   stats: OperationStats,
   properties: { id: string, name: string }[],
   units: { id: string, name: string, propertyId: string }[],
-  teamMembers: any[]
+  teamMembers: any[],
+  userRole?: string,
+  userPropertyId?: string
 }) {
   return (
     <Suspense fallback={<div className="flex items-center justify-center h-64 text-muted-foreground">Loading operations...</div>}>
-      <OperationsClientContent initialData={initialData} stats={stats} properties={properties} units={units} teamMembers={teamMembers} />
+      <OperationsClientContent initialData={initialData} stats={stats} properties={properties} units={units} teamMembers={teamMembers} userRole={userRole} userPropertyId={userPropertyId} />
     </Suspense>
   )
 }
@@ -47,17 +51,22 @@ function OperationsClientContent({
   stats,
   properties,
   units,
-  teamMembers
+  teamMembers,
+  userRole,
+  userPropertyId
 }: { 
   initialData: any[],
   stats: OperationStats,
   properties: { id: string, name: string }[],
   units: { id: string, name: string, propertyId: string }[],
-  teamMembers: any[]
+  teamMembers: any[],
+  userRole?: string,
+  userPropertyId?: string
 }) {
+  const isStaff = userRole === 'STAFF';
   const [searchTerm, setSearchTerm] = useState("")
   const [filterCategory, setFilterCategory] = useState("ALL")
-  const [filterProperty, setFilterProperty] = useState("ALL")
+  const [filterProperty, setFilterProperty] = useState(isStaff && userPropertyId ? userPropertyId : "ALL")
   const [filterUnit, setFilterUnit] = useState("ALL")
   const [filterPriority, setFilterPriority] = useState("ALL")
   const [filterAssignee, setFilterAssignee] = useState("ALL")
@@ -397,16 +406,18 @@ function OperationsClientContent({
                     </Select>
                   </div>
 
-                  <div className="grid gap-2">
-                    <Label className="text-xs text-muted-foreground">Property</Label>
-                    <Select value={filterProperty} onValueChange={(val) => { setFilterProperty(val || "ALL"); setFilterUnit("ALL"); }}>
-                      <SelectTrigger className="h-8 rounded-lg text-xs"><SelectValue placeholder="All Properties" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="ALL">All Properties</SelectItem>
-                        {properties.map(p => <SelectItem key={p.id} value={p.id} label={p.name}>{p.name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  {!isStaff && (
+                    <div className="grid gap-2">
+                      <Label className="text-xs text-muted-foreground">Property</Label>
+                      <Select value={filterProperty} onValueChange={(val) => { setFilterProperty(val || "ALL"); setFilterUnit("ALL"); }}>
+                        <SelectTrigger className="h-8 rounded-lg text-xs"><SelectValue placeholder="All Properties" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="ALL">All Properties</SelectItem>
+                          {properties.map(p => <SelectItem key={p.id} value={p.id} label={p.name}>{p.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
 
                   {filterProperty !== "ALL" && (
                     <div className="grid gap-2">

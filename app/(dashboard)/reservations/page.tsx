@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma"
 import { ReservationsClient } from "@/components/reservations/reservations-client"
 
+import { getSession } from "@/app/actions/auth"
+
 export const revalidate = 15
 
 export default async function ReservationsPage({
@@ -15,9 +17,14 @@ export default async function ReservationsPage({
   const limit = 20
   const skip = (page - 1) * limit
 
+  const session = await getSession();
+  const isStaff = session?.user?.role === 'STAFF';
+  const propertyFilter = isStaff && session?.user?.propertyId ? { propertyId: session.user.propertyId } : {};
+
   // Run all independent queries simultaneously
   const [reservations, totalCount, guests, units, allStats] = await Promise.all([
     prisma.reservation.findMany({
+      where: propertyFilter,
       include: {
         guest: true,
         unit: true,
@@ -27,16 +34,18 @@ export default async function ReservationsPage({
       take: limit,
       skip: skip
     }),
-    prisma.reservation.count(),
+    prisma.reservation.count({ where: propertyFilter }),
     prisma.guest.findMany({ 
       orderBy: { name: 'asc' }, 
       select: { id: true, name: true, phone: true } 
     }),
     prisma.unit.findMany({ 
+      where: propertyFilter,
       orderBy: { name: 'asc' }, 
       select: { id: true, name: true, type: true } 
     }),
     prisma.reservation.findMany({
+      where: propertyFilter,
       select: { status: true, checkIn: true }
     })
   ])
@@ -62,5 +71,6 @@ export default async function ReservationsPage({
     units={units} 
     currentPage={page}
     totalPages={totalPages}
+    userRole={session?.user?.role}
   />
 }
