@@ -7,7 +7,10 @@ async function fetchSample() {
   console.log('Fetching bookings...');
   const response = await intellistay.fetch('/api/Booking/GetAllBookingsByPagination', {
     method: 'POST',
-    body: JSON.stringify({ pageNumber: 1, pageSize: 2 })
+    body: JSON.stringify({
+      pagination: { page: 1, limit: 2 },
+      filter: { getAll: true, orderBy: "bookingId", order: "desc" }
+    })
   });
   
   if (!response.ok) {

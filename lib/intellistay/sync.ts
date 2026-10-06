@@ -63,7 +63,10 @@ export async function syncBookings() {
     // (A hotel rarely gets >10 bookings in a 5-minute window).
     const response = await intellistay.fetch('/api/Booking/GetAllBookingsByPagination', {
       method: 'POST',
-      body: JSON.stringify({ pageNumber: 1, pageSize: 10 })
+      body: JSON.stringify({
+        pagination: { page: 1, limit: 10 },
+        filter: { getAll: true, orderBy: "bookingId", order: "desc" }
+      })
     });
     
     if (response.ok) {
