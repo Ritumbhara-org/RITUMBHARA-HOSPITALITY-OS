@@ -67,7 +67,7 @@ Based ONLY on this transcript, write an updated, concise summary of this user. I
   }
 }
 
-export async function draftAIReply(phone: string, recentMessages: string[]) {
+export async function draftAIReply(phone: string, recentMessages: string[], useHinglish: boolean = false) {
   try {
     const cleanPhone = normalizePhoneNumber(phone);
     const guests = await prisma.guest.findMany();
@@ -75,13 +75,23 @@ export async function draftAIReply(phone: string, recentMessages: string[]) {
 
     const context = guest?.aiContext || "No background context available.";
     
-    const prompt = `You are an AI agent for a hotel. Draft a polite, concise reply to the user.
+    let prompt = `You are an AI agent for a hotel. Draft a polite, concise reply to the user.
 User Context: ${context}
 
 Recent messages:
 ${recentMessages.join('\n')}
 
 Draft the next reply:`;
+
+    if (useHinglish) {
+      prompt = `You are a friendly, hospitality-oriented AI agent for an Indian hotel. Draft a warm, welcoming reply to the user in Hinglish (a natural mix of English and polite Hindi, using words like 'Ji', 'Namaste', 'Shukriya' where appropriate).
+User Context: ${context}
+
+Recent messages:
+${recentMessages.join('\n')}
+
+Draft the next reply in Hinglish:`;
+    }
 
     const chatCompletion = await ai.chat.completions.create({
       messages: [{ role: "system", content: prompt }],

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { MessageSquare, Settings, Users, Search, Phone, User, Send, Bot, Shield, Clock, PlusCircle, ChevronLeft, StickyNote, Mail, Globe, MessageCircle } from "lucide-react"
+import { MessageSquare, Settings, Users, Search, Phone, User, Send, Bot, Shield, Clock, PlusCircle, ChevronLeft, StickyNote, Mail, Globe, MessageCircle, Star, Briefcase, IndianRupee } from "lucide-react"
 
 import { useRouter, useSearchParams } from "next/navigation"
 import { sendBroadcast } from "@/app/actions/whatsapp"
@@ -31,6 +31,7 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
   const [isSummarizing, setIsSummarizing] = useState(false)
   const [showChatOnMobile, setShowChatOnMobile] = useState(false)
   const [isInternalMode, setIsInternalMode] = useState(false)
+  const [isHinglishMode, setIsHinglishMode] = useState(false)
   const [selectedTemplate, setSelectedTemplate] = useState("pre_arrival_instructions")
 
   // Broadcast Modal State
@@ -219,11 +220,12 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
                 </div>
               </div>
 
-              {/* Main Chat Area */}
-              <div className={`flex-1 flex flex-col bg-background ${showChatOnMobile ? 'flex' : 'hidden md:flex'}`}>
+              {/* Main Chat Area with Sidebar */}
+              <div className={`flex-1 flex overflow-hidden bg-background ${showChatOnMobile ? 'flex' : 'hidden md:flex'}`}>
                 {activeThread ? (
                   <>
-                    {/* Chat Header */}
+                    <div className="flex-1 flex flex-col">
+                      {/* Chat Header */}
                     <div className="h-16 border-b flex items-center px-6 justify-between bg-card">
                       <div className="flex items-center gap-3">
                         <button 
@@ -305,7 +307,7 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
                           onClick={async () => {
                             setIsDrafting(true);
                             const recentMsgs = activeThread.messages.slice(-5).map((m: any) => m.content);
-                            const res = await draftAIReply(activeThread.phone, recentMsgs);
+                            const res = await draftAIReply(activeThread.phone, recentMsgs, isHinglishMode);
                             if (res.success) setReplyText(res.draft || "");
                             else toast.error("Failed to draft reply");
                             setIsDrafting(false);
@@ -316,6 +318,13 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
                           <Sparkles className="w-3.5 h-3.5" />
                           {isDrafting ? "Drafting..." : "AI Draft"}
                         </button>
+
+                        <button
+                          onClick={() => setIsHinglishMode(!isHinglishMode)}
+                          className={`text-xs font-semibold px-3 py-1.5 rounded-full transition-colors ${isHinglishMode ? 'bg-indigo-600 text-white' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}
+                        >
+                          Hinglish
+                        </button>
                         
                         <button
                           onClick={() => setIsInternalMode(!isInternalMode)}
@@ -323,6 +332,21 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
                         >
                           <StickyNote className="w-3.5 h-3.5" />
                           Internal Note
+                        </button>
+                        <button
+                          onClick={async () => {
+                            const note = prompt("Enter call notes:");
+                            if (note) {
+                              toast.success("Logging call...");
+                              await import("@/app/actions/whatsapp").then(m => m.sendManualReply(activeThread.phone, `📞 CALL LOG: ${note}`, { isInternalNote: true }));
+                              toast.success("Call logged!");
+                              window.location.reload();
+                            }
+                          }}
+                          className="text-xs font-semibold flex items-center gap-1.5 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-full transition-colors"
+                        >
+                          <Phone className="w-3.5 h-3.5" />
+                          Log Call
                         </button>
                         <button 
                           onClick={async () => {
@@ -407,6 +431,63 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
                           >
                             <Send className="h-4 w-4 ml-0.5" />
                           </button>
+                        </div>
+                      )}
+                    </div>
+                  </div> {/* <--- THIS IS THE MISSING CLOSING DIV FOR flex-1 flex flex-col */}
+
+                  {/* Guest 360° Sidebar */}
+                  <div className="w-80 border-l bg-card hidden lg:flex flex-col overflow-y-auto">
+                      <div className="p-6 border-b">
+                        <div className="flex flex-col items-center text-center">
+                          <div className={`h-20 w-20 rounded-full flex items-center justify-center mb-4 ${activeThread.teamMember ? 'bg-blue-100 text-blue-600' : 'bg-rose-100 text-rose-600'}`}>
+                            {activeThread.teamMember ? <Shield className="h-10 w-10" /> : <User className="h-10 w-10" />}
+                          </div>
+                          <h3 className="text-lg font-bold">
+                            {activeThread.teamMember ? activeThread.teamMember.name : (activeThread.guest ? activeThread.guest.name : activeThread.phone)}
+                          </h3>
+                          <p className="text-sm text-muted-foreground flex items-center gap-1.5 mt-1">
+                            <Phone className="h-3.5 w-3.5" /> {activeThread.phone}
+                          </p>
+                        </div>
+                      </div>
+
+                      {activeThread.guest && (
+                        <div className="p-6 flex-1">
+                          {/* Lifetime Value */}
+                          <div className="mb-6">
+                            <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Lifetime Value</h4>
+                            <div className="grid grid-cols-2 gap-3">
+                              <div className="bg-muted p-3 rounded-xl">
+                                <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1"><Briefcase className="w-3 h-3"/> Stays</div>
+                                <div className="font-semibold">{activeThread.guest.reservations?.length || 0}</div>
+                              </div>
+                              <div className="bg-muted p-3 rounded-xl">
+                                <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1"><IndianRupee className="w-3 h-3"/> Spend</div>
+                                <div className="font-semibold">₹{(activeThread.guest.reservations || []).reduce((acc: number, r: any) => acc + (r.totalAmount || 0), 0).toLocaleString()}</div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Open Tickets */}
+                          <div>
+                            <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Active Tickets</h4>
+                            {activeThread.guest.tickets && activeThread.guest.tickets.length > 0 ? (
+                              <div className="space-y-3">
+                                {activeThread.guest.tickets.map((ticket: any) => (
+                                  <div key={ticket.id} className="bg-muted/50 p-3 rounded-xl border border-border/50 text-sm">
+                                    <div className="font-medium">{ticket.category}</div>
+                                    <div className="text-muted-foreground text-xs mt-1">{ticket.description}</div>
+                                    <div className="mt-2 text-xs font-semibold text-rose-600 uppercase">
+                                      {ticket.status}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="text-sm text-muted-foreground italic">No open tickets.</div>
+                            )}
+                          </div>
                         </div>
                       )}
                     </div>

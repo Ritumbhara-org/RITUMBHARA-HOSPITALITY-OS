@@ -67,7 +67,10 @@ export async function getWhatsAppConversations() {
   }
 
   const allGuests = await prisma.guest.findMany({
-    include: { reservations: { orderBy: { checkIn: 'desc' }, take: 1 } }
+    include: { 
+      reservations: { orderBy: { checkIn: 'desc' } },
+      tickets: { where: { status: { not: 'CLOSED' } }, orderBy: { createdAt: 'desc' } }
+    }
   });
   const allTeam = await prisma.teamMember.findMany();
 
