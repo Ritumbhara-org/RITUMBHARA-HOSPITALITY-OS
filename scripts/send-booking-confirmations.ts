@@ -1,5 +1,5 @@
-import { prisma } from '../lib/prisma.ts';
-import { sendWhatsAppMessage } from '../lib/whatsapp/client.ts';
+import { prisma } from '../lib/prisma';
+import { sendWhatsAppMessage } from '../lib/whatsapp/client';
 
 async function run() {
   const today = new Date();
