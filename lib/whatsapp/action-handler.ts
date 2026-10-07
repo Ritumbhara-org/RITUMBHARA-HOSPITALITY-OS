@@ -29,7 +29,7 @@ export async function handleWhatsAppAction(senderPhone: string, messageText: str
           status: { in: ["ASSIGNED", "ACKNOWLEDGED", "IN_PROGRESS"] }
         },
         orderBy: { updatedAt: 'desc' },
-        include: { unit: true }
+        include: { unit: true, guest: true }
       });
       
       if (ticket) {
@@ -49,7 +49,7 @@ export async function handleWhatsAppAction(senderPhone: string, messageText: str
             subcategory: "POINTS_REDEMPTION"
           },
           orderBy: { createdAt: 'desc' },
-          include: { unit: true }
+          include: { unit: true, guest: true }
         });
 
         if (unassignedTicket) {
@@ -105,19 +105,31 @@ export async function handleWhatsAppAction(senderPhone: string, messageText: str
         if (resolutionNote.length === 0) resolutionNote = "resolved";
       }
 
-      const isActionCommand = ["ACCEPT", "START", "RESOLVE", "COMPLETE", "DONE", "NOTED"].some(cmd => messageText.includes(cmd));
+      const isActionCommand = ["ACCEPT", "START", "RESOLVE", "COMPLETE", "DONE", "NOTED"].some(cmd => messageText.toUpperCase().includes(cmd));
 
-      // Natural Language Resolution Engine!
-      if (!isActionCommand && !mediaUrl && (activeTicket.status === "ACKNOWLEDGED" || activeTicket.status === "IN_PROGRESS")) {
+      // Natural Language Intent Engine!
+      if (!isActionCommand && !mediaUrl && activeTicket.status !== "RESOLVED" && activeTicket.status !== "CLOSED") {
         const { ai } = await import("@/lib/ai/groq");
-        const prompt = `You are a strict QA assistant. 
+        const prompt = `You are an AI assistant managing a hotel ticketing system. 
 A hotel guest raised this issue/request: "${activeTicket.description}"
-The Front Desk staff replied with: "${messageText}"
+The assigned staff member replied with: "${messageText}"
 
-Does the staff's reply reasonably answer or address the guest's issue?
-If it's gibberish, out of context (e.g. "hello brother"), or completely unrelated, respond with {"valid": false}.
-If it's a valid response, respond with {"valid": true, "formattedReply": "The exact message to send to the guest, cleaned up slightly for professionalism if needed"}.
-IMPORTANT: Output strictly JSON.`;
+Analyze the staff member's reply (which might be in English, Hindi, or Hinglish) and determine their intent.
+Intents:
+1. "ACCEPT": The staff is acknowledging the ticket and saying they will do it (e.g., "haan ho jayega", "I will do it", "ok").
+2. "RESOLVE": The staff is confirming the task is fully complete/done (e.g., "ho gaya", "done", "de diya", "bhej diya").
+3. "QUESTION": The staff is asking a follow-up question or giving an update intended for the guest (e.g., "kitne baje dena hai?", "kaunsa room?").
+4. "UNKNOWN": Gibberish or unrelated.
+
+IMPORTANT: If intent is RESOLVE or QUESTION, you MUST generate a "messageForGuest". This message MUST be written in the exact same language/tone that the guest used in their original request! 
+For example, if the guest asked in Hinglish ("cooker bhej do"), the messageForGuest should be in Hinglish ("Aapka cooker bhej diya gaya hai."). If English, use English.
+
+Output JSON:
+{
+  "intent": "ACCEPT" | "RESOLVE" | "QUESTION" | "UNKNOWN",
+  "messageForGuest": "Message to send to the guest (only if RESOLVE or QUESTION). null otherwise.",
+  "staffReply": "A short confirmation message to send back to the staff (e.g. '✅ Ticket Accepted' or '✅ Ticket Resolved')."
+}`;
 
         try {
            const chatCompletion = await ai.chat.completions.create({
@@ -126,14 +138,31 @@ IMPORTANT: Output strictly JSON.`;
              response_format: { type: "json_object" }
            });
            
-           const parsed = JSON.parse(chatCompletion.choices[0]?.message?.content || '{"valid": false}');
+           const parsed = JSON.parse(chatCompletion.choices[0]?.message?.content || '{"intent": "UNKNOWN"}');
            
-           if (!parsed.valid) {
-             return `⚠️ That reply doesn't seem to address the guest's issue ("${activeTicket.description}"). Please tell me exactly what I should convey to the guest.`;
+           if (parsed.intent === "UNKNOWN") {
+             return `⚠️ I didn't quite catch that. You can reply with 'ACCEPT' to acknowledge, or 'RESOLVE <message>' to close the ticket.`;
+           }
+
+           if (parsed.intent === "ACCEPT") {
+             await prisma.ticket.update({
+               where: { id: activeTicket.id },
+               data: { status: "ACKNOWLEDGED" }
+             });
+             return parsed.staffReply || `✅ Ticket Acknowledged!`;
+           }
+
+           if (parsed.intent === "QUESTION" && parsed.messageForGuest && activeTicket.guest?.phone) {
+             const { sendWhatsAppMessage } = await import("@/lib/whatsapp/client");
+             // Send the question directly to the guest as a standard text (assuming open 24h window)
+             await sendWhatsAppMessage(activeTicket.guest.phone, 'text', parsed.messageForGuest);
+             return parsed.staffReply || `✅ Message forwarded to guest.`;
            }
            
-           isResolving = true;
-           resolutionNote = parsed.formattedReply;
+           if (parsed.intent === "RESOLVE") {
+             isResolving = true;
+             resolutionNote = parsed.messageForGuest || "Resolved";
+           }
         } catch (e) {
            console.error("AI Evaluation error:", e);
            return `I didn't quite catch that. Reply with 'RESOLVE <your message>' to close the ticket.`;
