@@ -63,7 +63,7 @@ export async function syncBookings() {
     const response = await intellistay.fetch('/api/Booking/GetAllBookingsByPagination', {
       method: 'POST',
       body: JSON.stringify({
-        pagination: { page: 1, limit: 15 },
+        pagination: { page: 1, limit: 10 },
         filter: { getAll: true, orderBy: "bookingId", order: "desc" }
       })
     });
