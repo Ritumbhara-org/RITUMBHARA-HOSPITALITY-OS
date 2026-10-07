@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, Suspense } from "react"
-import { useSearchParams, useRouter } from "next/navigation"
+import { useSearchParams, useRouter, usePathname } from "next/navigation"
 import { motion } from "framer-motion"
 import { Search, Filter, CalendarCheck, MoreHorizontal, CheckCircle2, Calendar, Clock, XCircle, Loader2, Plus } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -74,6 +74,7 @@ function ReservationsClientContent({
 
   const searchParams = useSearchParams()
   const router = useRouter()
+  const pathname = usePathname()
   
   const [defaultGuestId, setDefaultGuestId] = useState<string | undefined>()
 
@@ -411,14 +412,14 @@ function ReservationsClientContent({
               </div>
               <div className="flex gap-2">
                 <button
-                  onClick={() => router.push(`?page=${currentPage > 1 ? currentPage - 1 : 1}`)}
+                  onClick={() => router.push(`${pathname}?page=${currentPage > 1 ? currentPage - 1 : 1}`)}
                   disabled={currentPage <= 1}
                   className="px-3 py-1 text-sm bg-white/5 rounded hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   Previous
                 </button>
                 <button
-                  onClick={() => router.push(`?page=${currentPage < totalPages ? currentPage + 1 : totalPages}`)}
+                  onClick={() => router.push(`${pathname}?page=${currentPage < totalPages ? currentPage + 1 : totalPages}`)}
                   disabled={currentPage >= totalPages}
                   className="px-3 py-1 text-sm bg-white/5 rounded hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
