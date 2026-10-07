@@ -297,7 +297,7 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
                       className="w-full h-40 p-4 rounded-xl border bg-background text-sm font-mono focus:ring-2 focus:ring-primary/20 outline-none"
                       defaultValue={`You are a helpful, polite, and professional AI assistant for Ritumbhara Hospitality. 
 Always aim for 5-star service. Keep answers concise.
-If they ask for late checkout, mention it is subject to availability and costs $20/hour.
+If they ask for late checkout, mention it is subject to availability and costs ₹1500/hour.
 If they complain, apologize profusely and escalate the issue immediately.`}
                     />
                     <div className="mt-4 flex justify-end">
