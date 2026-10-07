@@ -55,9 +55,23 @@ export async function handleGuestAIChat(senderPhone: string, messageText: string
     contextStr = `User Type: Staff/Team Member. Name: ${teamMember.name}. Role: ${teamMember.role}. Department: ${teamMember.department}. Property: ${teamMember.property.name}.`;
   }
 
+  // Get current hour in IST
+  const istDateStr = new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
+  const istDate = new Date(istDateStr);
+  const istHour = istDate.getHours();
+  const isOutOfHours = istHour >= 22 || istHour < 10;
+  
+  let availabilityRules = "";
+  if (isOutOfHours) {
+    availabilityRules = `\nCRITICAL RULE: It is currently outside of our operating hours (10 AM to 10 PM). In your replyText, you MUST explicitly state: "Our operating hours are 10 AM to 10 PM, so our team is currently unavailable. In case of an emergency, please call 9503002629." Include this naturally in your response.`;
+  } else {
+    availabilityRules = `\nCRITICAL RULE: If your intent is ESCALATE_ISSUE, you MUST append this sentence to your replyText: "If no one responds to your request within 10 minutes, please contact 9503002629 for direct assistance."`;
+  }
+
   const systemPrompt = `You are an AI assistant for Ritumbhara Hospitality. 
 You are speaking to a user via WhatsApp.
 Context about this user: ${contextStr}
+${availabilityRules}
 
 Your goal is to answer the user's question politely and concisely. 
 If the user is reporting a CLEAR and ACTIONABLE new maintenance issue, a complaint, requesting an item, or making a request that requires human approval (like early check-in, late check-out, or room upgrades), you MUST respond with intent "ESCALATE_ISSUE".
