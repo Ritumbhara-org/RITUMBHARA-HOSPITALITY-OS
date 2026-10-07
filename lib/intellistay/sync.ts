@@ -144,7 +144,7 @@ export async function syncBookings() {
           
           if (!localUnit) {
             console.log(`Skipping booking ${booking.bookingId} as room ${roomNumber} is not in our original units.`);
-            continue; // Skip this booking entirely
+            return; // Skip this booking entirely
           }
           
           if (localUnit) {
@@ -183,7 +183,7 @@ export async function syncBookings() {
           // in our local database, we DO NOT process it again from Intellistay to prevent overwriting.
           if (currentStatus !== 'CONFIRMED') {
             console.log(`Booking ${intellistayBookingId} is already ${currentStatus} locally. Skipping sync overwrite.`);
-            continue;
+            return;
           }
 
           const updatedRes = await prisma.reservation.update({
