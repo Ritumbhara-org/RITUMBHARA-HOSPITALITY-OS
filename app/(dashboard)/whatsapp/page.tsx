@@ -32,7 +32,9 @@ export default async function WhatsAppPage({
   });
 
   const resolvedParams = await searchParams;
-  const activePropertyId = resolvedParams?.propertyId as string || user?.propertyId || properties[0]?.id;
+  const activePropertyId = resolvedParams?.propertyId as string 
+    || (user?.role === 'ADMIN' ? 'ALL' : user?.propertyId) 
+    || properties[0]?.id;
 
   const threads = await getWhatsAppConversations()
   const broadcasts = await getBroadcastCampaigns(activePropertyId)

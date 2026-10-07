@@ -75,19 +75,25 @@ export async function sendBroadcast(campaignName: string, audience: string, mess
 
   if (audience === "ALL_ACTIVE_GUESTS") {
     const activeReservations = await prisma.reservation.findMany({
-      where: { propertyId, status: { in: ['CHECKED_IN', 'CONFIRMED'] } },
+      where: propertyId === "ALL" 
+        ? { status: { in: ['CHECKED_IN', 'CONFIRMED'] } }
+        : { propertyId, status: { in: ['CHECKED_IN', 'CONFIRMED'] } },
       include: { guest: true }
     });
     targetPhones = activeReservations.map(r => r.guest.phone).filter(Boolean) as string[];
   } else if (audience === "ALL_PAST_GUESTS") {
     const pastReservations = await prisma.reservation.findMany({
-      where: { propertyId, status: 'CHECKED_OUT' },
+      where: propertyId === "ALL"
+        ? { status: 'CHECKED_OUT' }
+        : { propertyId, status: 'CHECKED_OUT' },
       include: { guest: true }
     });
     targetPhones = Array.from(new Set(pastReservations.map(r => r.guest.phone).filter(Boolean))) as string[];
   } else if (audience === "ALL_TEAM") {
     const team = await prisma.teamMember.findMany({
-      where: { propertyId, isActive: true }
+      where: propertyId === "ALL"
+        ? { isActive: true }
+        : { propertyId, isActive: true }
     });
     targetPhones = team.map(t => t.whatsappNumber).filter(Boolean) as string[];
   }
@@ -118,9 +124,16 @@ export async function getBroadcastCampaigns(propertyId: string) {
 
   const campaignsMap = new Map<string, any>();
   for (const b of broadcasts) {
-    if (!b.relatedEntityId || !b.relatedEntityId.startsWith(propertyId + "_")) continue;
-    
-    const campaignName = b.relatedEntityId.substring(propertyId.length + 1);
+    let campaignName = "";
+    if (propertyId === "ALL") {
+      if (!b.relatedEntityId) continue;
+      // Just extract the campaign name assuming format PROPERTY_CAMPAIGN or ALL_CAMPAIGN
+      const parts = b.relatedEntityId.split("_");
+      campaignName = parts.slice(1).join("_");
+    } else {
+      if (!b.relatedEntityId || !b.relatedEntityId.startsWith(propertyId + "_")) continue;
+      campaignName = b.relatedEntityId.substring(propertyId.length + 1);
+    }
     
     if (!campaignsMap.has(campaignName)) {
       campaignsMap.set(campaignName, {

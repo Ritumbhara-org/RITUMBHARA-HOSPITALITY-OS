@@ -37,7 +37,7 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
       t.teamMember?.name?.toLowerCase().includes(search.toLowerCase());
     
     // Property filtering
-    const matchesProperty = t.propertyId === activePropertyId;
+    const matchesProperty = activePropertyId === "ALL" || t.propertyId === activePropertyId;
 
     return matchesSearch && matchesProperty;
   })
@@ -93,6 +93,7 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
               onChange={(e) => handlePropertyChange(e.target.value)}
               className="bg-transparent font-medium border-none outline-none focus:ring-0 cursor-pointer text-sm"
             >
+              <option value="ALL">All Locations</option>
               {properties.map(p => (
                 <option key={p.id} value={p.id}>{p.name}</option>
               ))}
@@ -171,8 +172,14 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
                             {new Date(thread.lastMessageAt).toLocaleDateString()}
                           </span>
                         </div>
-                        <p className="text-xs text-muted-foreground truncate">
+                        <p className="text-xs text-muted-foreground truncate flex items-center gap-1.5">
                           {thread.teamMember ? 'Team Member' : 'Guest'}
+                          {activePropertyId === "ALL" && thread.propertyId && (
+                            <>
+                              <span>•</span>
+                              <span className="font-medium">{properties.find((p: any) => p.id === thread.propertyId)?.name}</span>
+                            </>
+                          )}
                         </p>
                       </div>
                     </button>
