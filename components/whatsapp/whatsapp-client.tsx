@@ -169,7 +169,7 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
                             {thread.teamMember ? thread.teamMember.name : (thread.guest ? thread.guest.name : thread.phone)}
                           </p>
                           <span className="text-[10px] text-muted-foreground whitespace-nowrap">
-                            {new Date(thread.lastMessageAt).toLocaleDateString()}
+                            {new Date(thread.lastMessageAt).toISOString().split('T')[0]}
                           </span>
                         </div>
                         <p className="text-xs text-muted-foreground truncate flex items-center gap-1.5">
@@ -356,7 +356,7 @@ If they complain, apologize profusely and escalate the issue immediately.`}
                             <span className="text-emerald-600 font-semibold">{campaign.deliveredCount}</span> / {campaign.sentCount}
                           </div>
                           <div className="text-sm text-muted-foreground">
-                            {new Date(campaign.createdAt).toLocaleDateString()}
+                            {new Date(campaign.createdAt).toISOString().split('T')[0]}
                           </div>
                         </div>
                       ))}
