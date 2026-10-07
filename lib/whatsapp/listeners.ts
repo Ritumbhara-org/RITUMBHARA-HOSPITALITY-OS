@@ -356,11 +356,15 @@ Ritumbhara Hospitality`;
         
         let messageContent = `Hi ${ticket.guest.name}, your request "${ticket.description}" has been resolved by our team. Please let us know if you need anything else!`;
 
-        // If front desk provided a custom resolution note, send as a text message instead of template!
+        // If front desk provided a custom resolution note, use the custom template!
         if (payload.resolutionNote && payload.resolutionNote.toLowerCase() !== "resolved") {
-           messageType = 'text';
-           templateName = undefined;
-           templateVariables = undefined;
+           messageType = 'template';
+           templateName = 'ticket_resolved_custom';
+           templateVariables = {
+               '1': ticket.guest.name,
+               '2': ticket.description,
+               '3': payload.resolutionNote
+           };
            messageContent = `Hi ${ticket.guest.name}, regarding your request "${ticket.description}", our team says:\n\n"${payload.resolutionNote}"\n\nPlease let us know if you need anything else!`;
         }
 

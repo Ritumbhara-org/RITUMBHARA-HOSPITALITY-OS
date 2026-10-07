@@ -34,6 +34,7 @@ export async function sendWhatsAppMessage(
       const contentSidMap: Record<string, string> = {
          'team_new_task': 'HX296f715310efc62083dd0097f2160262',
          'ticket_resolved': 'HX9e85027792f241d7b708fffc4d90d8a3',
+         'ticket_resolved_custom': 'HX79696fdb9b4bcecb7bb8f388e9a0d9c9',
          'day_of_arrival_reminder': 'HX33ddb272d96520d4731d7f5ba72a3ac8',
          'post_stay_thank_you': 'HX9beb28c25fde329a33b3ca227e5bb61a',
          'ticket_assigned': 'HX5cd6f7785a5b635d62d6c6900635ec83',
