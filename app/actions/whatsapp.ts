@@ -201,7 +201,7 @@ export async function generateDraftResponse(phone: string) {
 
   try {
     const completion = await ai.chat.completions.create({
-      model: 'llama-3.1-70b-versatile',
+      model: 'openai/gpt-oss-120b',
       messages: [
         { role: 'system', content: `You are an expert, polite front-desk agent for a luxury hotel. Draft a concise, professional reply to the guest based on the conversation history. DO NOT INCLUDE ANY PLACEHOLDERS like [Name], if you don't know the name, omit it. Do not include quotes around the response. Keep it under 2 sentences.` },
         { role: 'user', content: `Conversation history:\n${conversationContext}\n\nDraft the next Agent reply:` }
