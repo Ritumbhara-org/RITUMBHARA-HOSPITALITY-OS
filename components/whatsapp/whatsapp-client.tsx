@@ -273,7 +273,7 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
 
                     {/* Messages */}
                     <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-[#f0f2f5] dark:bg-background">
-                      {isOutsideWindow && (
+                      {(!activeThread.teamMember && isOutsideWindow) && (
                         <div className="bg-orange-50 border border-orange-200 text-orange-800 rounded-xl p-3 flex items-center justify-center gap-2 text-sm text-center mb-4 mx-8">
                           <AlertCircle className="h-4 w-4" />
                           24-hour window expired. You can only send pre-approved templates until the guest replies.
@@ -397,7 +397,7 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
                         <input 
                           type="text" 
                           disabled={isOutsideWindow}
-                          placeholder={isOutsideWindow ? "24h window closed. Use a template." : "Type a manual reply to take over from AI..."}
+                          placeholder={isOutsideWindow ? (activeThread.teamMember ? "24h window closed. Staff must reply first." : "24h window closed. Use a template.") : "Type a manual reply to take over from AI..."}
                           className="flex-1 rounded-full border border-border bg-background px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50 disabled:cursor-not-allowed"
                           value={replyText}
                           onChange={(e) => setReplyText(e.target.value)}
