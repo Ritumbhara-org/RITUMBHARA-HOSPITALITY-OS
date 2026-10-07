@@ -152,3 +152,64 @@ export async function getBroadcastCampaigns(propertyId: string) {
   
   return Array.from(campaignsMap.values()).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 }
+
+export async function sendManualMessage(phone: string, content: string) {
+  const { sendWhatsAppMessage } = await import("@/lib/whatsapp/client");
+  // Check 24 hour window
+  const lastInbound = await prisma.whatsAppMessage.findFirst({
+    where: { from: phone, direction: 'INBOUND' },
+    orderBy: { createdAt: 'desc' }
+  });
+  
+  if (lastInbound) {
+    const hoursSince = (new Date().getTime() - lastInbound.createdAt.getTime()) / (1000 * 60 * 60);
+    if (hoursSince > 24) {
+      return { success: false, error: "Cannot send free-form message: 24-hour window has expired. Please use a template." };
+    }
+  }
+
+  const result = await sendWhatsAppMessage(phone, 'text', content, undefined, 'MANUAL_REPLY', 'INBOX');
+  return result;
+}
+
+export async function sendTemplateMessage(phone: string, templateName: string, variables: Record<string, string>) {
+  const { sendWhatsAppMessage } = await import("@/lib/whatsapp/client");
+  const result = await sendWhatsAppMessage(phone, 'template', '', templateName, 'MANUAL_TEMPLATE', 'INBOX', variables);
+  return result;
+}
+
+export async function generateDraftResponse(phone: string) {
+  const messages = await prisma.whatsAppMessage.findMany({
+    where: {
+      OR: [
+        { from: phone, direction: 'INBOUND' },
+        { to: phone, direction: 'OUTBOUND' }
+      ]
+    },
+    orderBy: { createdAt: 'desc' },
+    take: 10
+  });
+  
+  if (messages.length === 0) return { success: false, error: "No messages to base draft on." };
+
+  // Reverse to chronological order
+  messages.reverse();
+  
+  const conversationContext = messages.map((m: any) => `${m.direction === 'INBOUND' ? 'Guest' : 'Agent'}: ${m.content || m.templateName}`).join('\n');
+  
+  const { ai } = await import("@/lib/ai/groq");
+
+  try {
+    const completion = await ai.chat.completions.create({
+      model: 'llama-3.1-70b-versatile',
+      messages: [
+        { role: 'system', content: `You are an expert, polite front-desk agent for a luxury hotel. Draft a concise, professional reply to the guest based on the conversation history. DO NOT INCLUDE ANY PLACEHOLDERS like [Name], if you don't know the name, omit it. Do not include quotes around the response. Keep it under 2 sentences.` },
+        { role: 'user', content: `Conversation history:\n${conversationContext}\n\nDraft the next Agent reply:` }
+      ]
+    });
+    
+    return { success: true, draft: completion.choices[0]?.message?.content || "" };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
