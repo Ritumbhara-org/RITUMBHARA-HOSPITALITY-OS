@@ -37,7 +37,7 @@ export async function sendWhatsAppMessage(
          'ticket_resolved_custom': 'HX79696fdb9b4bcecb7bb8f388e9a0d9c9',
          'day_of_arrival_reminder': 'HX33ddb272d96520d4731d7f5ba72a3ac8',
          'post_stay_thank_you': 'HX9beb28c25fde329a33b3ca227e5bb61a',
-         'ticket_assigned': 'HX5cd6f7785a5b635d62d6c6900635ec83',
+         'ticket_assigned': 'HXa9c1cda62b0c2f9e6763e2c0df027133',
          'pre_arrival_instructions': 'HXc53995bd6a9f7fd3323fa409d57a9e67',
          'checkout_instructions': 'HX6972f5c3804258c5ddb58dd11d299d21',
          'sla_breach_alert': 'HX65186e10f421d8084b22951e7bc23692',
