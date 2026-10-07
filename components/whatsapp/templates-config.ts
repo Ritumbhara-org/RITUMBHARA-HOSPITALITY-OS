@@ -9,57 +9,35 @@ export interface TwilioTemplate {
 
 export const TWILIO_TEMPLATES: TwilioTemplate[] = [
   {
-    id: 'post_stay_thank_you',
+    id: 'booking_confirmation',
+    label: 'Booking Confirmation (Guest)',
+    audience: 'GUEST',
+    parts: [
+      { type: 'text', content: 'Hi [Guest Name],\n\nThanks for booking [Property Name]! We are thrilled to host you and aim to deliver a seamless 5-star experience.\n\nQuick Details:\nCheck-in: After 1PM  [Check In Date]\nCheck-out: Before 11AM [Check Out Date]\n\nDirections: [Google Maps URL]\nAddress: [Address]\n\nAction Required: To ensure an uninterrupted check-in, please fill out our Guest Form here: https://forms.gle/NnCHqpCz1aj6c9T26\n\nManage Your Stay:\nAccess your directions, Wi-Fi password, AI support, and housekeeping requests at your personalized Guest Portal:\n[Guest Portal URL]\n\nIf you have any questions or need recommendations, just send us a message. We\'re here to help!\n\nBest, Ritumbhara Hospitality' }
+    ]
+  },
+  {
+    id: 'pre_arrival_instructions',
+    label: 'Pre-Arrival / Reminder (Guest)',
+    audience: 'GUEST',
+    parts: [
+      { type: 'text', content: 'Hi [Guest Name],\n\nYour stay at [Property Name] is coming up! Check-in: anytime after 1PM on [Check In Date].\n\nLocation:\nAddress: [Address]\nMap: [Google Maps URL]\n\nWifi:\nNetwork: [Wifi Network]\nPassword: [Wifi Password]\n\nAction Required: Please share photos of IDs for all guests in this chat. This is required by local regulations to complete your registration.\n\nManage Your Stay:\nAccess your personalized Guest Portal here: [Guest Portal URL]\n\nGood to know:\nHousekeeping: Complimentary, available in designated time slot on request.\n\nFriendly House Rules:\n- Quiet Hours: 10PM - 8AM\n- Smoking: Strictly NO smoking indoors\n- Energy: Please turn off AC/lights when leaving\n- Visitors: Only registered guests allowed overnight\n- Delivery: For safety, delivery persons are not allowed inside. Please self-pick up orders from the Gate.\n\nSupport: If you need anything, message us or use the call button!\n\nBest, Ritumbhara Hospitality' }
+    ]
+  },
+  {
+    id: 'checkout_instructions',
     label: 'Checkout Instructions (Guest)',
     audience: 'GUEST',
     parts: [
-      { type: 'text', content: 'Hi ' },
-      { type: 'var', key: '1', label: 'Guest Name' },
-      { type: 'text', content: '\n\nWe hope you enjoyed your stay with us! Just a friendly reminder that checkout is today at 11:00 AM.\n\nTo help our cleaning team prepare for the next guest, we would truly appreciate it if you could follow these quick steps before heading out:\n\nLights & AC: Please turn off all lights and the air conditioning.\nTrash: Place any bagged trash in the bin\nDishes: Please leave any used dishes in the sink\nFinal Check: Double-check for any chargers or personal items!\n\nPlease send us a quick message once you have officially checked out so we can give our housekeeping team a head start.' }
+      { type: 'text', content: 'Hi [Guest Name],\n\nWe hope you enjoyed your stay with us! Just a friendly reminder that checkout is today at 11:00 AM.\n\nTo help our cleaning team prepare for the next guest, we would truly appreciate it if you could follow these quick steps before heading out:\n\nLights & AC: Please turn off all lights and the air conditioning.\nTrash: Place any bagged trash in the bin\nDishes: Please leave any used dishes in the sink\nFinal Check: Double-check for any chargers or personal items!\n\nPlease send us a quick message once you have officially checked out so we can give our housekeeping team a head start.\n\nSafe travels, and we hope to see you again soon!\n\nBest,\nRitumbhara Hospitality' }
     ]
   },
   {
-    id: 'ticket_resolved_custom',
-    label: 'Ticket Resolved (Guest)',
+    id: 'post_stay_thank_you',
+    label: 'Post Stay Thank You (Guest)',
     audience: 'GUEST',
     parts: [
-      { type: 'text', content: 'Hi ' },
-      { type: 'var', key: '1', label: 'Guest Name' },
-      { type: 'text', content: ', regarding your request "' },
-      { type: 'var', key: '2', label: 'Request' },
-      { type: 'text', content: '", our team says:\n\n"' },
-      { type: 'var', key: '3', label: 'Resolution Note' },
-      { type: 'text', content: '"\n\nPlease let us know if you need anything else!' }
-    ]
-  },
-  {
-    id: 'ticket_assigned',
-    label: 'Ticket Assigned (Staff)',
-    audience: 'STAFF',
-    parts: [
-      { type: 'text', content: 'NEW TICKET\nLocation: ' },
-      { type: 'var', key: '1', label: 'Location/Unit' },
-      { type: 'text', content: '\nIssue: ' },
-      { type: 'var', key: '2', label: 'Issue Description' },
-      { type: 'text', content: '\nPriority: ' },
-      { type: 'var', key: '3', label: 'Priority' },
-      { type: 'text', content: '\n\nReply ACCEPT to acknowledge.' }
-    ]
-  },
-  {
-    id: 'sla_breach_alert',
-    label: 'SLA Breach Alert (Staff)',
-    audience: 'STAFF',
-    parts: [
-      { type: 'text', content: 'SLA BREACH ALERT\nTicket: ' },
-      { type: 'var', key: '1', label: 'Ticket Description' },
-      { type: 'text', content: '\nPriority: ' },
-      { type: 'var', key: '2', label: 'Priority' },
-      { type: 'text', content: '\nLocation: ' },
-      { type: 'var', key: '3', label: 'Location' },
-      { type: 'text', content: '\nAssigned To: ' },
-      { type: 'var', key: '4', label: 'Assignee Name' },
-      { type: 'text', content: '\n\nImmediate management intervention required.' }
+      { type: 'text', content: 'Thank you for staying with us, [Guest Name]! We hope you had a wonderful time. Please let us know how we did. Have a safe journey home!' }
     ]
   }
 ];

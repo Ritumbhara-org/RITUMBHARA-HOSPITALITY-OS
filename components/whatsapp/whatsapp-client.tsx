@@ -350,7 +350,7 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
                             </div>
                             <div className="bg-muted/30 p-4 rounded-lg text-sm border font-mono text-muted-foreground mb-4">
                               {selectedTemplate.parts.map((p, i) => {
-                                if (p.type === 'text') return <span key={i}>{p.content}</span>;
+                                if (p.type === 'text') return <span key={i} className="whitespace-pre-wrap">{p.content}</span>;
                                 return (
                                   <input 
                                     key={i}

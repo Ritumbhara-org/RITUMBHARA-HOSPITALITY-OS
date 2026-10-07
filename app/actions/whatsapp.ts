@@ -174,6 +174,47 @@ export async function sendManualMessage(phone: string, content: string) {
 
 export async function sendTemplateMessage(phone: string, templateName: string, variables: Record<string, string>) {
   const { sendWhatsAppMessage } = await import("@/lib/whatsapp/client");
+  const { normalizePhoneNumber } = await import("@/lib/utils/phone");
+  
+  const cleanedPhone = normalizePhoneNumber(phone);
+  const guests = await prisma.guest.findMany();
+  const guest = guests.find(g => g.phone && normalizePhoneNumber(g.phone) === cleanedPhone);
+
+  if (guest) {
+    const reservation = await prisma.reservation.findFirst({
+      where: { guestId: guest.id },
+      orderBy: { checkIn: 'desc' },
+      include: { unit: { include: { property: true } } }
+    });
+
+    if (templateName === 'booking_confirmation' && reservation) {
+      variables = {
+        '1': guest.name,
+        '2': reservation.unit.name,
+        '3': reservation.checkIn.toLocaleDateString(),
+        '4': reservation.checkOut.toLocaleDateString(),
+        '5': reservation.unit.property?.googleMapsUrl || 'https://maps.app.goo.gl',
+        '6': reservation.unit.property?.address || 'Ritumbhara Property',
+        '7': `${process.env.NEXT_PUBLIC_APP_URL || 'https://ritumbhara-hospitality-os-q6er.vercel.app'}/stay/${reservation.id}`
+      };
+    } else if (templateName === 'pre_arrival_instructions' && reservation) {
+      variables = {
+        '1': guest.name,
+        '2': reservation.unit.name,
+        '3': reservation.checkIn.toLocaleDateString(),
+        '4': reservation.unit.property?.wifiNetwork || 'Ritumbhara_Guest',
+        '5': reservation.unit.property?.wifiPassword || 'Ritumbhara@123',
+        '6': reservation.unit.property?.address || 'Ritumbhara Property',
+        '7': reservation.unit.property?.googleMapsUrl || 'https://maps.app.goo.gl',
+        '8': `${process.env.NEXT_PUBLIC_APP_URL || 'https://ritumbhara-hospitality-os-q6er.vercel.app'}/stay/${reservation.id}`
+      };
+    } else if (templateName === 'checkout_instructions' && reservation) {
+      variables = { '1': guest.name };
+    } else if (templateName === 'post_stay_thank_you') {
+      variables = { '1': guest.name };
+    }
+  }
+
   const result = await sendWhatsAppMessage(phone, 'template', '', templateName, 'MANUAL_TEMPLATE', 'INBOX', variables);
   return result;
 }
