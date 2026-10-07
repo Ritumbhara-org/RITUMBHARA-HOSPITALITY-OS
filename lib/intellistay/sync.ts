@@ -81,7 +81,8 @@ export async function syncBookings() {
     });
 
     // 2. Normalize and Upsert each booking
-    for (const booking of bookings) {
+    // Process all bookings concurrently to avoid Vercel 10s timeouts
+    await Promise.all(bookings.map(async (booking) => {
       try {
         const intellistayBookingId = String(booking.bookingId || booking.id);
         
@@ -269,7 +270,7 @@ export async function syncBookings() {
         console.error(`Error processing booking ${booking.bookingId}:`, err.message);
         errorMessages.push(`Booking ${booking.bookingId}: ${err.message}`);
       }
-    }
+    }));
     
     // Await all concurrent side-effects (WhatsApp msgs, unit updates) together at the end
     await Promise.allSettled(eventPromises);
