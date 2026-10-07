@@ -307,35 +307,37 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
                     {/* Chat Input */}
                     <div className="p-4 bg-card border-t relative">
                       
-                      {/* Template Selector Dropdown */}
-                      <div className="mb-3 flex items-center justify-between">
-                        <select 
-                          className="bg-muted text-sm rounded-md px-3 py-1.5 border-none outline-none focus:ring-1 focus:ring-primary w-64"
-                          value={selectedTemplate?.id || ""}
-                          onChange={(e) => {
-                            if (!e.target.value) { setSelectedTemplate(null); return; }
-                            const t = TWILIO_TEMPLATES.find(x => x.id === e.target.value);
-                            setSelectedTemplate(t || null);
-                            setTemplateVars({});
-                          }}
-                        >
-                          <option value="">📎 Select a Template to Send</option>
-                          {TWILIO_TEMPLATES.filter(t => t.audience === (activeThread.teamMember ? 'STAFF' : 'GUEST')).map(t => (
-                            <option key={t.id} value={t.id}>{t.label}</option>
-                          ))}
-                        </select>
-                        
-                        {!isOutsideWindow && (
-                          <button 
-                            onClick={handleGenerateDraft}
-                            disabled={isDrafting}
-                            className="flex items-center gap-1.5 text-xs font-medium bg-indigo-50 text-indigo-600 hover:bg-indigo-100 px-3 py-1.5 rounded-full transition-colors"
+                      {/* Template Selector Dropdown & AI Draft */}
+                      {!activeThread.teamMember && (
+                        <div className="mb-3 flex items-center justify-between">
+                          <select 
+                            className="bg-muted text-sm rounded-md px-3 py-1.5 border-none outline-none focus:ring-1 focus:ring-primary w-64"
+                            value={selectedTemplate?.id || ""}
+                            onChange={(e) => {
+                              if (!e.target.value) { setSelectedTemplate(null); return; }
+                              const t = TWILIO_TEMPLATES.find(x => x.id === e.target.value);
+                              setSelectedTemplate(t || null);
+                              setTemplateVars({});
+                            }}
                           >
-                            <Sparkles className="h-3 w-3" />
-                            {isDrafting ? "Drafting..." : "Draft AI Reply"}
-                          </button>
-                        )}
-                      </div>
+                            <option value="">📎 Select a Template to Send</option>
+                            {TWILIO_TEMPLATES.filter(t => t.audience === 'GUEST').map(t => (
+                              <option key={t.id} value={t.id}>{t.label}</option>
+                            ))}
+                          </select>
+                          
+                          {!isOutsideWindow && (
+                            <button 
+                              onClick={handleGenerateDraft}
+                              disabled={isDrafting}
+                              className="flex items-center gap-1.5 text-xs font-medium bg-indigo-50 text-indigo-600 hover:bg-indigo-100 px-3 py-1.5 rounded-full transition-colors"
+                            >
+                              <Sparkles className="h-3 w-3" />
+                              {isDrafting ? "Drafting..." : "Draft AI Reply"}
+                            </button>
+                          )}
+                        </div>
+                      )}
 
                       {/* Template Variables Modal/Inline */}
                       <AnimatePresence>
