@@ -342,13 +342,13 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
                         {selectedTemplate && (
                           <motion.div 
                             initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
-                            className="absolute bottom-full left-4 right-4 mb-2 bg-card border shadow-xl rounded-xl p-4 z-10"
+                            className="absolute bottom-full left-4 right-4 mb-2 bg-background border shadow-2xl rounded-xl p-5 z-20"
                           >
                             <div className="flex justify-between items-center mb-3">
-                              <h3 className="font-semibold text-sm">Send Template: {selectedTemplate.label}</h3>
-                              <button onClick={() => setSelectedTemplate(null)} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
+                              <h3 className="font-semibold text-sm text-foreground">Send Template: <span className="text-primary">{selectedTemplate.label}</span></h3>
+                              <button onClick={() => setSelectedTemplate(null)} className="text-muted-foreground hover:bg-muted p-1 rounded-md transition-colors"><X className="h-4 w-4" /></button>
                             </div>
-                            <div className="bg-muted/30 p-4 rounded-lg text-sm border font-mono text-muted-foreground mb-4">
+                            <div className="bg-muted/20 p-4 rounded-lg text-[13px] leading-relaxed border border-border/50 text-foreground mb-4 max-h-[250px] overflow-y-auto shadow-inner custom-scrollbar">
                               {selectedTemplate.parts.map((p, i) => {
                                 if (p.type === 'text') {
                                   let content = p.content;
