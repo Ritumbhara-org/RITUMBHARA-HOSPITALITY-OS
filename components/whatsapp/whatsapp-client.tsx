@@ -95,6 +95,47 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
     }
   }
 
+  const handleSendManual = async () => {
+    if (!replyText || isOutsideWindow || !activeThread) return;
+    setIsSendingReply(true);
+    const result = await sendManualMessage(activeThread.phone, replyText);
+    setIsSendingReply(false);
+    if (result.success) {
+      setReplyText("");
+      router.refresh();
+    } else {
+      toast.error(result.error || "Failed to send message");
+    }
+  }
+
+  const handleGenerateDraft = async () => {
+    if (!activeThread) return;
+    setIsDrafting(true);
+    toast.info("Generating reply...");
+    const result = await generateDraftResponse(activeThread.phone);
+    setIsDrafting(false);
+    if (result.success) {
+      setReplyText(result.draft || "");
+    } else {
+      toast.error(result.error || "Failed to generate draft");
+    }
+  }
+
+  const handleSendTemplate = async () => {
+    if (!activeThread || !selectedTemplate) return;
+    setIsSendingReply(true);
+    const result = await sendTemplateMessage(activeThread.phone, selectedTemplate.id, templateVars);
+    setIsSendingReply(false);
+    if (result.success) {
+      toast.success("Template sent!");
+      setSelectedTemplate(null);
+      setTemplateVars({});
+      router.refresh();
+    } else {
+      toast.error(result.error || "Failed to send template");
+    }
+  }
+
   return (
     <div className="flex h-full w-full flex-col bg-background p-6">
       <div className="mb-6 flex items-center justify-between">
