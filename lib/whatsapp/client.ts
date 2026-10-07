@@ -46,16 +46,26 @@ export async function sendWhatsAppMessage(
       };
 
       let createParams: any = {
-        from: formattedFrom,
         to: formattedTo
       };
+
+      const messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID;
 
       if (messageType === 'template' && templateName && contentSidMap[templateName]) {
         createParams.contentSid = contentSidMap[templateName];
         if (templateVariables) {
           createParams.contentVariables = JSON.stringify(templateVariables);
         }
+        
+        // Content API strictly requires messagingServiceSid to send as a true WhatsApp Template in production
+        // Otherwise it resolves to text and fails outside the 24h window.
+        if (messagingServiceSid) {
+          createParams.messagingServiceSid = messagingServiceSid;
+        } else {
+          createParams.from = formattedFrom;
+        }
       } else {
+        createParams.from = formattedFrom;
         createParams.body = content || `Template: ${templateName}`;
       }
 
