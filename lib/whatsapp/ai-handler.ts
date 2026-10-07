@@ -86,7 +86,8 @@ IMPORTANT: Always output valid JSON in the following schema:
   "replyText": "The message to send back to the user",
   "escalationCategory": "MAINTENANCE" | "HOUSEKEEPING" | "GUEST_REQUEST" | "GUEST_COMPLAINT" | null,
   "unitName": "Optional. The room or unit name extracted from the message, if any.",
-  "ticketId": "Optional. The ID of the ticket to reopen if intent is REOPEN_ISSUE."
+  "ticketId": "Optional. The ID of the ticket to reopen if intent is REOPEN_ISSUE.",
+  "ticketDescription": "Optional. If intent is ESCALATE_ISSUE, provide a clear, concise, generalized summary of the issue (e.g. 'Guest requested a cooker for the kitchen'). Do NOT just copy the user's raw message."
 }
 
 If intent is ESCALATE_ISSUE or REOPEN_ISSUE, replyText should assure the user that the team has been notified and will check into it.
@@ -134,7 +135,7 @@ If intent is ESCALATE_ISSUE or REOPEN_ISSUE, replyText should assure the user th
        // Create a ticket!
        const ticket = await prisma.ticket.create({
          data: {
-           description: messageText,
+           description: parsed.ticketDescription || messageText,
            priority: "MEDIUM",
            status: "OPEN",
            category: parsed.escalationCategory || "GUEST_REQUEST",
