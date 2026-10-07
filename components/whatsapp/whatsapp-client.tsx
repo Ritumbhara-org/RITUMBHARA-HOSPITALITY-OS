@@ -350,7 +350,27 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
                             </div>
                             <div className="bg-muted/30 p-4 rounded-lg text-sm border font-mono text-muted-foreground mb-4">
                               {selectedTemplate.parts.map((p, i) => {
-                                if (p.type === 'text') return <span key={i} className="whitespace-pre-wrap">{p.content}</span>;
+                                if (p.type === 'text') {
+                                  let content = p.content;
+                                  if (activeThread.guest) {
+                                    const reservation = activeThread.guest.reservations?.[0];
+                                    const property = reservation?.unit?.property;
+                                    content = content.replace(/\[Guest Name\]/g, activeThread.guest.name || 'Guest');
+                                    if (reservation) {
+                                      content = content.replace(/\[Property Name\]/g, reservation.unit?.name || 'our property');
+                                      content = content.replace(/\[Check In Date\]/g, new Date(reservation.checkIn).toLocaleDateString());
+                                      content = content.replace(/\[Check Out Date\]/g, new Date(reservation.checkOut).toLocaleDateString());
+                                      content = content.replace(/\[Guest Portal URL\]/g, `${process.env.NEXT_PUBLIC_APP_URL || 'https://ritumbhara-hospitality-os-q6er.vercel.app'}/stay/${reservation.id}`);
+                                    }
+                                    if (property) {
+                                      content = content.replace(/\[Google Maps URL\]/g, property.googleMapsUrl || 'https://maps.app.goo.gl');
+                                      content = content.replace(/\[Address\]/g, property.address || 'Ritumbhara Property');
+                                      content = content.replace(/\[Wifi Network\]/g, property.wifiNetwork || 'Ritumbhara_Guest');
+                                      content = content.replace(/\[Wifi Password\]/g, property.wifiPassword || 'Ritumbhara@123');
+                                    }
+                                  }
+                                  return <span key={i} className="whitespace-pre-wrap">{content}</span>;
+                                }
                                 return (
                                   <input 
                                     key={i}

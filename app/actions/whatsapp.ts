@@ -35,7 +35,7 @@ export async function getWhatsAppConversations() {
   }
 
   const allGuests = await prisma.guest.findMany({
-    include: { reservations: { orderBy: { checkIn: 'desc' }, take: 1 } }
+    include: { reservations: { orderBy: { checkIn: 'desc' }, take: 1, include: { unit: { include: { property: true } } } } }
   });
   const allTeam = await prisma.teamMember.findMany();
 
