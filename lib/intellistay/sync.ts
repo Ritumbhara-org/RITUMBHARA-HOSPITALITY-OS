@@ -63,7 +63,7 @@ export async function syncBookings() {
     const response = await intellistay.fetch('/api/Booking/GetAllBookingsByPagination', {
       method: 'POST',
       body: JSON.stringify({
-        pagination: { page: 1, limit: 25 },
+        pagination: { page: 1, limit: 15 },
         filter: { getAll: true, orderBy: "bookingId", order: "desc" }
       })
     });
@@ -81,8 +81,7 @@ export async function syncBookings() {
     });
 
     // 2. Normalize and Upsert each booking
-    // Process all bookings concurrently to avoid Vercel 10s timeouts
-    await Promise.all(bookings.map(async (booking) => {
+    for (const booking of bookings) {
       try {
         const intellistayBookingId = String(booking.bookingId || booking.id);
         
@@ -144,7 +143,7 @@ export async function syncBookings() {
           
           if (!localUnit) {
             console.log(`Skipping booking ${booking.bookingId} as room ${roomNumber} is not in our original units.`);
-            return; // Skip this booking entirely
+            continue; // Skip this booking entirely
           }
           
           if (localUnit) {
@@ -183,7 +182,7 @@ export async function syncBookings() {
           // in our local database, we DO NOT process it again from Intellistay to prevent overwriting.
           if (currentStatus !== 'CONFIRMED') {
             console.log(`Booking ${intellistayBookingId} is already ${currentStatus} locally. Skipping sync overwrite.`);
-            return;
+            continue;
           }
 
           const updatedRes = await prisma.reservation.update({
@@ -270,7 +269,7 @@ export async function syncBookings() {
         console.error(`Error processing booking ${booking.bookingId}:`, err.message);
         errorMessages.push(`Booking ${booking.bookingId}: ${err.message}`);
       }
-    }));
+    }
     
     // Await all concurrent side-effects (WhatsApp msgs, unit updates) together at the end
     await Promise.allSettled(eventPromises);

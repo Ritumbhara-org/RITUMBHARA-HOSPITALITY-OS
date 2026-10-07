@@ -68,7 +68,7 @@ export async function processAutoCheckinCheckout() {
       }
     });
 
-    await Promise.all(reservations.map(async (res) => {
+    for (const res of reservations) {
       if (res.status === 'CONFIRMED') {
         // The checkIn date in DB is UTC, but typically stored as YYYY-MM-DD at 00:00:00Z.
         // We'll extract the UTC date string as YYYY-MM-DD.
@@ -135,7 +135,7 @@ export async function processAutoCheckinCheckout() {
           console.log(`[Auto Status] Checked OUT reservation ${res.id}`);
         }
       }
-    }));
+    }
 
     return { success: true, checkedInCount, checkedOutCount };
   } catch (error: any) {
