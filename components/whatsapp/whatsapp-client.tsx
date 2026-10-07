@@ -104,7 +104,7 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
       setReplyText("");
       router.refresh();
     } else {
-      toast.error(result.error || "Failed to send message");
+      toast.error((result as any).error || "Failed to send message");
     }
   }
 
@@ -117,7 +117,7 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
     if (result.success) {
       setReplyText(result.draft || "");
     } else {
-      toast.error(result.error || "Failed to generate draft");
+      toast.error((result as any).error || "Failed to generate draft");
     }
   }
 
@@ -132,7 +132,7 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
       setTemplateVars({});
       router.refresh();
     } else {
-      toast.error(result.error || "Failed to send template");
+      toast.error((result as any).error || "Failed to send template");
     }
   }
 
