@@ -85,7 +85,7 @@ export async function handleWhatsAppAction(senderPhone: string, messageText: str
           where: { id: activeTicket.id },
           data: { status: "ACKNOWLEDGED" }
         });
-        return `✅ Ticket Acknowledged! Reply 'START' when you begin working on it.`;
+        return `✅ Ticket Acknowledged! Just write whatever you want to convey to the guest below, and I will let them know.`;
       }
       
       if (messageText.includes("START")) {
@@ -93,15 +93,55 @@ export async function handleWhatsAppAction(senderPhone: string, messageText: str
           where: { id: activeTicket.id },
           data: { status: "IN_PROGRESS" }
         });
-        return `✅ Ticket In Progress. Reply 'RESOLVE' when the issue is fixed.`;
+        return `✅ Ticket In Progress. Just write whatever you want to convey to the guest when finished.`;
       }
 
+      let isResolving = false;
+      let resolutionNote = "resolved";
+      
       if (messageText.includes("RESOLVE") || messageText.includes("COMPLETE") || messageText.includes("DONE") || messageText.includes("NOTED") || mediaUrl) {
-        
-        // Extract any custom message the team member wrote after RESOLVE
-        let resolutionNote = messageText.replace(/RESOLVE|COMPLETE|DONE|NOTED/gi, "").trim();
+        isResolving = true;
+        resolutionNote = messageText.replace(/RESOLVE|COMPLETE|DONE|NOTED/gi, "").trim();
         if (resolutionNote.length === 0) resolutionNote = "resolved";
+      }
 
+      const isActionCommand = ["ACCEPT", "START", "RESOLVE", "COMPLETE", "DONE", "NOTED"].some(cmd => messageText.includes(cmd));
+
+      // Natural Language Resolution Engine!
+      if (!isActionCommand && !mediaUrl && (activeTicket.status === "ACKNOWLEDGED" || activeTicket.status === "IN_PROGRESS")) {
+        const { ai } = await import("@/lib/ai/groq");
+        const prompt = `You are a strict QA assistant. 
+A hotel guest raised this issue/request: "${activeTicket.description}"
+The Front Desk staff replied with: "${messageText}"
+
+Does the staff's reply reasonably answer or address the guest's issue?
+If it's gibberish, out of context (e.g. "hello brother"), or completely unrelated, respond with {"valid": false}.
+If it's a valid response, respond with {"valid": true, "formattedReply": "The exact message to send to the guest, cleaned up slightly for professionalism if needed"}.
+IMPORTANT: Output strictly JSON.`;
+
+        try {
+           const chatCompletion = await ai.chat.completions.create({
+             messages: [{ role: "system", content: prompt }],
+             model: "openai/gpt-oss-120b",
+             response_format: { type: "json_object" }
+           });
+           
+           const parsed = JSON.parse(chatCompletion.choices[0]?.message?.content || '{"valid": false}');
+           
+           if (!parsed.valid) {
+             return `⚠️ That reply doesn't seem to address the guest's issue ("${activeTicket.description}"). Please tell me exactly what I should convey to the guest.`;
+           }
+           
+           isResolving = true;
+           resolutionNote = parsed.formattedReply;
+        } catch (e) {
+           console.error("AI Evaluation error:", e);
+           return `I didn't quite catch that. Reply with 'RESOLVE <your message>' to close the ticket.`;
+        }
+      }
+
+      if (isResolving) {
+        
         // Custom logic for INVENTORY tickets
         if (activeTicket.category === "INVENTORY" && activeTicket.inventoryItemId) {
           // Look for a number in the message
@@ -163,7 +203,6 @@ export async function handleWhatsAppAction(senderPhone: string, messageText: str
         return `🎉 Great job, ${teamMember.name}! The ticket has been resolved${mediaUrl ? ' with photo evidence' : ''}.`;
       }
 
-      const isActionCommand = ["ACCEPT", "START", "RESOLVE", "COMPLETE", "DONE", "NOTED"].some(cmd => messageText.includes(cmd));
       if (isActionCommand) {
         return `You have an active ticket: ${activeTicket.description}\nReply ACCEPT, START, or RESOLVE.`;
       }
