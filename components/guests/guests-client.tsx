@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { createGuest, updateGuest } from "@/app/actions/guests"
 import Link from "next/link"
 import { toast } from "sonner"
+import { useRouter } from "next/navigation"
 
 type GuestStats = {
   total: number
@@ -27,6 +28,7 @@ export function GuestsClient({
   stats: GuestStats
 }) {
   const [searchTerm, setSearchTerm] = useState("")
+  const router = useRouter()
   const [filterMembership, setFilterMembership] = useState("ALL")
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -298,17 +300,17 @@ export function GuestsClient({
                             <MoreHorizontal className="h-4 w-4" />
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-44">
-                            <DropdownMenuItem render={<Link href={`/guests/${guest.id}`} />}>
+                            <DropdownMenuItem onClick={() => router.push(`/guests/${guest.id}`)}>
                               View Profile
                             </DropdownMenuItem>
-                            <DropdownMenuItem render={<div onClick={() => setEditGuest(guest)} />}>
+                            <DropdownMenuItem onClick={() => setEditGuest(guest)}>
                               Edit Details
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem render={<Link href={`/reservations?newBooking=true&guestId=${guest.id}`} />}>
+                            <DropdownMenuItem onClick={() => router.push(`/reservations?newBooking=true&guestId=${guest.id}`)}>
                               New Reservation
                             </DropdownMenuItem>
-                            <DropdownMenuItem render={<Link href={`/operations?newTicket=true&guestId=${guest.id}`} />}>
+                            <DropdownMenuItem onClick={() => router.push(`/operations?newTicket=true&guestId=${guest.id}`)}>
                               Create Ticket
                             </DropdownMenuItem>
                           </DropdownMenuContent>

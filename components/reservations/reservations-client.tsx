@@ -365,34 +365,34 @@ function ReservationsClientContent({
                             : <MoreHorizontal className="h-4 w-4" />}
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-44">
-                          <DropdownMenuItem render={<Link href={`/guests/${res.guest.id}`} />}>
+                          <DropdownMenuItem onClick={() => router.push(`/guests/${res.guest.id}`)}>
                             View Details
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           {res.status === 'ARRIVING' && (
-                            <DropdownMenuItem render={<div onClick={() => handleStatusChange(res.id, 'CHECKED_IN', 'Checked In')} />}>
+                            <DropdownMenuItem onClick={() => handleStatusChange(res.id, 'CHECKED_IN', 'Checked In')}>
                               Check In Guest
                             </DropdownMenuItem>
                           )}
                           {res.status === 'CONFIRMED' && (
-                            <DropdownMenuItem render={<div onClick={() => handleStatusChange(res.id, 'CHECKED_IN', 'Checked In')} />}>
+                            <DropdownMenuItem onClick={() => handleStatusChange(res.id, 'CHECKED_IN', 'Checked In')}>
                               Check In Guest
                             </DropdownMenuItem>
                           )}
                           {res.status === 'CHECKED_IN' && (
-                            <DropdownMenuItem render={<div onClick={() => handleStatusChange(res.id, 'CHECKED_OUT', 'Checked Out')} />}>
+                            <DropdownMenuItem onClick={() => handleStatusChange(res.id, 'CHECKED_OUT', 'Checked Out')}>
                               Check Out Guest
                             </DropdownMenuItem>
                           )}
                           {res.status === 'PENDING' && (
-                            <DropdownMenuItem render={<div onClick={() => handleStatusChange(res.id, 'CONFIRMED', 'Confirmed')} />}>
+                            <DropdownMenuItem onClick={() => handleStatusChange(res.id, 'CONFIRMED', 'Confirmed')}>
                               Confirm Booking
                             </DropdownMenuItem>
                           )}
                           <DropdownMenuSeparator />
                           <DropdownMenuItem 
                             className="text-destructive focus:text-destructive"
-                            render={<div onClick={() => handleStatusChange(res.id, 'CANCELLED', 'Cancelled')} />}
+                            onClick={() => handleStatusChange(res.id, 'CANCELLED', 'Cancelled')}
                           >
                             Cancel Reservation
                           </DropdownMenuItem>
