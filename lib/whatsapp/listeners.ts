@@ -279,9 +279,9 @@ Ritumbhara Hospitality`;
         'Ticket',
         payload.ticketId,
         {
-          '1': ticket.unit?.name || 'Property',
-          '2': ticket.description,
-          '3': ticket.priority
+          '1': String(ticket.unit?.name || 'Property').replace(/[\n\r]/g, ' ').substring(0, 60),
+          '2': String(ticket.description || '').replace(/[\n\r]/g, ' ').substring(0, 100),
+          '3': String(ticket.priority || 'MEDIUM').replace(/[\n\r]/g, ' ').substring(0, 20)
         }
       );
     } catch (error) {
@@ -417,10 +417,10 @@ Ritumbhara Hospitality`;
           'Ticket',
           payload.ticketId,
           {
-            '1': payload.description,
-            '2': payload.priority,
-            '3': location,
-            '4': assigneeName
+            '1': String(payload.description || '').replace(/[\n\r]/g, ' ').substring(0, 100),
+            '2': String(payload.priority || 'HIGH').replace(/[\n\r]/g, ' ').substring(0, 20),
+            '3': String(location || '').replace(/[\n\r]/g, ' ').substring(0, 60),
+            '4': String(assigneeName || '').replace(/[\n\r]/g, ' ').substring(0, 60)
           }
         );
       }
