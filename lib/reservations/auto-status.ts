@@ -90,7 +90,7 @@ export async function processAutoCheckinCheckout() {
             })
           ]);
           
-          eventBus.emit('GUEST_CHECKED_IN', {
+          await eventBus.emit('GUEST_CHECKED_IN', {
              reservationId: res.id,
              guestId: res.guestId,
              checkIn: res.checkIn,
@@ -124,7 +124,7 @@ export async function processAutoCheckinCheckout() {
             })
           ]);
           
-          eventBus.emit('GUEST_CHECKED_OUT', {
+          await eventBus.emit('GUEST_CHECKED_OUT', {
              reservationId: res.id,
              guestId: res.guestId,
              checkIn: res.checkIn,
