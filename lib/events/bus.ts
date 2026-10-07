@@ -42,6 +42,7 @@ export interface TicketEventPayload {
   unitId?: string | null;
   priority: string;
   status: string;
+  resolutionNote?: string;
 }
 
 export interface SlaBreachPayload {

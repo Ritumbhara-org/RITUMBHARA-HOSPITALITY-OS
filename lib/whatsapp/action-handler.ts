@@ -98,6 +98,10 @@ export async function handleWhatsAppAction(senderPhone: string, messageText: str
 
       if (messageText.includes("RESOLVE") || messageText.includes("COMPLETE") || messageText.includes("DONE") || messageText.includes("NOTED") || mediaUrl) {
         
+        // Extract any custom message the team member wrote after RESOLVE
+        let resolutionNote = messageText.replace(/RESOLVE|COMPLETE|DONE|NOTED/gi, "").trim();
+        if (resolutionNote.length === 0) resolutionNote = "resolved";
+
         // Custom logic for INVENTORY tickets
         if (activeTicket.category === "INVENTORY" && activeTicket.inventoryItemId) {
           // Look for a number in the message
@@ -152,7 +156,8 @@ export async function handleWhatsAppAction(senderPhone: string, messageText: str
           propertyId: resolvedTicket.propertyId,
           unitId: resolvedTicket.unitId,
           priority: resolvedTicket.priority,
-          status: resolvedTicket.status
+          status: resolvedTicket.status,
+          resolutionNote: resolutionNote
         });
 
         return `🎉 Great job, ${teamMember.name}! The ticket has been resolved${mediaUrl ? ' with photo evidence' : ''}.`;
