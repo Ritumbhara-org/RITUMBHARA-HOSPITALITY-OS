@@ -242,6 +242,10 @@ export async function syncBookings() {
           });
           newCount++;
 
+          if (status === 'CHECKED_IN') {
+             eventPromises.push(prisma.unit.update({ where: { id: unitId }, data: { status: 'OCCUPIED' } }).then(() => {}));
+          }
+
           // Prevent blasting messages to users for past historical bookings we just imported!
           if (status !== 'CHECKED_OUT' && status !== 'CANCELLED') {
             eventPromises.push(eventBus.emit('BOOKING_CREATED', { reservationId: newRes.id, guestId: guest.id, propertyId, intellistayBookingId, status: newRes.status, checkIn: checkInDate, checkOut: checkOutDate }));
