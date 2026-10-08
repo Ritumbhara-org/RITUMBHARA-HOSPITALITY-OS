@@ -38,3 +38,40 @@ export async function createUnit(formData: FormData) {
     return { success: false, error: error.message }
   }
 }
+
+export async function updateUnit(formData: FormData) {
+  try {
+    const id = formData.get("id") as string
+    const name = formData.get("name") as string
+    const type = formData.get("type") as string
+    const floor = formData.get("floor") as string
+    const capacityStr = formData.get("capacity") as string
+    const propertyId = formData.get("propertyId") as string
+    const wifiNetwork = formData.get("wifiNetwork") as string
+    const wifiPassword = formData.get("wifiPassword") as string
+    
+    if (!id || !name || !type || !propertyId) {
+      throw new Error("Unit ID, Location, Name and Type are required fields.")
+    }
+
+    const unit = await prisma.unit.update({
+      where: { id },
+      data: {
+        name,
+        type,
+        floor: floor || "1",
+        capacity: parseInt(capacityStr) || 2,
+        propertyId,
+        wifiNetwork: wifiNetwork || null,
+        wifiPassword: wifiPassword || null
+      }
+    })
+
+    revalidatePath("/units")
+    revalidatePath("/reservations")
+    return { success: true, unit }
+  } catch (error: any) {
+    console.error("Failed to update unit:", error)
+    return { success: false, error: error.message }
+  }
+}

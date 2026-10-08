@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { createUnit } from "@/app/actions/units"
+import { createUnit, updateUnit } from "@/app/actions/units"
 import { toast } from "sonner"
 
 type UnitStats = {
@@ -33,6 +33,17 @@ export function UnitsClient({
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [editingUnit, setEditingUnit] = useState<any>(null)
+
+  const openDialogForNew = () => {
+    setEditingUnit(null)
+    setIsDialogOpen(true)
+  }
+
+  const openDialogForEdit = (unit: any) => {
+    setEditingUnit(unit)
+    setIsDialogOpen(true)
+  }
 
   const filteredData = useMemo(() => {
     return initialData.filter((unit: any) => {
@@ -85,13 +96,26 @@ export function UnitsClient({
     e.preventDefault()
     setIsSubmitting(true)
     const formData = new FormData(e.currentTarget)
-    const result = await createUnit(formData)
-    setIsSubmitting(false)
-    if (result.success) {
-      setIsDialogOpen(false)
-      toast.success("Unit Added Successfully")
+    
+    if (editingUnit) {
+      formData.append("id", editingUnit.id)
+      const result = await updateUnit(formData)
+      setIsSubmitting(false)
+      if (result.success) {
+        setIsDialogOpen(false)
+        toast.success("Unit Updated Successfully")
+      } else {
+        toast.error("Failed to update unit", { description: result.error })
+      }
     } else {
-      toast.error("Failed to add unit", { description: result.error })
+      const result = await createUnit(formData)
+      setIsSubmitting(false)
+      if (result.success) {
+        setIsDialogOpen(false)
+        toast.success("Unit Added Successfully")
+      } else {
+        toast.error("Failed to add unit", { description: result.error })
+      }
     }
   }
 
@@ -119,21 +143,23 @@ export function UnitsClient({
           </div>
           
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm shadow-primary/20 transition-all duration-200 hover:bg-primary/90 hover:shadow-md hover:shadow-primary/25 active:scale-[0.98]">
-              <Plus className="h-4 w-4" />
-              Add Unit
+            <DialogTrigger asChild>
+              <button onClick={openDialogForNew} className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm shadow-primary/20 transition-all duration-200 hover:bg-primary/90 hover:shadow-md hover:shadow-primary/25 active:scale-[0.98]">
+                <Plus className="h-4 w-4" />
+                Add Unit
+              </button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px] rounded-2xl">
               <form onSubmit={handleSubmit}>
                 <DialogHeader>
-                  <DialogTitle className="text-lg">Add Unit</DialogTitle>
-                  <DialogDescription>Add a new room or space to your property inventory.</DialogDescription>
+                  <DialogTitle className="text-lg">{editingUnit ? "Edit Unit" : "Add Unit"}</DialogTitle>
+                  <DialogDescription>{editingUnit ? "Update the unit details below." : "Add a new room or space to your property inventory."}</DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="grid gap-2 col-span-2">
                       <Label htmlFor="propertyId">Location / Property *</Label>
-                      <Select name="propertyId" required>
+                      <Select name="propertyId" required defaultValue={editingUnit?.propertyId || properties[0]?.id}>
                         <SelectTrigger className="rounded-xl">
                           <SelectValue placeholder="Select Location" />
                         </SelectTrigger>
@@ -146,11 +172,11 @@ export function UnitsClient({
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="name">Unit Name / Number *</Label>
-                      <Input id="name" name="name" placeholder="e.g. 101 or Presidential Suite" required className="rounded-xl" />
+                      <Input id="name" name="name" placeholder="e.g. 101 or Presidential Suite" required className="rounded-xl" defaultValue={editingUnit?.name} />
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="type">Unit Type</Label>
-                      <Select name="type" defaultValue="STANDARD">
+                      <Select name="type" defaultValue={editingUnit?.type || "STANDARD"}>
                         <SelectTrigger className="rounded-xl">
                           <SelectValue placeholder="Type" />
                         </SelectTrigger>
@@ -166,11 +192,11 @@ export function UnitsClient({
                   <div className="grid grid-cols-2 gap-4">
                     <div className="grid gap-2">
                       <Label htmlFor="floor">Floor / Building</Label>
-                      <Input id="floor" name="floor" placeholder="e.g. Ground or North Tower" className="rounded-xl" />
+                      <Input id="floor" name="floor" placeholder="e.g. Ground or North Tower" className="rounded-xl" defaultValue={editingUnit?.floor} />
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="capacity">Max Capacity</Label>
-                      <Input id="capacity" name="capacity" type="number" min="1" defaultValue="2" required className="rounded-xl" />
+                      <Input id="capacity" name="capacity" type="number" min="1" required className="rounded-xl" defaultValue={editingUnit?.capacity || 2} />
                     </div>
                   </div>
                   
@@ -179,11 +205,11 @@ export function UnitsClient({
                     <div className="grid grid-cols-2 gap-4">
                       <div className="grid gap-2">
                         <Label htmlFor="wifiNetwork">Network Name (SSID)</Label>
-                        <Input id="wifiNetwork" name="wifiNetwork" placeholder="e.g. Room101-5G" className="rounded-xl" />
+                        <Input id="wifiNetwork" name="wifiNetwork" placeholder="e.g. Room101-5G" className="rounded-xl" defaultValue={editingUnit?.wifiNetwork} />
                       </div>
                       <div className="grid gap-2">
                         <Label htmlFor="wifiPassword">Password</Label>
-                        <Input id="wifiPassword" name="wifiPassword" placeholder="e.g. secret123" className="rounded-xl" />
+                        <Input id="wifiPassword" name="wifiPassword" placeholder="e.g. secret123" className="rounded-xl" defaultValue={editingUnit?.wifiPassword} />
                       </div>
                     </div>
                   </div>
@@ -293,7 +319,15 @@ export function UnitsClient({
                 >
                   <div className="flex items-center justify-between mb-2">
                     <span className="font-bold text-lg">{unit.name}</span>
-                    {getStatusIcon(unit.status)}
+                    <div className="flex items-center gap-1.5">
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); openDialogForEdit(unit); }}
+                        className="p-1 rounded-md opacity-50 hover:opacity-100 hover:bg-current/10 transition-all"
+                      >
+                        <PenTool className="h-3 w-3" />
+                      </button>
+                      {getStatusIcon(unit.status)}
+                    </div>
                   </div>
                   <span className="text-[10px] font-bold tracking-wider uppercase opacity-70 mt-auto">{unit.status}</span>
                   <span className="text-[10px] opacity-50 truncate">{unit.type}</span>
@@ -316,6 +350,7 @@ export function UnitsClient({
                     <th className="px-6 py-3.5 font-semibold">Status</th>
                     <th className="px-6 py-3.5 font-semibold">Floor</th>
                     <th className="px-6 py-3.5 font-semibold">Capacity</th>
+                    <th className="px-6 py-3.5 font-semibold text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/40">
@@ -330,6 +365,14 @@ export function UnitsClient({
                       </td>
                       <td className="px-6 py-3.5 text-muted-foreground font-medium">{unit.floor}</td>
                       <td className="px-6 py-3.5 text-muted-foreground font-medium">{unit.capacity} Persons</td>
+                      <td className="px-6 py-3.5 text-right">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); openDialogForEdit(unit); }}
+                          className="text-muted-foreground hover:text-primary transition-colors p-1"
+                        >
+                          <PenTool className="h-4 w-4" />
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
