@@ -174,6 +174,7 @@ export async function sendManualMessage(phone: string, content: string) {
 
 export async function sendTemplateMessage(phone: string, templateName: string, variables: Record<string, string>) {
   const { sendWhatsAppMessage } = await import("@/lib/whatsapp/client");
+  let contentText = "Automated Template Sent";
   const { normalizePhoneNumber } = await import("@/lib/utils/phone");
   
   const cleanedPhone = normalizePhoneNumber(phone);
@@ -197,6 +198,7 @@ export async function sendTemplateMessage(phone: string, templateName: string, v
         '6': reservation.property?.address || 'Ritumbhara Property',
         '7': `${process.env.NEXT_PUBLIC_APP_URL || 'https://ritumbhara-hospitality-os-q6er.vercel.app'}/stay/${reservation.id}`
       };
+      contentText = `Hi ${variables['1']}, Thanks for booking ${variables['2']}! We are thrilled to host you and aim to deliver a seamless 5-star experience. Quick Details: Check-in: After 1PM ${variables['3']} Check-out: Before 11AM ${variables['4']} Directions to the Studio : ${variables['5']} Address: ${variables['6']} Action Required: To ensure an uninterrupted check-in, please fill out our Guest Form here: https://forms.gle/NnCHqpCz1aj6c9T26 Manage Your Stay: Access your directions, Wi-Fi password, AI support, and housekeeping requests at your personalized Guest Portal: ${variables['7']} If you have any questions or need recommendations, just send us a message. We're here to help! Best, Ritumbhara Hospitality`;
     } else if (templateName === 'pre_arrival_instructions' && reservation) {
       variables = {
         '1': guest.name,
@@ -208,14 +210,17 @@ export async function sendTemplateMessage(phone: string, templateName: string, v
         '7': reservation.property?.googleMapsUrl || 'https://maps.app.goo.gl',
         '8': `${process.env.NEXT_PUBLIC_APP_URL || 'https://ritumbhara-hospitality-os-q6er.vercel.app'}/stay/${reservation.id}`
       };
+      contentText = `Hi ${variables['1']}, Your stay at ${variables['2']} is coming up! Check-in: anytime after 1PM on ${variables['3']}. Wifi: Network: ${variables['4']} Password: ${variables['5']} Action Required: Please share photos of IDs for all guests in this chat. This is required by local regulations to complete your registration. Good to know: Housekeeping: Complimentary, available in designated time slot on request. Friendly House Rules: Quiet Hours: 10PM - 8AM Smoking: Strictly NO smoking indoors Energy: Please turn off AC/lights when leaving Visitors: Only registered guests allowed overnight Delivery: For safety, delivery persons are not allowed inside. Please self-pick up orders from the Gate. Support: If you need anything, message us or use the call button! Best, Ritumbhara Hospitality`;
     } else if (templateName === 'checkout_instructions' && reservation) {
       variables = { '1': guest.name };
+      contentText = `Hi ${variables['1']} We hope you enjoyed your stay with us! Just a friendly reminder that checkout is today at 11AM. To help our cleaning team prepare for the next guest, we would truly appreciate it if you could follow these quick steps before heading out: Lights & AC: Please turn off all lights and the air conditioning. Trash: Place any bagged trash in the bin Dishes: Please leave any used dishes in the sink Final Check: Double-check for any chargers or personal items! Please send us a quick message once you have officially checked out so we can give our housekeeping team a head start. Safe travels, and we hope to see you again soon! Best, Ritumbhara Hospitality`;
     } else if (templateName === 'post_stay_thank_you') {
       variables = { '1': guest.name };
+      contentText = `Thank you for staying with us, ${variables['1']}! We hope you had a wonderful time. Please let us know how we did. Have a safe journey home!`;
     }
   }
 
-  const result = await sendWhatsAppMessage(phone, 'template', '', templateName, 'MANUAL_TEMPLATE', 'INBOX', variables);
+  const result = await sendWhatsAppMessage(phone, 'template', contentText, templateName, 'MANUAL_TEMPLATE', 'INBOX', variables);
   return result;
 }
 
