@@ -143,11 +143,9 @@ export function UnitsClient({
           </div>
           
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <button onClick={openDialogForNew} className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm shadow-primary/20 transition-all duration-200 hover:bg-primary/90 hover:shadow-md hover:shadow-primary/25 active:scale-[0.98]">
-                <Plus className="h-4 w-4" />
-                Add Unit
-              </button>
+            <DialogTrigger onClick={openDialogForNew} className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm shadow-primary/20 transition-all duration-200 hover:bg-primary/90 hover:shadow-md hover:shadow-primary/25 active:scale-[0.98]">
+              <Plus className="h-4 w-4" />
+              Add Unit
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px] rounded-2xl">
               <form onSubmit={handleSubmit}>
