@@ -120,16 +120,17 @@ Intents:
 1. "ACCEPT": The staff is purely acknowledging the ticket internally ("ok", "on it", "will do"). NO message goes to the guest.
 2. "RESOLVE": The staff is confirming a physical task is fully complete/delivered ("de diya", "done", "fixed"). NO message goes to the guest, ticket is closed.
 3. "ANSWER_AND_RESOLVE": The staff is directly answering the guest's request, setting a condition, or giving an update (e.g. "haan ho jayega but extra 200 lagenge", "we don't have extra towels"). The ticket should be resolved AND the message forwarded to the guest.
-4. "UNKNOWN": Gibberish or unrelated.
+4. "REJECT": The staff is explicitly saying they cannot do it, are busy, or are unavailable (e.g. "abhi nahi ho payega", "busy", "I can't do it"). The ticket is left unaccepted so someone else can pick it up.
+5. "UNKNOWN": Gibberish or unrelated.
 
 IMPORTANT: If intent is ANSWER_AND_RESOLVE, you MUST generate a "messageForGuest". This message MUST be written in the exact same language/tone that the guest used in their original request! 
 For example, if the guest asked in Hinglish, the messageForGuest should be in Hinglish ("Haan late check-in ho jayega, but 200/hr extra lagega."). If English, use English.
 
 Output JSON:
 {
-  "intent": "ACCEPT" | "RESOLVE" | "ANSWER_AND_RESOLVE" | "UNKNOWN",
+  "intent": "ACCEPT" | "RESOLVE" | "ANSWER_AND_RESOLVE" | "REJECT" | "UNKNOWN",
   "messageForGuest": "Message to send to the guest (only if ANSWER_AND_RESOLVE). null otherwise.",
-  "staffReply": "A short confirmation message to send back to the staff (e.g. '✅ Ticket Accepted', or '✅ Message sent to guest & ticket resolved')."
+  "staffReply": "A short confirmation message to send back to the staff (e.g. '✅ Ticket Accepted', 'Got it, leaving ticket open', etc.)"
 }`;
 
         try {
@@ -143,6 +144,11 @@ Output JSON:
            
            if (parsed.intent === "UNKNOWN") {
              return `⚠️ I didn't quite catch that. You can reply with 'ACCEPT' to acknowledge, or 'RESOLVE <message>' to close the ticket.`;
+           }
+
+           if (parsed.intent === "REJECT") {
+             // Do NOT update ticket status. Leave it open for someone else.
+             return parsed.staffReply || `Got it. The ticket remains unaccepted so someone else can pick it up.`;
            }
 
            if (parsed.intent === "ACCEPT") {
@@ -299,11 +305,14 @@ Output JSON:
         }
       });
 
-      // Automatically update the physical room status to READY
-      await prisma.unit.update({
-        where: { id: activeTask.unitId },
-        data: { status: "READY" }
-      });
+      // Automatically update the physical room status to AVAILABLE if not occupied
+      const currentUnit = await prisma.unit.findUnique({ where: { id: activeTask.unitId } });
+      if (currentUnit?.status !== "OCCUPIED") {
+        await prisma.unit.update({
+          where: { id: activeTask.unitId },
+          data: { status: "AVAILABLE" }
+        });
+      }
 
       const { eventBus } = await import("@/lib/events/bus");
       await eventBus.emit('HOUSEKEEPING_TASK_COMPLETED', {

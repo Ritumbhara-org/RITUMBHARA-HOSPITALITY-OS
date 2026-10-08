@@ -63,7 +63,7 @@ export async function handleGuestAIChat(senderPhone: string, messageText: string
   
   let availabilityRules = "";
   if (isOutOfHours) {
-    availabilityRules = `\nCRITICAL RULE: It is currently outside of our operating hours (10 AM to 10 PM). In your replyText, you MUST explicitly state: "Our operating hours are 10 AM to 10 PM, so our team is currently unavailable. In case of an emergency, please call 9503002629." Include this naturally in your response.`;
+    availabilityRules = `\nCRITICAL RULE: If your intent is ESCALATE_ISSUE or REOPEN_ISSUE, you MUST explicitly append this to your replyText: "As this is outside our working hours, all our staff are currently offline. However, we have notified them. If this is an emergency and needs to be resolved immediately, please contact 9503002629." Do NOT include this warning if your intent is ANSWER_QUESTION.`;
   } else {
     availabilityRules = `\nCRITICAL RULE: If your intent is ESCALATE_ISSUE, you MUST append this sentence to your replyText: "If no one responds to your request within 10 minutes, please contact 9503002629 for direct assistance."`;
   }
