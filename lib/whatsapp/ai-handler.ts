@@ -37,8 +37,11 @@ export async function handleGuestAIChat(senderPhone: string, messageText: string
       }
     });
 
+    const wifiNetwork = reservation?.unit?.wifiNetwork || reservation?.unit?.property?.wifiNetwork || "Not available";
+    const wifiPassword = reservation?.unit?.wifiPassword || reservation?.unit?.property?.wifiPassword || "Not available";
+
     contextStr = reservation 
-      ? `User Type: Guest. Guest Name: ${guest.name}. Reservation Status: ${reservation.status}. Property: ${reservation.unit.property.name}. Unit: ${reservation.unit.name}. Check-in: ${reservation.checkIn.toLocaleDateString()}. Check-out: ${reservation.checkOut.toLocaleDateString()}.`
+      ? `User Type: Guest. Guest Name: ${guest.name}. Reservation Status: ${reservation.status}. Property: ${reservation.unit.property.name}. Unit: ${reservation.unit.name}. Check-in: ${reservation.checkIn.toLocaleDateString()}. Check-out: ${reservation.checkOut.toLocaleDateString()}. Wi-Fi Network: ${wifiNetwork}. Wi-Fi Password: ${wifiPassword}.`
       : `User Type: Guest. Guest Name: ${guest.name}. No active reservation found.`;
 
     // Fetch recent resolved tickets

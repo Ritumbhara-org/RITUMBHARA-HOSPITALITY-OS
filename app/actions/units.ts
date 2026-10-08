@@ -10,6 +10,8 @@ export async function createUnit(formData: FormData) {
     const floor = formData.get("floor") as string
     const capacityStr = formData.get("capacity") as string
     const propertyId = formData.get("propertyId") as string
+    const wifiNetwork = formData.get("wifiNetwork") as string
+    const wifiPassword = formData.get("wifiPassword") as string
     
     if (!name || !type || !propertyId) {
       throw new Error("Location, Name and Type are required fields.")
@@ -22,7 +24,9 @@ export async function createUnit(formData: FormData) {
         floor: floor || "1",
         capacity: parseInt(capacityStr) || 2,
         status: "AVAILABLE",
-        propertyId
+        propertyId,
+        wifiNetwork: wifiNetwork || null,
+        wifiPassword: wifiPassword || null
       }
     })
 

@@ -82,7 +82,10 @@ export function initWhatsAppListeners() {
       });
       if (!guest?.phone) return;
 
-      const messageContent = `Hi ${guest.name},\n\nYour stay at ${unit?.unit?.name || 'our property'} is coming up!\nCheck-in: anytime after 1PM on ${payload.checkIn.toLocaleDateString()}.\n\nWifi:\nNetwork: ${unit?.property?.wifiNetwork || 'Ritumbhara_Guest'}\nPassword: ${unit?.property?.wifiPassword || 'Ritumbhara@123'}\n\nAction Required: Please share photos of IDs for all guests in this chat. This is required by local regulations to complete your registration.\n\nGood to know:\nHousekeeping: Complimentary, available in designated time slot on request.\n\nFriendly House Rules:\nQuiet Hours: 10PM - 8AM\nSmoking: Strictly NO smoking indoors\nEnergy: Please turn off AC/lights when leaving\nVisitors: Only registered guests allowed overnight\nDelivery: For safety, delivery persons are not allowed inside. Please self-pick up orders from the Gate.\n\nSupport: If you need anything, message us or use the call button!\n\nBest, Ritumbhara Hospitality`;
+      const wifiNetwork = unit?.unit?.wifiNetwork || unit?.property?.wifiNetwork || 'N/A';
+      const wifiPassword = unit?.unit?.wifiPassword || unit?.property?.wifiPassword || 'N/A';
+
+      const messageContent = `Hi ${guest.name},\n\nYour stay at ${unit?.unit?.name || 'our property'} is coming up!\nCheck-in: anytime after 1PM on ${payload.checkIn.toLocaleDateString()}.\n\nWifi:\nNetwork: ${wifiNetwork}\nPassword: ${wifiPassword}\n\nAction Required: Please share photos of IDs for all guests in this chat. This is required by local regulations to complete your registration.\n\nGood to know:\nHousekeeping: Complimentary, available in designated time slot on request.\n\nFriendly House Rules:\nQuiet Hours: 10PM - 8AM\nSmoking: Strictly NO smoking indoors\nEnergy: Please turn off AC/lights when leaving\nVisitors: Only registered guests allowed overnight\nDelivery: For safety, delivery persons are not allowed inside. Please self-pick up orders from the Gate.\n\nSupport: If you need anything, message us or use the call button!\n\nBest, Ritumbhara Hospitality`;
 
       await sendWhatsAppMessage(
         guest.phone,
@@ -95,8 +98,8 @@ export function initWhatsAppListeners() {
           '1': guest.name,
           '2': unit?.unit?.name || 'our property',
           '3': payload.checkIn.toLocaleDateString(),
-          '4': unit?.property?.wifiNetwork || 'Ritumbhara_Guest',
-          '5': unit?.property?.wifiPassword || 'Ritumbhara@123',
+          '4': wifiNetwork,
+          '5': wifiPassword,
           '6': unit?.property?.address || 'Ritumbhara Property',
           '7': unit?.property?.googleMapsUrl || 'https://maps.app.goo.gl',
           '8': `${process.env.NEXT_PUBLIC_APP_URL || 'https://ritumbhara-hospitality-os-q6er.vercel.app'}/stay/${payload.reservationId}`
@@ -126,7 +129,10 @@ export function initWhatsAppListeners() {
       });
       if (!guest?.phone) return;
 
-      const messageContent = `Hi ${guest.name},\n\nYour stay at ${unit?.unit?.name || 'our property'} is coming up!\nCheck-in: anytime after 1PM on ${payload.checkIn.toLocaleDateString()}.\n\nWifi:\nNetwork: ${unit?.property?.wifiNetwork || 'Ritumbhara_Guest'}\nPassword: ${unit?.property?.wifiPassword || 'Ritumbhara@123'}\n\nAction Required: Please share photos of IDs for all guests in this chat. This is required by local regulations to complete your registration.\n\nGood to know:\nHousekeeping: Complimentary, available in designated time slot on request.\n\nFriendly House Rules:\nQuiet Hours: 10PM - 8AM\nSmoking: Strictly NO smoking indoors\nEnergy: Please turn off AC/lights when leaving\nVisitors: Only registered guests allowed overnight\nDelivery: For safety, delivery persons are not allowed inside. Please self-pick up orders from the Gate.\n\nSupport: If you need anything, message us or use the call button!\n\nBest, Ritumbhara Hospitality`;
+      const wifiNetwork = unit?.unit?.wifiNetwork || unit?.property?.wifiNetwork || 'N/A';
+      const wifiPassword = unit?.unit?.wifiPassword || unit?.property?.wifiPassword || 'N/A';
+
+      const messageContent = `Hi ${guest.name},\n\nYour stay at ${unit?.unit?.name || 'our property'} is coming up!\nCheck-in: anytime after 1PM on ${payload.checkIn.toLocaleDateString()}.\n\nWifi:\nNetwork: ${wifiNetwork}\nPassword: ${wifiPassword}\n\nAction Required: Please share photos of IDs for all guests in this chat. This is required by local regulations to complete your registration.\n\nGood to know:\nHousekeeping: Complimentary, available in designated time slot on request.\n\nFriendly House Rules:\nQuiet Hours: 10PM - 8AM\nSmoking: Strictly NO smoking indoors\nEnergy: Please turn off AC/lights when leaving\nVisitors: Only registered guests allowed overnight\nDelivery: For safety, delivery persons are not allowed inside. Please self-pick up orders from the Gate.\n\nSupport: If you need anything, message us or use the call button!\n\nBest, Ritumbhara Hospitality`;
 
       await sendWhatsAppMessage(
         guest.phone,
@@ -139,8 +145,8 @@ export function initWhatsAppListeners() {
           '1': guest.name,
           '2': unit?.unit?.name || 'our property',
           '3': payload.checkIn.toLocaleDateString(),
-          '4': unit?.property?.wifiNetwork || 'Ritumbhara_Guest',
-          '5': unit?.property?.wifiPassword || 'Ritumbhara@123',
+          '4': wifiNetwork,
+          '5': wifiPassword,
           '6': unit?.property?.address || 'Ritumbhara Property',
           '7': unit?.property?.googleMapsUrl || 'https://maps.app.goo.gl',
           '8': `${process.env.NEXT_PUBLIC_APP_URL || 'https://ritumbhara-hospitality-os-q6er.vercel.app'}/stay/${payload.reservationId}`

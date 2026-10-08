@@ -252,7 +252,11 @@ export function GuestPortalClient({ reservation, whatsappNumber }: { reservation
           <motion.button 
             whileHover={{ scale: 1.05, y: -5 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => alert(`Network: ${reservation.unit.property?.wifiNetwork || 'N/A'}\nPassword: ${reservation.unit.property?.wifiPassword || 'N/A'}`)}
+            onClick={() => {
+              const wifiNetwork = reservation.unit.wifiNetwork || reservation.unit.property?.wifiNetwork || 'N/A';
+              const wifiPassword = reservation.unit.wifiPassword || reservation.unit.property?.wifiPassword || 'N/A';
+              alert(`Network: ${wifiNetwork}\nPassword: ${wifiPassword}`);
+            }}
             className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center gap-2 hover:shadow-lg transition-all"
           >
             <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center">

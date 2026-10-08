@@ -109,9 +109,11 @@ model Unit {
   floor      String
   capacity   Int
   status     UnitStatus @default(AVAILABLE)
-  amenities  Json       @default("[]")
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
+  amenities    Json       @default("[]")
+  wifiNetwork  String?
+  wifiPassword String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 
   property          Property           @relation(fields: [propertyId], references: [id])
   reservations      Reservation[]

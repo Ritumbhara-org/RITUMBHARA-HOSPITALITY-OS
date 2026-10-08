@@ -173,6 +173,20 @@ export function UnitsClient({
                       <Input id="capacity" name="capacity" type="number" min="1" defaultValue="2" required className="rounded-xl" />
                     </div>
                   </div>
+                  
+                  <div className="grid gap-4 mt-2 pt-4 border-t border-dashed">
+                    <Label className="text-muted-foreground font-semibold">Unit-Specific Wi-Fi (Optional)</Label>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="wifiNetwork">Network Name (SSID)</Label>
+                        <Input id="wifiNetwork" name="wifiNetwork" placeholder="e.g. Room101-5G" className="rounded-xl" />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="wifiPassword">Password</Label>
+                        <Input id="wifiPassword" name="wifiPassword" placeholder="e.g. secret123" className="rounded-xl" />
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 <DialogFooter>
                   <button 

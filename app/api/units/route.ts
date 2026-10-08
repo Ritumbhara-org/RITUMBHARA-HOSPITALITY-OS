@@ -10,6 +10,8 @@ const CreateUnitSchema = z.object({
   capacity: z.number().int().min(1).default(2),
   status: z.enum(["AVAILABLE", "OCCUPIED", "DIRTY", "CLEANING", "READY", "MAINTENANCE"]).default("AVAILABLE"),
   amenities: z.array(z.string()).optional(),
+  wifiNetwork: z.string().optional().nullable(),
+  wifiPassword: z.string().optional().nullable(),
 })
 
 // GET /api/units — list units
