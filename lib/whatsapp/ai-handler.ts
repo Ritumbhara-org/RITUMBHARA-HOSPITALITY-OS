@@ -84,11 +84,16 @@ IMPORTANT: Always output valid JSON in the following schema:
 {
   "intent": "ANSWER_QUESTION" | "ESCALATE_ISSUE" | "REOPEN_ISSUE",
   "replyText": "The message to send back to the user",
-  "escalationCategory": "MAINTENANCE" | "HOUSEKEEPING" | "GUEST_REQUEST" | "GUEST_COMPLAINT" | null,
+  "escalationCategory": "GUEST_REQUEST" | "HOUSEKEEPING" | "MAINTENANCE" | "GUEST_COMPLAINT" | null,
   "unitName": "Optional. The room or unit name extracted from the message, if any.",
   "ticketId": "Optional. The ID of the ticket to reopen if intent is REOPEN_ISSUE.",
   "ticketDescription": "Optional. If intent is ESCALATE_ISSUE, provide a clear, concise, generalized summary of the issue (e.g. 'Guest requested a cooker for the kitchen'). Do NOT just copy the user's raw message."
 }
+
+CRITICAL CATEGORIZATION RULES FOR ESCALATION_CATEGORY:
+1. If the request is about check-in, check-out, late check-out, early check-in, payments, room upgrades, keys, or general reception inquiries -> You MUST use "GUEST_REQUEST" (This assigns it to Front Desk).
+2. If the request is about cleaning, towels, bedsheets, room service, or missing inventory -> You MUST use "HOUSEKEEPING".
+3. If the request is about broken items, AC not working, plumbing, TV issues -> You MUST use "MAINTENANCE".
 
 If intent is ESCALATE_ISSUE or REOPEN_ISSUE, replyText should assure the user that the team has been notified and will check into it.
 `;
