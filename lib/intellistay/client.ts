@@ -9,9 +9,9 @@ export class IntellistayClient {
   private tokenExpiresAt: number | null = null; // Store epoch ms
 
   private constructor() {
-    this.baseUrl = 'https://ritumbhara.intellistay.in';
-    this.username = 'Shivam';
-    this.password = '1234';
+    this.baseUrl = process.env.INTELLISTAY_API_URL || 'https://ritumbharatest.aastratech.com';
+    this.username = process.env.INTELLISTAY_USERNAME || 'hms';
+    this.password = process.env.INTELLISTAY_PASSWORD || '1234';
   }
 
   public static getInstance(): IntellistayClient {

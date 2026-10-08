@@ -64,7 +64,7 @@ export async function syncBookings() {
       method: 'POST',
       body: JSON.stringify({
         pagination: { page: 1, limit: 10 },
-        filter: { getAll: true, orderBy: "bookingId", order: "desc" }
+        filter: { order: "desc" }
       })
     });
     

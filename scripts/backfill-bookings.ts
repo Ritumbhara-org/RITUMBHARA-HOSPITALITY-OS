@@ -48,7 +48,7 @@ async function runBackfill() {
     method: 'POST',
     body: JSON.stringify({
       pagination: { page: 1, limit: 10 },
-      filter: { getAll: true, orderBy: "bookingId", order: "desc" }
+      filter: { order: "desc" }
     })
   });
 
@@ -68,7 +68,7 @@ async function runBackfill() {
       method: 'POST',
       body: JSON.stringify({
         pagination: { page: page, limit: 10 },
-        filter: { getAll: true, orderBy: "bookingId", order: "desc" }
+        filter: { order: "desc" }
       })
     });
 
