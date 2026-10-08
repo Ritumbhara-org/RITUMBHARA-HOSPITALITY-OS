@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { handleWhatsAppAction } from "@/lib/whatsapp/action-handler";
 import { handleGuestAIChat } from "@/lib/whatsapp/ai-handler";
+import { defaultLeadRouterDeps, routeToWebsiteLeadBot } from "@/lib/whatsapp/website-lead-router";
 
 export async function POST(req: Request) {
   try {
@@ -44,6 +45,19 @@ export async function POST(req: Request) {
 
     // If no response is needed (e.g., standard guest chat), forward to AI!
     if (!responseMessage) {
+      // Website leads: senders who are neither staff nor known guests go to the website's qualification bot
+      // (only when WEBSITE_LEAD_BOT_URL is set; otherwise, or on any failure, the flow below is unchanged).
+      const leadBotReply = await routeToWebsiteLeadBot(
+        { senderPhone, rawBody: text, signature: req.headers.get("x-twilio-signature") },
+        defaultLeadRouterDeps()
+      );
+      if (leadBotReply !== null) {
+        return new NextResponse(leadBotReply, {
+          status: 200,
+          headers: { "Content-Type": "text/xml" },
+        });
+      }
+
       await handleGuestAIChat(senderPhone, originalText);
       return new NextResponse("<Response></Response>", {
         status: 200,
