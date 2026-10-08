@@ -77,7 +77,7 @@ function generateSEOPackage(input: z.infer<typeof SeoInputSchema>) {
     },
     {
       question: `What is the check-in and check-out time at ${propertyName}?`,
-      answer: `Standard check-in time is 2:00 PM and check-out is 11:00 AM. Early check-in and late check-out may be available on request.`
+      answer: `Standard check-in time is 1:00 PM and check-out is 10:00 AM. Early check-in and late check-out may be available on request.`
     },
     {
       question: `Is ${propertyName} pet-friendly?`,
