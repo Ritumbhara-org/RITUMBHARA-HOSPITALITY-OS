@@ -116,19 +116,19 @@ The assigned staff member replied with: "${messageText}"
 
 Analyze the staff member's reply (which might be in English, Hindi, or Hinglish) and determine their intent.
 Intents:
-1. "ACCEPT": The staff is acknowledging the ticket and saying they will do it (e.g., "haan ho jayega", "I will do it", "ok").
-2. "RESOLVE": The staff is confirming the task is fully complete/done (e.g., "ho gaya", "done", "de diya", "bhej diya").
-3. "QUESTION": The staff is asking a follow-up question or giving an update intended for the guest (e.g., "kitne baje dena hai?", "kaunsa room?").
+1. "ACCEPT": The staff is purely acknowledging the ticket internally ("ok", "on it", "will do"). NO message goes to the guest.
+2. "RESOLVE": The staff is confirming a physical task is fully complete/delivered ("de diya", "done", "fixed"). NO message goes to the guest, ticket is closed.
+3. "ANSWER_AND_RESOLVE": The staff is directly answering the guest's request, setting a condition, or giving an update (e.g. "haan ho jayega but extra 200 lagenge", "we don't have extra towels"). The ticket should be resolved AND the message forwarded to the guest.
 4. "UNKNOWN": Gibberish or unrelated.
 
-IMPORTANT: If intent is RESOLVE or QUESTION, you MUST generate a "messageForGuest". This message MUST be written in the exact same language/tone that the guest used in their original request! 
-For example, if the guest asked in Hinglish ("cooker bhej do"), the messageForGuest should be in Hinglish ("Aapka cooker bhej diya gaya hai."). If English, use English.
+IMPORTANT: If intent is ANSWER_AND_RESOLVE, you MUST generate a "messageForGuest". This message MUST be written in the exact same language/tone that the guest used in their original request! 
+For example, if the guest asked in Hinglish, the messageForGuest should be in Hinglish ("Haan late check-in ho jayega, but 200/hr extra lagega."). If English, use English.
 
 Output JSON:
 {
-  "intent": "ACCEPT" | "RESOLVE" | "QUESTION" | "UNKNOWN",
-  "messageForGuest": "Message to send to the guest (only if RESOLVE or QUESTION). null otherwise.",
-  "staffReply": "A short confirmation message to send back to the staff (e.g. '✅ Ticket Accepted' or '✅ Ticket Resolved')."
+  "intent": "ACCEPT" | "RESOLVE" | "ANSWER_AND_RESOLVE" | "UNKNOWN",
+  "messageForGuest": "Message to send to the guest (only if ANSWER_AND_RESOLVE). null otherwise.",
+  "staffReply": "A short confirmation message to send back to the staff (e.g. '✅ Ticket Accepted', or '✅ Message sent to guest & ticket resolved')."
 }`;
 
         try {
@@ -152,11 +152,11 @@ Output JSON:
              return parsed.staffReply || `✅ Ticket Acknowledged!`;
            }
 
-           if (parsed.intent === "QUESTION" && parsed.messageForGuest && activeTicket.guest?.phone) {
-             const { sendWhatsAppMessage } = await import("@/lib/whatsapp/client");
-             // Send the question directly to the guest as a standard text (assuming open 24h window)
-             await sendWhatsAppMessage(activeTicket.guest.phone, 'text', parsed.messageForGuest);
-             return parsed.staffReply || `✅ Message forwarded to guest.`;
+           if (parsed.intent === "ANSWER_AND_RESOLVE") {
+             isResolving = true;
+             // Set the resolution note to the generated message for the guest.
+             // The TICKET_RESOLVED event listener will automatically catch this and send the official Twilio template ('ticket_resolved_custom') using this note.
+             resolutionNote = parsed.messageForGuest || "Answered guest inquiry";
            }
            
            if (parsed.intent === "RESOLVE") {
@@ -228,6 +228,11 @@ Output JSON:
           status: resolvedTicket.status,
           resolutionNote: resolutionNote
         });
+
+        // If we have a custom AI staff reply (e.g. from ANSWER_AND_RESOLVE), return that. Otherwise default message.
+        if (typeof parsed !== "undefined" && parsed.staffReply && parsed.intent === "ANSWER_AND_RESOLVE") {
+           return parsed.staffReply;
+        }
 
         return `🎉 Great job, ${teamMember.name}! The ticket has been resolved${mediaUrl ? ' with photo evidence' : ''}.`;
       }

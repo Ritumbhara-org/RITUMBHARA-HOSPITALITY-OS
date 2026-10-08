@@ -54,10 +54,13 @@ export async function getWhatsAppConversations() {
       }
     }
 
-    const teamMatch = allTeam.find(t => t.whatsappNumber && normalizePhoneNumber(t.whatsappNumber) === thread.phone);
-    if (teamMatch) {
-      thread.teamMember = teamMatch;
-      propertyId = teamMatch.propertyId;
+    const teamMatches = allTeam.filter(t => t.whatsappNumber && normalizePhoneNumber(t.whatsappNumber) === thread.phone);
+    if (teamMatches.length > 0) {
+      // Use the first match as the base team member, but aggregate all property IDs
+      thread.teamMember = teamMatches[0];
+      // Attach all property names/IDs to a custom field for the UI
+      thread.allProperties = teamMatches.map(t => t.propertyId);
+      propertyId = teamMatches[0].propertyId; // Primary filter property
     }
 
     thread.propertyId = propertyId;

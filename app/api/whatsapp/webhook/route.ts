@@ -58,6 +58,18 @@ export async function POST(req: Request) {
       </Response>
     `;
 
+    // Log the outbound response to the database so it appears in the Unified Inbox
+    await prisma.whatsAppMessage.create({
+      data: {
+        direction: 'OUTBOUND',
+        from: process.env.TWILIO_WHATSAPP_NUMBER || 'SYSTEM',
+        to: from, // Use the original from (whatsapp:+91...)
+        messageType: 'text',
+        content: responseMessage,
+        status: 'DELIVERED', // Since TwiML handles it instantly
+      }
+    });
+
     return new NextResponse(twimlResponse, {
       status: 200,
       headers: {
