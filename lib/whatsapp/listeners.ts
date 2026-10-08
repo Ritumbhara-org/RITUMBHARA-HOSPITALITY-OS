@@ -9,7 +9,7 @@ export function initWhatsAppListeners() {
       const guest = await prisma.guest.findUnique({ where: { id: payload.guestId } });
       const unit = await prisma.reservation.findUnique({ 
         where: { id: payload.reservationId },
-        include: { unit: { include: { property: true } } }
+        include: { unit: { include: { property: true } }, property: true }
       });
 
       if (!guest?.phone) return;
@@ -23,9 +23,9 @@ Quick Details:
 Check-in: After 1PM  ${payload.checkIn.toLocaleDateString()}
 Check-out: Before 11AM ${payload.checkOut.toLocaleDateString()} 
 
-Directions the Studio : ${unit?.unit.property?.googleMapsUrl || 'https://maps.app.goo.gl'} 
+Directions the Studio : ${unit?.property?.googleMapsUrl || 'https://maps.app.goo.gl'} 
 
-Address: ${unit?.unit.property?.address || 'Ritumbhara Property'}
+Address: ${unit?.property?.address || 'Ritumbhara Property'}
 
 Action Required: To ensure an uninterrupted check-in, please fill out our Guest Form here: https://forms.gle/NnCHqpCz1aj6c9T26
 
@@ -49,8 +49,8 @@ Best, Ritumbhara Hospitality`;
           '2': unit?.unit.name || 'our property',
           '3': payload.checkIn.toLocaleDateString(),
           '4': payload.checkOut.toLocaleDateString(),
-          '5': unit?.unit.property?.googleMapsUrl || 'https://maps.app.goo.gl',
-          '6': unit?.unit.property?.address || 'Ritumbhara Property',
+          '5': unit?.property?.googleMapsUrl || 'https://maps.app.goo.gl',
+          '6': unit?.property?.address || 'Ritumbhara Property',
           '7': `${process.env.NEXT_PUBLIC_APP_URL || 'https://ritumbhara-hospitality-os-q6er.vercel.app'}/stay/${payload.reservationId}`
         }
       );
@@ -99,7 +99,7 @@ Best, Ritumbhara Hospitality`;
       const guest = await prisma.guest.findUnique({ where: { id: payload.guestId } });
       const unit = await prisma.reservation.findUnique({ 
         where: { id: payload.reservationId },
-        include: { unit: { include: { property: true } } }
+        include: { unit: { include: { property: true } }, property: true }
       });
       if (!guest?.phone) return;
 
@@ -108,12 +108,12 @@ Best, Ritumbhara Hospitality`;
 Your stay at ${unit?.unit?.name || 'our property'} is coming up! Check-in: anytime after 1PM on ${payload.checkIn.toLocaleDateString()}.
 
 Location:
-Address: Ritumbhara Property
-Map: https://maps.app.goo.gl
+Address: ${unit?.property?.address || 'Ritumbhara Property'}
+Map: ${unit?.property?.googleMapsUrl || 'https://maps.app.goo.gl'}
 
 Wifi:
-Network: Ritumbhara_Guest
-Password: Ritumbhara@123
+Network: ${unit?.property?.wifiNetwork || 'Ritumbhara_Guest'}
+Password: ${unit?.property?.wifiPassword || 'Ritumbhara@123'}
 
 Action Required: Please share photos of IDs for all guests in this chat. This is required by local regulations to complete your registration.
 
@@ -145,10 +145,10 @@ Best, Ritumbhara Hospitality`;
           '1': guest.name,
           '2': unit?.unit?.name || 'our property',
           '3': payload.checkIn.toLocaleDateString(),
-          '4': unit?.unit?.property?.wifiNetwork || 'Ritumbhara_Guest',
-          '5': unit?.unit?.property?.wifiPassword || 'Ritumbhara@123',
-          '6': unit?.unit?.property?.address || 'Ritumbhara Property',
-          '7': unit?.unit?.property?.googleMapsUrl || 'https://maps.app.goo.gl',
+          '4': unit?.property?.wifiNetwork || 'Ritumbhara_Guest',
+          '5': unit?.property?.wifiPassword || 'Ritumbhara@123',
+          '6': unit?.property?.address || 'Ritumbhara Property',
+          '7': unit?.property?.googleMapsUrl || 'https://maps.app.goo.gl',
           '8': `${process.env.NEXT_PUBLIC_APP_URL || 'https://ritumbhara-hospitality-os-q6er.vercel.app'}/stay/${payload.reservationId}`
         }
       );
@@ -172,11 +172,11 @@ Best, Ritumbhara Hospitality`;
       const guest = await prisma.guest.findUnique({ where: { id: payload.guestId } });
       const unit = await prisma.reservation.findUnique({ 
         where: { id: payload.reservationId },
-        include: { unit: { include: { property: true } } }
+        include: { unit: { include: { property: true } }, property: true }
       });
       if (!guest?.phone) return;
 
-      const messageContent = `Hi ${guest.name},\n\nYour stay at ${unit?.unit?.name || 'our property'} is today! Check-in: anytime after 1PM.\n\nLocation:\nAddress: Ritumbhara Property\nMap: https://maps.app.goo.gl\n\nWifi:\nNetwork: Ritumbhara_Guest\nPassword: Ritumbhara@123\n\nAction Required: Please share photos of IDs for all guests in this chat.\n\nManage Your Stay:\n${process.env.NEXT_PUBLIC_APP_URL || 'https://ritumbhara-hospitality-os-q6er.vercel.app'}/stay/${payload.reservationId}`;
+      const messageContent = `Hi ${guest.name},\n\nYour stay at ${unit?.unit?.name || 'our property'} is today! Check-in: anytime after 1PM.\n\nLocation:\nAddress: ${unit?.property?.address || 'Ritumbhara Property'}\nMap: ${unit?.property?.googleMapsUrl || 'https://maps.app.goo.gl'}\n\nWifi:\nNetwork: ${unit?.property?.wifiNetwork || 'Ritumbhara_Guest'}\nPassword: ${unit?.property?.wifiPassword || 'Ritumbhara@123'}\n\nAction Required: Please share photos of IDs for all guests in this chat.\n\nManage Your Stay:\n${process.env.NEXT_PUBLIC_APP_URL || 'https://ritumbhara-hospitality-os-q6er.vercel.app'}/stay/${payload.reservationId}`;
 
       await sendWhatsAppMessage(
         guest.phone,
@@ -189,10 +189,10 @@ Best, Ritumbhara Hospitality`;
           '1': guest.name,
           '2': unit?.unit?.name || 'our property',
           '3': payload.checkIn.toLocaleDateString(),
-          '4': unit?.unit?.property?.wifiNetwork || 'Ritumbhara_Guest',
-          '5': unit?.unit?.property?.wifiPassword || 'Ritumbhara@123',
-          '6': unit?.unit?.property?.address || 'Ritumbhara Property',
-          '7': unit?.unit?.property?.googleMapsUrl || 'https://maps.app.goo.gl',
+          '4': unit?.property?.wifiNetwork || 'Ritumbhara_Guest',
+          '5': unit?.property?.wifiPassword || 'Ritumbhara@123',
+          '6': unit?.property?.address || 'Ritumbhara Property',
+          '7': unit?.property?.googleMapsUrl || 'https://maps.app.goo.gl',
           '8': `${process.env.NEXT_PUBLIC_APP_URL || 'https://ritumbhara-hospitality-os-q6er.vercel.app'}/stay/${payload.reservationId}`
         }
       );
