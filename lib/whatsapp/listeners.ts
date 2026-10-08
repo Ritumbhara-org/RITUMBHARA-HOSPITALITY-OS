@@ -14,28 +14,7 @@ export function initWhatsAppListeners() {
 
       if (!guest?.phone) return;
 
-      const messageContent = `Hi ${guest.name},
-
-Thanks for booking ${unit?.unit.name || 'our property'}! We are thrilled to host you and aim to deliver a seamless 5-star experience.
-
-Quick Details:
-
-Check-in: After 1PM  ${payload.checkIn.toLocaleDateString()}
-Check-out: Before 11AM ${payload.checkOut.toLocaleDateString()} 
-
-Directions the Studio : ${unit?.property?.googleMapsUrl || 'https://maps.app.goo.gl'} 
-
-Address: ${unit?.property?.address || 'Ritumbhara Property'}
-
-Action Required: To ensure an uninterrupted check-in, please fill out our Guest Form here: https://forms.gle/NnCHqpCz1aj6c9T26
-
-Manage Your Stay:
-Access your directions, Wi-Fi password, AI support, and housekeeping requests at your personalized Guest Portal:
-${process.env.NEXT_PUBLIC_APP_URL || 'https://ritumbhara-hospitality-os-q6er.vercel.app'}/stay/${payload.reservationId}
-
-If you have any questions or need recommendations, just send us a message. We're here to help!
-
-Best, Ritumbhara Hospitality`;
+      const messageContent = `Hi ${guest.name}, Thanks for booking ${unit?.unit.name || 'our property'}! We are thrilled to host you and aim to deliver a seamless 5-star experience. Quick Details: Check-in: After 1PM ${payload.checkIn.toLocaleDateString()} Check-out: Before 11AM ${payload.checkOut.toLocaleDateString()} Directions to the Studio : ${unit?.property?.googleMapsUrl || 'https://maps.app.goo.gl'} Address: ${unit?.property?.address || 'Ritumbhara Property'} Action Required: To ensure an uninterrupted check-in, please fill out our Guest Form here: https://forms.gle/NnCHqpCz1aj6c9T26 Manage Your Stay: Access your directions, Wi-Fi password, AI support, and housekeeping requests at your personalized Guest Portal: ${process.env.NEXT_PUBLIC_APP_URL || 'https://ritumbhara-hospitality-os-q6er.vercel.app'}/stay/${payload.reservationId} If you have any questions or need recommendations, just send us a message. We're here to help! Best, Ritumbhara Hospitality`;
 
       await sendWhatsAppMessage(
         guest.phone,
@@ -103,36 +82,7 @@ Best, Ritumbhara Hospitality`;
       });
       if (!guest?.phone) return;
 
-      const messageContent = `Hi ${guest.name},
-
-Your stay at ${unit?.unit?.name || 'our property'} is coming up! Check-in: anytime after 1PM on ${payload.checkIn.toLocaleDateString()}.
-
-Location:
-Address: ${unit?.property?.address || 'Ritumbhara Property'}
-Map: ${unit?.property?.googleMapsUrl || 'https://maps.app.goo.gl'}
-
-Wifi:
-Network: ${unit?.property?.wifiNetwork || 'Ritumbhara_Guest'}
-Password: ${unit?.property?.wifiPassword || 'Ritumbhara@123'}
-
-Action Required: Please share photos of IDs for all guests in this chat. This is required by local regulations to complete your registration.
-
-Manage Your Stay:
-Access your personalized Guest Portal here: ${process.env.NEXT_PUBLIC_APP_URL || 'https://ritumbhara-hospitality-os-q6er.vercel.app'}/stay/${payload.reservationId}
-
-Good to know:
-Housekeeping: Complimentary, available in designated time slot on request.
-
-Friendly House Rules:
-- Quiet Hours: 10PM - 8AM
-- Smoking: Strictly NO smoking indoors
-- Energy: Please turn off AC/lights when leaving
-- Visitors: Only registered guests allowed overnight
-- Delivery: For safety, delivery persons are not allowed inside. Please self-pick up orders from the Gate.
-
-Support: If you need anything, message us or use the call button!
-
-Best, Ritumbhara Hospitality`;
+      const messageContent = `Hi ${guest.name}, Your stay at ${unit?.unit?.name || 'our property'} is coming up! Check-in: anytime after 1PM on ${payload.checkIn.toLocaleDateString()}. Wifi: Network: ${unit?.property?.wifiNetwork || 'Ritumbhara_Guest'} Password: ${unit?.property?.wifiPassword || 'Ritumbhara@123'} Action Required: Please share photos of IDs for all guests in this chat. This is required by local regulations to complete your registration. Good to know: Housekeeping: Complimentary, available in designated time slot on request. Friendly House Rules: Quiet Hours: 10PM - 8AM Smoking: Strictly NO smoking indoors Energy: Please turn off AC/lights when leaving Visitors: Only registered guests allowed overnight Delivery: For safety, delivery persons are not allowed inside. Please self-pick up orders from the Gate. Support: If you need anything, message us or use the call button! Best, Ritumbhara Hospitality`;
 
       await sendWhatsAppMessage(
         guest.phone,
@@ -176,7 +126,7 @@ Best, Ritumbhara Hospitality`;
       });
       if (!guest?.phone) return;
 
-      const messageContent = `Hi ${guest.name},\n\nYour stay at ${unit?.unit?.name || 'our property'} is today! Check-in: anytime after 1PM.\n\nLocation:\nAddress: ${unit?.property?.address || 'Ritumbhara Property'}\nMap: ${unit?.property?.googleMapsUrl || 'https://maps.app.goo.gl'}\n\nWifi:\nNetwork: ${unit?.property?.wifiNetwork || 'Ritumbhara_Guest'}\nPassword: ${unit?.property?.wifiPassword || 'Ritumbhara@123'}\n\nAction Required: Please share photos of IDs for all guests in this chat.\n\nManage Your Stay:\n${process.env.NEXT_PUBLIC_APP_URL || 'https://ritumbhara-hospitality-os-q6er.vercel.app'}/stay/${payload.reservationId}`;
+      const messageContent = `Hi ${guest.name}, Your stay at ${unit?.unit?.name || 'our property'} is coming up! Check-in: anytime after 1PM on ${payload.checkIn.toLocaleDateString()}. Wifi: Network: ${unit?.property?.wifiNetwork || 'Ritumbhara_Guest'} Password: ${unit?.property?.wifiPassword || 'Ritumbhara@123'} Action Required: Please share photos of IDs for all guests in this chat. This is required by local regulations to complete your registration. Good to know: Housekeeping: Complimentary, available in designated time slot on request. Friendly House Rules: Quiet Hours: 10PM - 8AM Smoking: Strictly NO smoking indoors Energy: Please turn off AC/lights when leaving Visitors: Only registered guests allowed overnight Delivery: For safety, delivery persons are not allowed inside. Please self-pick up orders from the Gate. Support: If you need anything, message us or use the call button! Best, Ritumbhara Hospitality`;
 
       await sendWhatsAppMessage(
         guest.phone,
@@ -218,26 +168,7 @@ Best, Ritumbhara Hospitality`;
       const guest = await prisma.guest.findUnique({ where: { id: payload.guestId } });
       if (!guest?.phone) return;
 
-      const messageContent = `Hi ${guest.name}
-
-We hope you enjoyed your stay with us! Just a friendly reminder that checkout is today at 11:00 AM
-
-To help our cleaning team prepare for the next guest, we would truly appreciate it if you could follow these quick steps before heading out:
-
-Lights & AC: Please turn off all lights and the air conditioning.
-
-Trash: Place any bagged trash in the bin
-
-Dishes: Please leave any used dishes in the sink
-
-Final Check: Double-check for any chargers or personal items!
-
-Please send us a quick message once you have officially checked out so we can give our housekeeping team a head start.
-
-Safe travels, and we hope to see you again soon!
-
-Best,
-Ritumbhara Hospitality`;
+      const messageContent = `Hi ${guest.name} We hope you enjoyed your stay with us! Just a friendly reminder that checkout is today at 11AM. To help our cleaning team prepare for the next guest, we would truly appreciate it if you could follow these quick steps before heading out: Lights & AC: Please turn off all lights and the air conditioning. Trash: Place any bagged trash in the bin Dishes: Please leave any used dishes in the sink Final Check: Double-check for any chargers or personal items! Please send us a quick message once you have officially checked out so we can give our housekeeping team a head start. Safe travels, and we hope to see you again soon! Best, Ritumbhara Hospitality`;
 
       await sendWhatsAppMessage(
         guest.phone,
