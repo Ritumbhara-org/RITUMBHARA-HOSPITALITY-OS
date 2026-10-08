@@ -184,7 +184,7 @@ export async function sendTemplateMessage(phone: string, templateName: string, v
     const reservation = await prisma.reservation.findFirst({
       where: { guestId: guest.id },
       orderBy: { checkIn: 'desc' },
-      include: { unit: { include: { property: true } } }
+      include: { unit: { include: { property: true } }, property: true }
     });
 
     if (templateName === 'booking_confirmation' && reservation) {
@@ -193,8 +193,8 @@ export async function sendTemplateMessage(phone: string, templateName: string, v
         '2': reservation.unit.name,
         '3': reservation.checkIn.toLocaleDateString(),
         '4': reservation.checkOut.toLocaleDateString(),
-        '5': reservation.unit.property?.googleMapsUrl || 'https://maps.app.goo.gl',
-        '6': reservation.unit.property?.address || 'Ritumbhara Property',
+        '5': reservation.property?.googleMapsUrl || 'https://maps.app.goo.gl',
+        '6': reservation.property?.address || 'Ritumbhara Property',
         '7': `${process.env.NEXT_PUBLIC_APP_URL || 'https://ritumbhara-hospitality-os-q6er.vercel.app'}/stay/${reservation.id}`
       };
     } else if (templateName === 'pre_arrival_instructions' && reservation) {
@@ -202,10 +202,10 @@ export async function sendTemplateMessage(phone: string, templateName: string, v
         '1': guest.name,
         '2': reservation.unit.name,
         '3': reservation.checkIn.toLocaleDateString(),
-        '4': reservation.unit.property?.wifiNetwork || 'Ritumbhara_Guest',
-        '5': reservation.unit.property?.wifiPassword || 'Ritumbhara@123',
-        '6': reservation.unit.property?.address || 'Ritumbhara Property',
-        '7': reservation.unit.property?.googleMapsUrl || 'https://maps.app.goo.gl',
+        '4': reservation.property?.wifiNetwork || 'Ritumbhara_Guest',
+        '5': reservation.property?.wifiPassword || 'Ritumbhara@123',
+        '6': reservation.property?.address || 'Ritumbhara Property',
+        '7': reservation.property?.googleMapsUrl || 'https://maps.app.goo.gl',
         '8': `${process.env.NEXT_PUBLIC_APP_URL || 'https://ritumbhara-hospitality-os-q6er.vercel.app'}/stay/${reservation.id}`
       };
     } else if (templateName === 'checkout_instructions' && reservation) {

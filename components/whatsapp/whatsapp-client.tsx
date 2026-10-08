@@ -356,7 +356,7 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
                                   let content = p.content;
                                   if (activeThread.guest) {
                                     const reservation = activeThread.guest.reservations?.[0];
-                                    const property = reservation?.unit?.property;
+                                    const property = reservation?.unit?.property || reservation?.property;
                                     content = content.replace(/\[Guest Name\]/g, activeThread.guest.name || 'Guest');
                                     if (reservation) {
                                       content = content.replace(/\[Property Name\]/g, reservation.unit?.name || 'our property');
