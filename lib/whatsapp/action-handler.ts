@@ -98,6 +98,7 @@ export async function handleWhatsAppAction(senderPhone: string, messageText: str
 
       let isResolving = false;
       let resolutionNote = "resolved";
+      let aiStaffReply: string | null = null;
       
       if (messageText.includes("RESOLVE") || messageText.includes("COMPLETE") || messageText.includes("DONE") || messageText.includes("NOTED") || mediaUrl) {
         isResolving = true;
@@ -157,11 +158,13 @@ Output JSON:
              // Set the resolution note to the generated message for the guest.
              // The TICKET_RESOLVED event listener will automatically catch this and send the official Twilio template ('ticket_resolved_custom') using this note.
              resolutionNote = parsed.messageForGuest || "Answered guest inquiry";
+             if (parsed.staffReply) aiStaffReply = parsed.staffReply;
            }
            
            if (parsed.intent === "RESOLVE") {
              isResolving = true;
              resolutionNote = parsed.messageForGuest || "Resolved";
+             if (parsed.staffReply) aiStaffReply = parsed.staffReply;
            }
         } catch (e) {
            console.error("AI Evaluation error:", e);
@@ -230,8 +233,8 @@ Output JSON:
         });
 
         // If we have a custom AI staff reply (e.g. from ANSWER_AND_RESOLVE), return that. Otherwise default message.
-        if (typeof parsed !== "undefined" && parsed.staffReply && parsed.intent === "ANSWER_AND_RESOLVE") {
-           return parsed.staffReply;
+        if (aiStaffReply) {
+           return aiStaffReply;
         }
 
         return `🎉 Great job, ${teamMember.name}! The ticket has been resolved${mediaUrl ? ' with photo evidence' : ''}.`;
