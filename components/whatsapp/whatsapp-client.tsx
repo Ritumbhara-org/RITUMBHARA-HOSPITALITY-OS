@@ -45,7 +45,7 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
   const [isSavingKnowledge, setIsSavingKnowledge] = useState(false)
   const [knowledge, setKnowledge] = useState({
     sops: initialKnowledge?.sops || "1. Greet guests politely.\n2. Verify booking details.\n3. Hand over keys.",
-    policies: initialKnowledge?.policies || "Check-in: 2 PM\nCheck-out: 11 AM\nNo smoking.",
+    policies: initialKnowledge?.policies || "Check-in: 1 PM\nCheck-out: 10 AM\nNo smoking.",
     prices: initialKnowledge?.prices || "Late Check-out: ₹500/hour\nExtra Bed: ₹1000/night",
     facts: initialKnowledge?.facts || "Wi-Fi: GUEST_NET (Pass: stay123)\nBreakfast: 7 AM - 10 AM",
   })
@@ -54,7 +54,7 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
   useEffect(() => {
     setKnowledge({
       sops: initialKnowledge?.sops || "1. Greet guests politely.\n2. Verify booking details.\n3. Hand over keys.",
-      policies: initialKnowledge?.policies || "Check-in: 2 PM\nCheck-out: 11 AM\nNo smoking.",
+      policies: initialKnowledge?.policies || "Check-in: 1 PM\nCheck-out: 10 AM\nNo smoking.",
       prices: initialKnowledge?.prices || "Late Check-out: ₹500/hour\nExtra Bed: ₹1000/night",
       facts: initialKnowledge?.facts || "Wi-Fi: GUEST_NET (Pass: stay123)\nBreakfast: 7 AM - 10 AM",
     });
@@ -535,7 +535,7 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
                       value={knowledge.policies}
                       onChange={(e) => setKnowledge({...knowledge, policies: e.target.value})}
                       className="w-full h-32 p-4 rounded-xl border bg-background text-sm focus:ring-2 focus:ring-primary/20 outline-none resize-none"
-                      placeholder="e.g. Check-in is at 2 PM. Check-out is at 11 AM. Pets are not allowed."
+                      placeholder="e.g. Check-in is at 1 PM. Check-out is at 10 AM. Pets are not allowed."
                     />
                   </div>
 

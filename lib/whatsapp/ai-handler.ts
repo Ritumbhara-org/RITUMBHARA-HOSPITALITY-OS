@@ -47,30 +47,38 @@ export async function handleGuestAIChat(senderPhone: string, messageText: string
       orderBy: { updatedAt: 'desc' },
       take: 3
     });
-    if (guest.aiContext) {
-      contextStr += `\nPast Memory/Context about this user: ${guest.aiContext}`;
-    }
     
     if (recentTickets.length > 0) {
       contextStr += `\nRecent Tickets for this user:\n` + recentTickets.map(t => `- ID: ${t.id} | Status: ${t.status} | Issue: ${t.description}`).join('\n');
     }
   } else if (teamMember) {
     contextStr = `User Type: Staff/Team Member. Name: ${teamMember.name}. Role: ${teamMember.role}. Department: ${teamMember.department}. Property: ${teamMember.property.name}.`;
-    if (teamMember.aiContext) {
-      contextStr += `\nPast Memory/Context about this staff member: ${teamMember.aiContext}`;
-    }
+  }
+
+  // Get current hour in IST
+  const istDateStr = new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
+  const istDate = new Date(istDateStr);
+  const istHour = istDate.getHours();
+  const isOutOfHours = istHour >= 22 || istHour < 10;
+  
+  let availabilityRules = "";
+  if (isOutOfHours) {
+    availabilityRules = `\nCRITICAL RULE: It is currently outside of our operating hours (10 AM to 10 PM). In your replyText, you MUST explicitly state: "Our operating hours are 10 AM to 10 PM, so our team is currently unavailable. In case of an emergency, please call 9503002629." Include this naturally in your response.`;
+  } else {
+    availabilityRules = `\nCRITICAL RULE: If your intent is ESCALATE_ISSUE, you MUST append this sentence to your replyText: "If no one responds to your request within 10 minutes, please contact 9503002629 for direct assistance."`;
   }
 
   const systemPrompt = `You are an AI assistant for Ritumbhara Hospitality. 
 You are speaking to a user via WhatsApp.
 Context about this user: ${contextStr}
+${availabilityRules}
 
 Your goal is to answer the user's question politely and concisely. 
-If the user asks if you remember them or have memory, confidently say YES and use the "Past Memory/Context" provided above to prove it. Never say you don't retain personal data.
-If the user is reporting a NEW maintenance issue, a complaint, or requesting an item, you MUST respond with intent "ESCALATE_ISSUE".
+If the user is reporting a CLEAR and ACTIONABLE new maintenance issue, a complaint, requesting an item, or making a request that requires human approval (like early check-in, late check-out, or room upgrades), you MUST respond with intent "ESCALATE_ISSUE".
+If the user's message is just a greeting, a brief statement, ambiguous (e.g., just a room number), or just sharing information WITHOUT explicitly asking for assistance, DO NOT escalate. Respond with intent "ANSWER_QUESTION" and reply naturally.
 If the user is complaining that a previously resolved/closed issue is STILL NOT FIXED (refer to Recent Tickets context), you MUST respond with intent "REOPEN_ISSUE" and include the specific "ticketId".
 If it's a Team Member reporting an issue, look closely at their message to see if they mentioned a specific room/unit (e.g., "Room 204", "Studio 12"). Extract that unit name.
-Otherwise, respond with a JSON object containing your plain text answer to the user.
+Otherwise, respond with intent "ANSWER_QUESTION" containing your plain text answer to the user.
 
 IMPORTANT: Always output valid JSON in the following schema:
 {
@@ -78,10 +86,11 @@ IMPORTANT: Always output valid JSON in the following schema:
   "replyText": "The message to send back to the user",
   "escalationCategory": "MAINTENANCE" | "HOUSEKEEPING" | "GUEST_REQUEST" | "GUEST_COMPLAINT" | null,
   "unitName": "Optional. The room or unit name extracted from the message, if any.",
-  "ticketId": "Optional. The ID of the ticket to reopen if intent is REOPEN_ISSUE."
+  "ticketId": "Optional. The ID of the ticket to reopen if intent is REOPEN_ISSUE.",
+  "ticketDescription": "Optional. If intent is ESCALATE_ISSUE, provide a clear, concise, generalized summary of the issue (e.g. 'Guest requested a cooker for the kitchen'). Do NOT just copy the user's raw message."
 }
 
-If intent is ESCALATE_ISSUE or REOPEN_ISSUE, replyText should assure the user that the team has been notified.
+If intent is ESCALATE_ISSUE or REOPEN_ISSUE, replyText should assure the user that the team has been notified and will check into it.
 `;
 
   try {
@@ -126,7 +135,7 @@ If intent is ESCALATE_ISSUE or REOPEN_ISSUE, replyText should assure the user th
        // Create a ticket!
        const ticket = await prisma.ticket.create({
          data: {
-           description: messageText,
+           description: parsed.ticketDescription || messageText,
            priority: "MEDIUM",
            status: "OPEN",
            category: parsed.escalationCategory || "GUEST_REQUEST",

@@ -91,7 +91,7 @@ export function GuestProfileClient({ guest, totalSpend, totalStays }: { guest: a
             </div>
             <div className="border border-border/60 rounded-2xl bg-card p-5 flex flex-col justify-center shadow-sm">
               <p className="text-sm font-medium text-muted-foreground mb-1">Total Spend</p>
-              <div className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">${totalSpend.toFixed(2)}</div>
+              <div className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">₹{totalSpend.toFixed(2)}</div>
             </div>
           </motion.div>
 
@@ -124,7 +124,7 @@ export function GuestProfileClient({ guest, totalSpend, totalStays }: { guest: a
                         <div className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-muted text-muted-foreground inline-block">
                           {res.status}
                         </div>
-                        <div className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 mt-2">${res.totalAmount}</div>
+                        <div className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 mt-2">₹{res.totalAmount}</div>
                       </div>
                     </div>
                   ))}

@@ -279,9 +279,9 @@ Ritumbhara Hospitality`;
         'Ticket',
         payload.ticketId,
         {
-          '1': ticket.unit?.name || 'Property',
-          '2': ticket.description,
-          '3': ticket.priority
+          '1': String(ticket.unit?.name || 'Property').replace(/[\n\r]/g, ' ').substring(0, 60),
+          '2': String(ticket.description || '').replace(/[\n\r]/g, ' ').substring(0, 100),
+          '3': String(ticket.priority || 'MEDIUM').replace(/[\n\r]/g, ' ').substring(0, 20)
         }
       );
     } catch (error) {
@@ -337,30 +337,47 @@ Ritumbhara Hospitality`;
         // Prevent duplicate sending if already notified
         const existingMsg = await prisma.whatsAppMessage.findFirst({
           where: {
-            templateName: 'ticket_resolved',
             relatedEntityId: ticket.id,
-            status: { not: 'FAILED' }
-          }
+            status: { not: 'FAILED' },
+            messageType: { in: ['text', 'template'] },
+            content: { contains: 'has been resolved' } // weak duplicate check
+          },
+          orderBy: { createdAt: 'desc' }
         });
 
-        if (existingMsg) return;
+        if (existingMsg && (Date.now() - existingMsg.createdAt.getTime() < 60000)) return; // debounce 1 min
 
-        // Message MUST exactly match template configured in Meta
-        const messageContent = `Hi ${ticket.guest.name}, your request "${ticket.description}" has been resolved by our team. Please let us know if you need anything else!`;
+        let messageType: 'template' | 'text' = 'template';
+        let templateName: string | undefined = 'ticket_resolved';
+        let templateVariables: any = {
+            '1': ticket.guest.name,
+            '2': ticket.description
+        };
+        
+        let messageContent = `Hi ${ticket.guest.name}, your request "${ticket.description}" has been resolved by our team. Please let us know if you need anything else!`;
+
+        // If front desk provided a custom resolution note, use the custom template!
+        if (payload.resolutionNote && payload.resolutionNote.toLowerCase() !== "resolved") {
+           messageType = 'template';
+           templateName = 'ticket_resolved_custom';
+           templateVariables = {
+               '1': ticket.guest.name,
+               '2': ticket.description,
+               '3': payload.resolutionNote
+           };
+           messageContent = `Hi ${ticket.guest.name}, regarding your request "${ticket.description}", our team says:\n\n"${payload.resolutionNote}"\n\nPlease let us know if you need anything else!`;
+        }
 
         await sendWhatsAppMessage(
           ticket.guest.phone,
-          'template',
+          messageType,
           messageContent,
-          'ticket_resolved',
+          templateName,
           'Ticket',
           ticket.id,
-          {
-            '1': ticket.guest.name,
-            '2': ticket.description
-          }
+          templateVariables
         );
-        console.log(`[WhatsApp Listener] Sent ticket_resolved notification to guest ${ticket.guest.name} for ticket ${ticket.id}`);
+        console.log(`[WhatsApp Listener] Sent ticket resolution notification to guest ${ticket.guest.name} for ticket ${ticket.id}`);
       }
     } catch (error) {
       console.error("[WhatsApp Listener Error - TICKET_RESOLVED]", error);
@@ -400,10 +417,10 @@ Ritumbhara Hospitality`;
           'Ticket',
           payload.ticketId,
           {
-            '1': payload.description,
-            '2': payload.priority,
-            '3': location,
-            '4': assigneeName
+            '1': String(payload.description || '').replace(/[\n\r]/g, ' ').substring(0, 100),
+            '2': String(payload.priority || 'HIGH').replace(/[\n\r]/g, ' ').substring(0, 20),
+            '3': String(location || '').replace(/[\n\r]/g, ' ').substring(0, 60),
+            '4': String(assigneeName || '').replace(/[\n\r]/g, ' ').substring(0, 60)
           }
         );
       }

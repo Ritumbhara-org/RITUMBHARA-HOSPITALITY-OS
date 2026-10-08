@@ -67,10 +67,14 @@ export async function getWhatsAppConversations() {
   }
 
   const allGuests = await prisma.guest.findMany({
+<<<<<<< HEAD
     include: { 
       reservations: { orderBy: { checkIn: 'desc' } },
       tickets: { where: { status: { not: 'CLOSED' } }, orderBy: { createdAt: 'desc' } }
     }
+=======
+    include: { reservations: { orderBy: { checkIn: 'desc' }, take: 1, include: { unit: { include: { property: true } } } } }
+>>>>>>> main
   });
   const allTeam = await prisma.teamMember.findMany();
 
@@ -110,19 +114,25 @@ export async function sendBroadcast(campaignName: string, audience: string, mess
 
   if (audience === "ALL_ACTIVE_GUESTS") {
     const activeReservations = await prisma.reservation.findMany({
-      where: { propertyId, status: { in: ['CHECKED_IN', 'CONFIRMED'] } },
+      where: propertyId === "ALL" 
+        ? { status: { in: ['CHECKED_IN', 'CONFIRMED'] } }
+        : { propertyId, status: { in: ['CHECKED_IN', 'CONFIRMED'] } },
       include: { guest: true }
     });
     targetPhones = activeReservations.map(r => r.guest.phone).filter(Boolean) as string[];
   } else if (audience === "ALL_PAST_GUESTS") {
     const pastReservations = await prisma.reservation.findMany({
-      where: { propertyId, status: 'CHECKED_OUT' },
+      where: propertyId === "ALL"
+        ? { status: 'CHECKED_OUT' }
+        : { propertyId, status: 'CHECKED_OUT' },
       include: { guest: true }
     });
     targetPhones = Array.from(new Set(pastReservations.map(r => r.guest.phone).filter(Boolean))) as string[];
   } else if (audience === "ALL_TEAM") {
     const team = await prisma.teamMember.findMany({
-      where: { propertyId, isActive: true }
+      where: propertyId === "ALL"
+        ? { isActive: true }
+        : { propertyId, isActive: true }
     });
     targetPhones = team.map(t => t.whatsappNumber).filter(Boolean) as string[];
   }
@@ -153,9 +163,16 @@ export async function getBroadcastCampaigns(propertyId: string) {
 
   const campaignsMap = new Map<string, any>();
   for (const b of broadcasts) {
-    if (!b.relatedEntityId || !b.relatedEntityId.startsWith(propertyId + "_")) continue;
-    
-    const campaignName = b.relatedEntityId.substring(propertyId.length + 1);
+    let campaignName = "";
+    if (propertyId === "ALL") {
+      if (!b.relatedEntityId) continue;
+      // Just extract the campaign name assuming format PROPERTY_CAMPAIGN or ALL_CAMPAIGN
+      const parts = b.relatedEntityId.split("_");
+      campaignName = parts.slice(1).join("_");
+    } else {
+      if (!b.relatedEntityId || !b.relatedEntityId.startsWith(propertyId + "_")) continue;
+      campaignName = b.relatedEntityId.substring(propertyId.length + 1);
+    }
     
     if (!campaignsMap.has(campaignName)) {
       campaignsMap.set(campaignName, {
@@ -173,4 +190,106 @@ export async function getBroadcastCampaigns(propertyId: string) {
   }
   
   return Array.from(campaignsMap.values()).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+}
+
+export async function sendManualMessage(phone: string, content: string) {
+  const { sendWhatsAppMessage } = await import("@/lib/whatsapp/client");
+  // Check 24 hour window
+  const lastInbound = await prisma.whatsAppMessage.findFirst({
+    where: { from: phone, direction: 'INBOUND' },
+    orderBy: { createdAt: 'desc' }
+  });
+  
+  if (lastInbound) {
+    const hoursSince = (new Date().getTime() - lastInbound.createdAt.getTime()) / (1000 * 60 * 60);
+    if (hoursSince > 24) {
+      return { success: false, error: "Cannot send free-form message: 24-hour window has expired. Please use a template." };
+    }
+  }
+
+  const result = await sendWhatsAppMessage(phone, 'text', content, undefined, 'MANUAL_REPLY', 'INBOX');
+  return result;
+}
+
+export async function sendTemplateMessage(phone: string, templateName: string, variables: Record<string, string>) {
+  const { sendWhatsAppMessage } = await import("@/lib/whatsapp/client");
+  const { normalizePhoneNumber } = await import("@/lib/utils/phone");
+  
+  const cleanedPhone = normalizePhoneNumber(phone);
+  const guests = await prisma.guest.findMany();
+  const guest = guests.find(g => g.phone && normalizePhoneNumber(g.phone) === cleanedPhone);
+
+  if (guest) {
+    const reservation = await prisma.reservation.findFirst({
+      where: { guestId: guest.id },
+      orderBy: { checkIn: 'desc' },
+      include: { unit: { include: { property: true } } }
+    });
+
+    if (templateName === 'booking_confirmation' && reservation) {
+      variables = {
+        '1': guest.name,
+        '2': reservation.unit.name,
+        '3': reservation.checkIn.toLocaleDateString(),
+        '4': reservation.checkOut.toLocaleDateString(),
+        '5': reservation.unit.property?.googleMapsUrl || 'https://maps.app.goo.gl',
+        '6': reservation.unit.property?.address || 'Ritumbhara Property',
+        '7': `${process.env.NEXT_PUBLIC_APP_URL || 'https://ritumbhara-hospitality-os-q6er.vercel.app'}/stay/${reservation.id}`
+      };
+    } else if (templateName === 'pre_arrival_instructions' && reservation) {
+      variables = {
+        '1': guest.name,
+        '2': reservation.unit.name,
+        '3': reservation.checkIn.toLocaleDateString(),
+        '4': reservation.unit.property?.wifiNetwork || 'Ritumbhara_Guest',
+        '5': reservation.unit.property?.wifiPassword || 'Ritumbhara@123',
+        '6': reservation.unit.property?.address || 'Ritumbhara Property',
+        '7': reservation.unit.property?.googleMapsUrl || 'https://maps.app.goo.gl',
+        '8': `${process.env.NEXT_PUBLIC_APP_URL || 'https://ritumbhara-hospitality-os-q6er.vercel.app'}/stay/${reservation.id}`
+      };
+    } else if (templateName === 'checkout_instructions' && reservation) {
+      variables = { '1': guest.name };
+    } else if (templateName === 'post_stay_thank_you') {
+      variables = { '1': guest.name };
+    }
+  }
+
+  const result = await sendWhatsAppMessage(phone, 'template', '', templateName, 'MANUAL_TEMPLATE', 'INBOX', variables);
+  return result;
+}
+
+export async function generateDraftResponse(phone: string) {
+  const messages = await prisma.whatsAppMessage.findMany({
+    where: {
+      OR: [
+        { from: phone, direction: 'INBOUND' },
+        { to: phone, direction: 'OUTBOUND' }
+      ]
+    },
+    orderBy: { createdAt: 'desc' },
+    take: 10
+  });
+  
+  if (messages.length === 0) return { success: false, error: "No messages to base draft on." };
+
+  // Reverse to chronological order
+  messages.reverse();
+  
+  const conversationContext = messages.map((m: any) => `${m.direction === 'INBOUND' ? 'Guest' : 'Agent'}: ${m.content || m.templateName}`).join('\n');
+  
+  const { ai } = await import("@/lib/ai/groq");
+
+  try {
+    const completion = await ai.chat.completions.create({
+      model: 'openai/gpt-oss-120b',
+      messages: [
+        { role: 'system', content: `You are an expert, polite front-desk agent for a luxury hotel. Draft a concise, professional reply to the guest based on the conversation history. DO NOT INCLUDE ANY PLACEHOLDERS like [Name], if you don't know the name, omit it. Do not include quotes around the response. Keep it under 2 sentences.` },
+        { role: 'user', content: `Conversation history:\n${conversationContext}\n\nDraft the next Agent reply:` }
+      ]
+    });
+    
+    return { success: true, draft: completion.choices[0]?.message?.content || "" };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
 }

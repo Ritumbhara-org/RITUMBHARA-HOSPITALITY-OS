@@ -58,9 +58,8 @@ export async function syncBookings() {
 
   try {
     let bookings: any[] = [];
-    // For Vercel Serverless limits (10 seconds), we ONLY fetch Page 1 (the 10 most recent bookings).
-    // Because this cron runs every 5 minutes, 10 bookings is more than enough to capture any new activity.
-    // (A hotel rarely gets >10 bookings in a 5-minute window).
+    // For Vercel Serverless limits (10 seconds), we ONLY fetch Page 1 (the 25 most recent bookings).
+    // Because this cron runs every 10 minutes, 25 bookings is more than enough to capture any new activity.
     const response = await intellistay.fetch('/api/Booking/GetAllBookingsByPagination', {
       method: 'POST',
       body: JSON.stringify({

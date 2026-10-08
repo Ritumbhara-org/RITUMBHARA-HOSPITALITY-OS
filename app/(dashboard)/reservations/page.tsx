@@ -5,11 +5,11 @@ import { getSession } from "@/app/actions/auth"
 
 export const revalidate = 15
 
-export default async function ReservationsPage({
-  searchParams,
-}: {
-  searchParams: { [key: string]: string | string[] | undefined }
+export default async function ReservationsPage(props: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }) {
+  const searchParams = await props.searchParams;
+  
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 

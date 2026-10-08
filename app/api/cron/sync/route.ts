@@ -1,6 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { syncBookings } from "@/lib/intellistay/sync";
 import { processAutoCheckinCheckout } from "@/lib/reservations/auto-status";
+import { processTeamReminders } from "@/lib/operations/reminders";
 
 export const dynamic = 'force-dynamic';
 // For Vercel Cron Jobs, you typically specify maxDuration
@@ -16,28 +17,30 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    console.log("Triggering scheduled booking synchronization...");
-    const result = await syncBookings();
-
-    if (!result.success) {
-      console.warn("Intellistay sync failed:", result.error);
-    }
+    console.log("Triggering scheduled booking synchronization in background...");
     
-    // After syncing, run the automated check-in and check-out logic EVEN IF sync failed
-    console.log("Triggering auto check-in/out logic...");
-    const autoStatusResult = await processAutoCheckinCheckout();
+    // Defer the heavy lifting to Vercel background execution using Next.js `after()`
+    after(async () => {
+      try {
+        const result = await syncBookings();
+        if (!result.success) {
+          console.warn("Intellistay sync failed:", result.error);
+        }
+        
+        console.log("Triggering auto check-in/out logic...");
+        await processAutoCheckinCheckout();
+        
+        console.log("Triggering ticket/task reminders...");
+        await processTeamReminders();
+      } catch (e) {
+        console.error("Background task error:", e);
+      }
+    });
 
+    // Immediately return success so cron-job.org does not timeout at 30s!
     return NextResponse.json({
       status: "success",
-      message: `Cron job completed.`,
-      details: {
-        syncStatus: result.success ? "success" : "failed",
-        syncError: result.error || null,
-        newBookings: result.success ? result.newCount : 0,
-        updatedBookings: result.success ? result.updateCount : 0,
-        autoCheckIns: autoStatusResult.checkedInCount,
-        autoCheckOuts: autoStatusResult.checkedOutCount
-      },
+      message: `Cron job accepted and running in background.`,
       timestamp: new Date().toISOString()
     }, { status: 200 });
 

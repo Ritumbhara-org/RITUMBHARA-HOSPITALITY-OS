@@ -18,7 +18,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     }
 
     // Assign points based on the current booking amount
-    // E.g., 1 point per $10 spent
+    // E.g., 1 point per ₹1000 spent
     const earnedPoints = Math.floor(reservation.totalAmount / 10);
 
     const membership = await prisma.membership.create({

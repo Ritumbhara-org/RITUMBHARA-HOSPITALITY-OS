@@ -90,7 +90,7 @@ export async function processAutoCheckinCheckout() {
             })
           ]);
           
-          eventBus.emit('GUEST_CHECKED_IN', {
+          await eventBus.emit('GUEST_CHECKED_IN', {
              reservationId: res.id,
              guestId: res.guestId,
              checkIn: res.checkIn,
@@ -111,8 +111,8 @@ export async function processAutoCheckinCheckout() {
         const isTodayCheckOut = (localDateStr === checkOutStr);
         const isPastCheckOutDate = (localDateStr > checkOutStr);
 
-        // Auto check-out if past 11 AM (11:00) on the checkOut date, or if the date has entirely passed
-        if ((isTodayCheckOut && hour >= 11) || isPastCheckOutDate) {
+        // Auto check-out if past 10 AM (10:00) on the checkOut date, or if the date has entirely passed
+        if ((isTodayCheckOut && hour >= 10) || isPastCheckOutDate) {
           await prisma.$transaction([
             prisma.reservation.update({
               where: { id: res.id },
@@ -124,7 +124,7 @@ export async function processAutoCheckinCheckout() {
             })
           ]);
           
-          eventBus.emit('GUEST_CHECKED_OUT', {
+          await eventBus.emit('GUEST_CHECKED_OUT', {
              reservationId: res.id,
              guestId: res.guestId,
              checkIn: res.checkIn,

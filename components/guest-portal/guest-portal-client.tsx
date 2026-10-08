@@ -220,7 +220,7 @@ export function GuestPortalClient({ reservation, whatsappNumber }: { reservation
               <div className="text-right">
                 <p className="text-xs text-gray-400 uppercase tracking-wider">Check-out</p>
                 <p className="font-medium mt-0.5">{format(new Date(reservation.checkOut), "MMM d, yyyy")}</p>
-                <p className="text-sm text-gray-300">Before 11:00 AM</p>
+                <p className="text-sm text-gray-300">Before 10:00 AM</p>
               </div>
             </div>
           </motion.div>

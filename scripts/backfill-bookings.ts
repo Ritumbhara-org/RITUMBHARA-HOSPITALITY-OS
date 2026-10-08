@@ -46,7 +46,10 @@ async function runBackfill() {
   // Get total pages from first request
   const initialRes = await intellistay.fetch('/api/Booking/GetAllBookingsByPagination', {
     method: 'POST',
-    body: JSON.stringify({ pageNumber: 1, pageSize: 10 })
+    body: JSON.stringify({
+      pagination: { page: 1, limit: 10 },
+      filter: { getAll: true, orderBy: "bookingId", order: "desc" }
+    })
   });
 
   if (!initialRes.ok) throw new Error("Failed to authenticate or reach API.");
@@ -63,7 +66,10 @@ async function runBackfill() {
     console.log(`Fetching Page ${page} of ${totalPages}...`);
     const response = await intellistay.fetch('/api/Booking/GetAllBookingsByPagination', {
       method: 'POST',
-      body: JSON.stringify({ pageNumber: page, pageSize: 10 })
+      body: JSON.stringify({
+        pagination: { page: page, limit: 10 },
+        filter: { getAll: true, orderBy: "bookingId", order: "desc" }
+      })
     });
 
     if (!response.ok) continue;
