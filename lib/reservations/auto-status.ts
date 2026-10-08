@@ -28,7 +28,7 @@ export function calculateEffectiveStatus(originalStatus: string, checkIn: Date, 
 
   if (currentStatus === 'CHECKED_IN') {
     const checkOutStr = `${checkOut.getUTCFullYear()}-${String(checkOut.getUTCMonth()+1).padStart(2,'0')}-${String(checkOut.getUTCDate()).padStart(2,'0')}`;
-    if ((localDateStr === checkOutStr && hour >= 11) || (localDateStr > checkOutStr)) {
+    if ((localDateStr === checkOutStr && hour >= 10) || (localDateStr > checkOutStr)) {
       currentStatus = 'CHECKED_OUT';
     }
   }

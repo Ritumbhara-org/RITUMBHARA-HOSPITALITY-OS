@@ -158,6 +158,9 @@ async function runBackfill() {
             where: { id: existingRes.id },
             data: { guestId: guest.id, unitId, checkIn: checkInDate, checkOut: checkOutDate, status, totalAmount, bookingNotes }
           });
+          if (status === 'CHECKED_IN') {
+             await prisma.unit.update({ where: { id: unitId }, data: { status: 'OCCUPIED' } });
+          }
           updateCount++;
         } else {
           let inferredSource = booking.source || "Walk-In";
@@ -166,6 +169,9 @@ async function runBackfill() {
           await prisma.reservation.create({
             data: { intellistayReservationId: intellistayBookingId, propertyId, guestId: guest.id, unitId, checkIn: checkInDate, checkOut: checkOutDate, status, source: inferredSource, totalAmount, bookingNotes }
           });
+          if (status === 'CHECKED_IN') {
+             await prisma.unit.update({ where: { id: unitId }, data: { status: 'OCCUPIED' } });
+          }
           newCount++;
         }
         successCount++;
