@@ -194,13 +194,14 @@ export function initWhatsAppListeners() {
       const teamMember = await prisma.teamMember.findUnique({ where: { id: payload.assignedToId } });
       const ticket = await prisma.ticket.findUnique({ 
         where: { id: payload.ticketId },
-        include: { unit: true }
+        include: { unit: { include: { property: true } } }
       });
       
       if (!teamMember?.whatsappNumber || !ticket) return;
 
       // MUST EXACTLY MATCH TEMPLATE 4
-      const messageContent = `NEW TICKET\nLocation: ${ticket.unit?.name || 'Property'}\nIssue: ${ticket.description}\nPriority: ${ticket.priority}\n\nReply ACCEPT to acknowledge.`;
+      const locationName = ticket.unit ? `${ticket.unit.name} - ${ticket.unit.property?.name || ''}`.trim().replace(/ -$/, '') : 'Property';
+      const messageContent = `NEW TICKET\nLocation: ${locationName}\nIssue: ${ticket.description}\nPriority: ${ticket.priority}\n\nReply ACCEPT to acknowledge.`;
 
       await sendWhatsAppMessage(
         teamMember.whatsappNumber,
@@ -210,7 +211,7 @@ export function initWhatsAppListeners() {
         'Ticket',
         payload.ticketId,
         {
-          '1': String(ticket.unit?.name || 'Property').replace(/[\n\r]/g, ' ').substring(0, 60),
+          '1': String(locationName).replace(/[\n\r]/g, ' ').substring(0, 60),
           '2': String(ticket.description || '').replace(/[\n\r]/g, ' ').substring(0, 100),
           '3': String(ticket.priority || 'MEDIUM').replace(/[\n\r]/g, ' ').substring(0, 20)
         }
@@ -226,14 +227,15 @@ export function initWhatsAppListeners() {
       if (payload.status === "REOPENED") {
         const ticket = await prisma.ticket.findUnique({ 
           where: { id: payload.ticketId },
-          include: { unit: true, assignedTo: true }
+          include: { unit: { include: { property: true } }, assignedTo: true }
         });
         
         if (!ticket || !ticket.assignedTo?.whatsappNumber) return;
 
         // MUST EXACTLY MATCH TEMPLATE 4 (since we reuse ticket assignment/update template)
         // Or if we don't have a template, send a text message or reuse ticket_assigned
-        const messageContent = `TICKET REOPENED\nLocation: ${ticket.unit?.name || 'Property'}\nIssue: ${ticket.description}\nPriority: ${ticket.priority}\n\nThe guest reported the issue is not fixed.`;
+        const locationName = ticket.unit ? `${ticket.unit.name} - ${ticket.unit.property?.name || ''}`.trim().replace(/ -$/, '') : 'Property';
+        const messageContent = `TICKET REOPENED\nLocation: ${locationName}\nIssue: ${ticket.description}\nPriority: ${ticket.priority}\n\nThe guest reported the issue is not fixed.`;
 
         await sendWhatsAppMessage(
           ticket.assignedTo.whatsappNumber,
@@ -243,7 +245,7 @@ export function initWhatsAppListeners() {
           'Ticket',
           payload.ticketId,
           {
-            '1': ticket.unit?.name || 'Property',
+            '1': String(locationName).replace(/[\n\r]/g, ' ').substring(0, 60),
             '2': "REOPENED: " + ticket.description,
             '3': ticket.priority
           }
