@@ -1,4 +1,8 @@
-import { prisma } from "../lib/prisma";
+import dns from 'node:dns';
+dns.setDefaultResultOrder('ipv4first');
+
+import { PrismaClient } from "@prisma/client";
+const prisma = new PrismaClient();
 import { intellistay } from "../lib/intellistay/client";
 import { normalizePhoneNumber } from "../lib/utils/phone";
 import { calculateEffectiveStatus } from "../lib/reservations/auto-status";
@@ -184,4 +188,6 @@ async function runBackfill() {
   console.log(`Backfill Complete! Processed: ${successCount} (New: ${newCount}, Updated: ${updateCount})`);
 }
 
-runBackfill().catch(console.error);
+runBackfill()
+  .catch(console.error)
+  .finally(() => prisma.$disconnect());
