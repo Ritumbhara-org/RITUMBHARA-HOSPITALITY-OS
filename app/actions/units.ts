@@ -13,6 +13,13 @@ export async function createUnit(formData: FormData) {
     const wifiNetwork = formData.get("wifiNetwork") as string
     const wifiPassword = formData.get("wifiPassword") as string
     
+    const gateAccessCode = formData.get("gateAccessCode") as string
+    const doorLockCode = formData.get("doorLockCode") as string
+    const checkInGuide = formData.get("checkInGuide") as string
+    const checkOutGuide = formData.get("checkOutGuide") as string
+    const emergencyContacts = formData.get("emergencyContacts") as string
+    const googleMapsUrl = formData.get("googleMapsUrl") as string
+    
     if (!name || !type || !propertyId) {
       throw new Error("Location, Name and Type are required fields.")
     }
@@ -26,7 +33,13 @@ export async function createUnit(formData: FormData) {
         status: "AVAILABLE",
         propertyId,
         wifiNetwork: wifiNetwork || null,
-        wifiPassword: wifiPassword || null
+        wifiPassword: wifiPassword || null,
+        gateAccessCode: gateAccessCode || null,
+        doorLockCode: doorLockCode || null,
+        checkInGuide: checkInGuide || null,
+        checkOutGuide: checkOutGuide || null,
+        emergencyContacts: emergencyContacts || null,
+        googleMapsUrl: googleMapsUrl || null
       }
     })
 
@@ -49,6 +62,12 @@ export async function updateUnit(formData: FormData) {
     const propertyId = formData.get("propertyId") as string
     const wifiNetwork = formData.get("wifiNetwork") as string
     const wifiPassword = formData.get("wifiPassword") as string
+    const gateAccessCode = formData.get("gateAccessCode") as string
+    const doorLockCode = formData.get("doorLockCode") as string
+    const checkInGuide = formData.get("checkInGuide") as string
+    const checkOutGuide = formData.get("checkOutGuide") as string
+    const emergencyContacts = formData.get("emergencyContacts") as string
+    const googleMapsUrl = formData.get("googleMapsUrl") as string
     
     if (!id || !name || !type || !propertyId) {
       throw new Error("Unit ID, Location, Name and Type are required fields.")
@@ -63,7 +82,13 @@ export async function updateUnit(formData: FormData) {
         capacity: parseInt(capacityStr) || 2,
         propertyId,
         wifiNetwork: wifiNetwork || null,
-        wifiPassword: wifiPassword || null
+        wifiPassword: wifiPassword || null,
+        gateAccessCode: gateAccessCode || null,
+        doorLockCode: doorLockCode || null,
+        checkInGuide: checkInGuide || null,
+        checkOutGuide: checkOutGuide || null,
+        emergencyContacts: emergencyContacts || null,
+        googleMapsUrl: googleMapsUrl || null
       }
     })
 

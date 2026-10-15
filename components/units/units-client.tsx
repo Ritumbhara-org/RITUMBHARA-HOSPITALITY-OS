@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
 import { createUnit, updateUnit } from "@/app/actions/units"
 import { toast } from "sonner"
 
@@ -147,78 +148,161 @@ export function UnitsClient({
               <Plus className="h-4 w-4" />
               Add Unit
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px] rounded-2xl">
-              <form onSubmit={handleSubmit}>
-                <DialogHeader>
-                  <DialogTitle className="text-lg">{editingUnit ? "Edit Unit" : "Add Unit"}</DialogTitle>
-                  <DialogDescription>{editingUnit ? "Update the unit details below." : "Add a new room or space to your property inventory."}</DialogDescription>
+            <DialogContent className="sm:max-w-[660px] max-h-[90vh] rounded-3xl flex flex-col p-6 overflow-hidden">
+              <form key={editingUnit ? editingUnit.id : 'new'} onSubmit={handleSubmit} className="flex flex-col min-h-0 flex-1">
+                <DialogHeader className="pb-3 border-b border-border/40 shrink-0">
+                  <DialogTitle className="text-xl font-bold">{editingUnit ? `Edit Unit: ${editingUnit.name}` : "Add Unit"}</DialogTitle>
+                  <DialogDescription>
+                    {editingUnit 
+                      ? "Current details from the database are loaded below. Any change updates the live database and WhatsApp AI instantly." 
+                      : "Add a new room or space to your property inventory."}
+                  </DialogDescription>
                 </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="grid gap-2 col-span-2">
-                      <Label htmlFor="propertyId">Location / Property *</Label>
-                      <Select name="propertyId" required defaultValue={editingUnit?.propertyId || properties[0]?.id}>
-                        <SelectTrigger className="rounded-xl">
-                          <SelectValue placeholder="Select Location" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {properties.map(p => (
-                            <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="name">Unit Name / Number *</Label>
-                      <Input id="name" name="name" placeholder="e.g. 101 or Presidential Suite" required className="rounded-xl" defaultValue={editingUnit?.name} />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="type">Unit Type</Label>
-                      <Select name="type" defaultValue={editingUnit?.type || "STANDARD"}>
-                        <SelectTrigger className="rounded-xl">
-                          <SelectValue placeholder="Type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="STANDARD">Standard Room</SelectItem>
-                          <SelectItem value="DELUXE">Deluxe Room</SelectItem>
-                          <SelectItem value="SUITE">Suite</SelectItem>
-                          <SelectItem value="VILLA">Villa</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="floor">Floor / Building</Label>
-                      <Input id="floor" name="floor" placeholder="e.g. Ground or North Tower" className="rounded-xl" defaultValue={editingUnit?.floor} />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="capacity">Max Capacity</Label>
-                      <Input id="capacity" name="capacity" type="number" min="1" required className="rounded-xl" defaultValue={editingUnit?.capacity || 2} />
-                    </div>
-                  </div>
-                  
-                  <div className="grid gap-4 mt-2 pt-4 border-t border-dashed">
-                    <Label className="text-muted-foreground font-semibold">Unit-Specific Wi-Fi (Optional)</Label>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="grid gap-2">
-                        <Label htmlFor="wifiNetwork">Network Name (SSID)</Label>
-                        <Input id="wifiNetwork" name="wifiNetwork" placeholder="e.g. Room101-5G" className="rounded-xl" defaultValue={editingUnit?.wifiNetwork} />
+
+                <div className="overflow-y-auto pr-2 py-4 space-y-5 flex-1 text-sm">
+                  {/* Basic Information */}
+                  <div className="space-y-3">
+                    <h3 className="font-semibold text-xs tracking-wider uppercase text-muted-foreground">General Details</h3>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="grid gap-1.5 col-span-2">
+                        <Label htmlFor="propertyId">Location / Property *</Label>
+                        <Select name="propertyId" required defaultValue={editingUnit?.propertyId || properties[0]?.id}>
+                          <SelectTrigger className="rounded-xl">
+                            <SelectValue placeholder="Select Location" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {properties.map(p => (
+                              <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
-                      <div className="grid gap-2">
-                        <Label htmlFor="wifiPassword">Password</Label>
-                        <Input id="wifiPassword" name="wifiPassword" placeholder="e.g. secret123" className="rounded-xl" defaultValue={editingUnit?.wifiPassword} />
+                      <div className="grid gap-1.5">
+                        <Label htmlFor="name">Unit Name / Number *</Label>
+                        <Input id="name" name="name" placeholder="e.g. Studio 1210 or Villa 65" required className="rounded-xl" defaultValue={editingUnit?.name || ""} />
+                      </div>
+                      <div className="grid gap-1.5">
+                        <Label htmlFor="type">Unit Type</Label>
+                        <Select name="type" defaultValue={editingUnit?.type || "Studio"}>
+                          <SelectTrigger className="rounded-xl">
+                            <SelectValue placeholder="Type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Studio">Studio</SelectItem>
+                            <SelectItem value="Villa">Villa</SelectItem>
+                            <SelectItem value="Penthouse">Penthouse</SelectItem>
+                            <SelectItem value="STANDARD">Standard Room</SelectItem>
+                            <SelectItem value="DELUXE">Deluxe Room</SelectItem>
+                            <SelectItem value="SUITE">Suite</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="grid gap-1.5">
+                        <Label htmlFor="floor">Floor / Tower</Label>
+                        <Input id="floor" name="floor" placeholder="e.g. 12th or Ground" className="rounded-xl" defaultValue={editingUnit?.floor || ""} />
+                      </div>
+                      <div className="grid gap-1.5">
+                        <Label htmlFor="capacity">Max Capacity</Label>
+                        <Input id="capacity" name="capacity" type="number" min="1" required className="rounded-xl" defaultValue={editingUnit?.capacity || 2} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Access Codes */}
+                  <div className="space-y-3 pt-3 border-t border-border/40">
+                    <h3 className="font-semibold text-xs tracking-wider uppercase text-muted-foreground">Access Codes & Digital Entry</h3>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="grid gap-1.5">
+                        <Label htmlFor="gateAccessCode">Main Gate / Guard Code</Label>
+                        <Input id="gateAccessCode" name="gateAccessCode" placeholder="e.g. 299239 or 335429" className="rounded-xl font-mono" defaultValue={editingUnit?.gateAccessCode || ""} />
+                      </div>
+                      <div className="grid gap-1.5">
+                        <Label htmlFor="doorLockCode">Door / Smart Lock PIN</Label>
+                        <Input id="doorLockCode" name="doorLockCode" placeholder="e.g. 07121986# or 07121987*" className="rounded-xl font-mono" defaultValue={editingUnit?.doorLockCode || ""} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Unit-Specific Wi-Fi */}
+                  <div className="space-y-3 pt-3 border-t border-border/40">
+                    <h3 className="font-semibold text-xs tracking-wider uppercase text-muted-foreground">Unit Wi-Fi Credentials</h3>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="grid gap-1.5">
+                        <Label htmlFor="wifiNetwork">Wi-Fi SSID / Network</Label>
+                        <Input id="wifiNetwork" name="wifiNetwork" placeholder="e.g. Room1210-5G" className="rounded-xl" defaultValue={editingUnit?.wifiNetwork || ""} />
+                      </div>
+                      <div className="grid gap-1.5">
+                        <Label htmlFor="wifiPassword">Wi-Fi Password</Label>
+                        <Input id="wifiPassword" name="wifiPassword" placeholder="e.g. Stay@2026" className="rounded-xl font-mono" defaultValue={editingUnit?.wifiPassword || ""} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Guides & Procedures */}
+                  <div className="space-y-3 pt-3 border-t border-border/40">
+                    <h3 className="font-semibold text-xs tracking-wider uppercase text-muted-foreground">Check-in & Check-out Procedures</h3>
+                    <div className="grid gap-3">
+                      <div className="grid gap-1.5">
+                        <Label htmlFor="checkInGuide">Check-in Procedure / Entry Steps</Label>
+                        <Textarea 
+                          id="checkInGuide" 
+                          name="checkInGuide" 
+                          rows={3} 
+                          placeholder="e.g. 1. Get in through Gate (Block B1)..." 
+                          className="rounded-xl text-xs leading-relaxed" 
+                          defaultValue={editingUnit?.checkInGuide || ""} 
+                        />
+                      </div>
+                      <div className="grid gap-1.5">
+                        <Label htmlFor="checkOutGuide">Check-out Procedure</Label>
+                        <Textarea 
+                          id="checkOutGuide" 
+                          name="checkOutGuide" 
+                          rows={2} 
+                          placeholder="e.g. Switch OFF all MCBs, submit keys and access card to guard." 
+                          className="rounded-xl text-xs leading-relaxed" 
+                          defaultValue={editingUnit?.checkOutGuide || ""} 
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Emergency & Location */}
+                  <div className="space-y-3 pt-3 border-t border-border/40">
+                    <h3 className="font-semibold text-xs tracking-wider uppercase text-muted-foreground">Emergency Contacts & Location</h3>
+                    <div className="grid gap-3">
+                      <div className="grid gap-1.5">
+                        <Label htmlFor="emergencyContacts">On-Duty Emergency Contacts</Label>
+                        <Textarea 
+                          id="emergencyContacts" 
+                          name="emergencyContacts" 
+                          rows={3} 
+                          placeholder="e.g. Salim: 9503002629&#10;Electrician: 9649428190&#10;Manager: 8562884444" 
+                          className="rounded-xl text-xs font-mono leading-relaxed" 
+                          defaultValue={editingUnit?.emergencyContacts || ""} 
+                        />
+                      </div>
+                      <div className="grid gap-1.5">
+                        <Label htmlFor="googleMapsUrl">Google Maps Link</Label>
+                        <Input 
+                          id="googleMapsUrl" 
+                          name="googleMapsUrl" 
+                          placeholder="https://share.google/..." 
+                          className="rounded-xl" 
+                          defaultValue={editingUnit?.googleMapsUrl || ""} 
+                        />
                       </div>
                     </div>
                   </div>
                 </div>
-                <DialogFooter>
+
+                <DialogFooter className="pt-3 border-t border-border/40 shrink-0">
                   <button 
                     type="submit" 
                     disabled={isSubmitting}
-                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm shadow-primary/20 transition-all duration-200 hover:bg-primary/90 hover:shadow-md disabled:opacity-50"
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm shadow-primary/20 transition-all duration-200 hover:bg-primary/90 hover:shadow-md disabled:opacity-50"
                   >
-                    {isSubmitting ? "Saving..." : "Save Unit"}
+                    {isSubmitting ? "Saving..." : (editingUnit ? "Update Changes" : "Save Unit")}
                   </button>
                 </DialogFooter>
               </form>
@@ -344,31 +428,55 @@ export function UnitsClient({
                 <thead className="text-[11px] uppercase bg-muted/30 text-muted-foreground border-b border-border/40">
                   <tr>
                     <th className="px-6 py-3.5 font-semibold">Unit Name</th>
+                    <th className="px-6 py-3.5 font-semibold">Property</th>
                     <th className="px-6 py-3.5 font-semibold">Type</th>
                     <th className="px-6 py-3.5 font-semibold">Status</th>
-                    <th className="px-6 py-3.5 font-semibold">Floor</th>
-                    <th className="px-6 py-3.5 font-semibold">Capacity</th>
+                    <th className="px-6 py-3.5 font-semibold">Access / Lock Code</th>
+                    <th className="px-6 py-3.5 font-semibold">Wi-Fi</th>
                     <th className="px-6 py-3.5 font-semibold text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/40">
                   {filteredData.map((unit: any) => (
-                    <tr key={unit.id} className="hover:bg-muted/30 transition-colors duration-150 cursor-pointer">
-                      <td className="px-6 py-3.5 font-bold">{unit.name}</td>
+                    <tr key={unit.id} onClick={() => openDialogForEdit(unit)} className="hover:bg-muted/30 transition-colors duration-150 cursor-pointer">
+                      <td className="px-6 py-3.5 font-bold">
+                        <div>{unit.name}</div>
+                        <div className="text-[11px] font-normal text-muted-foreground">{unit.floor ? `Floor: ${unit.floor}` : ''}</div>
+                      </td>
+                      <td className="px-6 py-3.5 text-muted-foreground text-xs">{unit.property?.name || "N/A"}</td>
                       <td className="px-6 py-3.5 text-muted-foreground font-medium">{unit.type}</td>
                       <td className="px-6 py-3.5">
                         <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold tracking-wider uppercase border ${getStatusColor(unit.status)}`}>
                           {unit.status}
                         </span>
                       </td>
-                      <td className="px-6 py-3.5 text-muted-foreground font-medium">{unit.floor}</td>
-                      <td className="px-6 py-3.5 text-muted-foreground font-medium">{unit.capacity} Persons</td>
+                      <td className="px-6 py-3.5 text-xs font-mono">
+                        {unit.doorLockCode ? (
+                          <span className="bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-500/20">
+                            PIN: {unit.doorLockCode}
+                          </span>
+                        ) : unit.gateAccessCode ? (
+                          <span className="bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400 px-2 py-0.5 rounded-md border border-blue-200 dark:border-blue-500/20">
+                            Gate: {unit.gateAccessCode}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">In-person</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-3.5 text-xs">
+                        {unit.wifiNetwork ? (
+                          <div className="font-mono text-[11px] truncate max-w-[130px]">{unit.wifiNetwork}</div>
+                        ) : (
+                          <span className="text-muted-foreground text-[11px] italic">Property Wi-Fi</span>
+                        )}
+                      </td>
                       <td className="px-6 py-3.5 text-right">
                         <button
                           onClick={(e) => { e.stopPropagation(); openDialogForEdit(unit); }}
-                          className="text-muted-foreground hover:text-primary transition-colors p-1"
+                          className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline p-1"
                         >
-                          <PenTool className="h-4 w-4" />
+                          <PenTool className="h-3.5 w-3.5" />
+                          <span>Edit</span>
                         </button>
                       </td>
                     </tr>

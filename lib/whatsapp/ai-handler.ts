@@ -37,12 +37,59 @@ export async function handleGuestAIChat(senderPhone: string, messageText: string
       }
     });
 
-    const wifiNetwork = reservation?.unit?.wifiNetwork || reservation?.unit?.property?.wifiNetwork || "Not available";
-    const wifiPassword = reservation?.unit?.wifiPassword || reservation?.unit?.property?.wifiPassword || "Not available";
+    if (reservation) {
+      const unit = reservation.unit;
+      const property = unit.property;
+      const wifiNetwork = unit.wifiNetwork || property.wifiNetwork || "Not available";
+      const wifiPassword = unit.wifiPassword || property.wifiPassword || "Not available";
+      const mapsUrl = unit.googleMapsUrl || property.googleMapsUrl || "";
 
-    contextStr = reservation 
-      ? `User Type: Guest. Guest Name: ${guest.name}. Reservation Status: ${reservation.status}. Property: ${reservation.unit.property.name}. Unit: ${reservation.unit.name}. Check-in: ${reservation.checkIn.toLocaleDateString()}. Check-out: ${reservation.checkOut.toLocaleDateString()}. Wi-Fi Network: ${wifiNetwork}. Wi-Fi Password: ${wifiPassword}.`
-      : `User Type: Guest. Guest Name: ${guest.name}. No active reservation found.`;
+      const contextParts: string[] = [
+        `GUEST & BOOKING DETAILS:`,
+        `- Guest Name: ${guest.name}`,
+        `- Reservation Status: ${reservation.status}`,
+        `- Dates: Check-in ${reservation.checkIn.toLocaleDateString()}, Check-out ${reservation.checkOut.toLocaleDateString()}`,
+        `- Property: ${property.name} (${property.city})`,
+        `- Assigned Unit: ${unit.name} (Floor: ${unit.floor || 'N/A'}, Type: ${unit.type})`
+      ];
+
+      if (mapsUrl) {
+        contextParts.push(`- Google Maps Link: ${mapsUrl}`);
+      }
+
+      contextParts.push(`\nROOM ACCESS & CHECK-IN PROCEDURE:`);
+      if (unit.gateAccessCode) {
+        contextParts.push(`- Main Gate / Guard Code: ${unit.gateAccessCode}`);
+      }
+      if (unit.doorLockCode) {
+        contextParts.push(`- Door Smart Lock PIN: ${unit.doorLockCode}`);
+      } else {
+        contextParts.push(`- Door Key Method: Physical keys / In-person handover (No keypad PIN needed).`);
+      }
+      if (unit.checkInGuide) {
+        contextParts.push(`- Instructions: ${unit.checkInGuide}`);
+      } else {
+        contextParts.push(`- Instructions: Standard check-in at reception.`);
+      }
+
+      contextParts.push(`\nROOM CHECK-OUT PROCEDURE:`);
+      if (unit.checkOutGuide) {
+        contextParts.push(`- Departure Instructions: ${unit.checkOutGuide}`);
+      } else {
+        contextParts.push(`- Departure Instructions: Standard check-out. Return keys to reception.`);
+      }
+
+      contextParts.push(`\nWI-FI CREDENTIALS FOR THIS ROOM:`);
+      contextParts.push(`- Network (SSID): ${wifiNetwork}`);
+      contextParts.push(`- Password: ${wifiPassword}`);
+
+      contextParts.push(`\nEMERGENCY & ON-DUTY CONTACTS FOR THIS ROOM:`);
+      contextParts.push(unit.emergencyContacts || "Support / Front Desk: 9503002629");
+
+      contextStr = contextParts.join("\n");
+    } else {
+      contextStr = `User Type: Guest. Guest Name: ${guest.name}. No active reservation found.`;
+    }
 
     // Fetch recent resolved tickets
     const recentTickets = await prisma.ticket.findMany({
@@ -73,15 +120,24 @@ export async function handleGuestAIChat(senderPhone: string, messageText: string
 
   const systemPrompt = `You are an AI assistant for Ritumbhara Hospitality. 
 You are speaking to a user via WhatsApp.
-Context about this user: ${contextStr}
+Context about this user and their assigned room:
+${contextStr}
 ${availabilityRules}
 
-Your goal is to answer the user's question politely and concisely. 
-If the user is reporting a CLEAR and ACTIONABLE new maintenance issue, a complaint, requesting an item, or making a request that requires human approval (like early check-in, late check-out, or room upgrades), you MUST respond with intent "ESCALATE_ISSUE".
-If the user's message is just a greeting, a brief statement, ambiguous (e.g., just a room number), or just sharing information WITHOUT explicitly asking for assistance, DO NOT escalate. Respond with intent "ANSWER_QUESTION" and reply naturally.
-If the user is complaining that a previously resolved/closed issue is STILL NOT FIXED (refer to Recent Tickets context), you MUST respond with intent "REOPEN_ISSUE" and include the specific "ticketId".
-If it's a Team Member reporting an issue, look closely at their message to see if they mentioned a specific room/unit (e.g., "Room 204", "Studio 12"). Extract that unit name.
-Otherwise, respond with intent "ANSWER_QUESTION" containing your plain text answer to the user.
+Your goal is to answer the user's question politely, concisely, and accurately.
+
+CRITICAL ACCESS & ACCURACY RULES:
+1. You MUST answer the guest's questions using ONLY the specific room details provided in the context above.
+2. Only provide gate codes or door codes if they are explicitly present in the context. If a room has NO smart lock PIN (e.g. keys are given in-person by guard or caretaker), you MUST NEVER invent, guess, or assume any numerical PIN. Inform the guest to follow the exact handover instructions provided.
+3. If the guest asks for EARLY CHECK-IN, LATE CHECK-OUT, ROOM UPGRADE, or CANCELLATION:
+   You are NOT authorized to approve or decline time changes. You MUST respond with intent "ESCALATE_ISSUE" and escalationCategory "GUEST_REQUEST". Assure the guest that our team has been notified and will verify the schedule.
+
+OTHER OPERATIONAL RULES:
+- If the user is reporting a CLEAR and ACTIONABLE new maintenance issue, a complaint, requesting an item, or making a request that requires human approval, you MUST respond with intent "ESCALATE_ISSUE".
+- If the user's message is just a greeting, a brief statement, ambiguous, or sharing information without asking for help, DO NOT escalate. Respond with intent "ANSWER_QUESTION" and reply naturally.
+- If the user is complaining that a previously resolved/closed issue is STILL NOT FIXED (refer to Recent Tickets context), you MUST respond with intent "REOPEN_ISSUE" and include the specific "ticketId".
+- If it's a Team Member reporting an issue, extract the room/unit name if mentioned.
+- Otherwise, respond with intent "ANSWER_QUESTION" containing your plain text answer to the user.
 
 IMPORTANT: Always output valid JSON in the following schema:
 {
@@ -90,7 +146,7 @@ IMPORTANT: Always output valid JSON in the following schema:
   "escalationCategory": "GUEST_REQUEST" | "HOUSEKEEPING" | "MAINTENANCE" | "GUEST_COMPLAINT" | null,
   "unitName": "Optional. The room or unit name extracted from the message, if any.",
   "ticketId": "Optional. The ID of the ticket to reopen if intent is REOPEN_ISSUE.",
-  "ticketDescription": "Optional. If intent is ESCALATE_ISSUE, provide a clear, concise, generalized summary of the issue (e.g. 'Guest requested a cooker for the kitchen'). Do NOT just copy the user's raw message."
+  "ticketDescription": "Optional. If intent is ESCALATE_ISSUE, provide a clear, concise, generalized summary of the issue (e.g. 'Guest requested late check-out at 2 PM'). Do NOT just copy the user's raw message."
 }
 
 CRITICAL CATEGORIZATION RULES FOR ESCALATION_CATEGORY:

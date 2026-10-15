@@ -14,7 +14,7 @@ export function initWhatsAppListeners() {
 
       if (!guest?.phone) return;
 
-      const messageContent = `Hi ${guest.name},\n\nThanks for booking ${unit?.unit.name || 'our property'}! We are thrilled to host you and aim to deliver a seamless 5-star experience.\n\nQuick Details:\nCheck-in: After 1PM ${payload.checkIn.toLocaleDateString()}\nCheck-out: Before 11AM ${payload.checkOut.toLocaleDateString()}\nDirections to the Studio : ${unit?.property?.googleMapsUrl || 'https://maps.app.goo.gl'}\nAddress: ${unit?.property?.address || 'Ritumbhara Property'}\n\nAction Required: To ensure an uninterrupted check-in, please fill out our Guest Form here:\nhttps://forms.gle/NnCHqpCz1aj6c9T26\n\nManage Your Stay:\nAccess your directions, Wi-Fi password, AI support, and housekeeping requests at your personalized Guest Portal:\n${process.env.NEXT_PUBLIC_APP_URL || 'https://ritumbhara-hospitality-os-q6er.vercel.app'}/stay/${payload.reservationId}\n\nIf you have any questions or need recommendations, just send us a message. We're here to help!\n\nBest, Ritumbhara Hospitality`;
+      const messageContent = `Hi ${guest.name},\n\nThanks for booking ${unit?.unit.name || 'our property'}! We are thrilled to host you and aim to deliver a seamless 5-star experience.\n\nQuick Details:\nCheck-in: After 1PM ${payload.checkIn.toLocaleDateString()}\nCheck-out: Before 10AM ${payload.checkOut.toLocaleDateString()}\nDirections to the Studio : ${unit?.unit?.googleMapsUrl || unit?.property?.googleMapsUrl || 'https://maps.app.goo.gl'}\nAddress: ${unit?.property?.address || 'Ritumbhara Property'}\n\nAction Required: To ensure an uninterrupted check-in, please fill out our Guest Form here:\nhttps://forms.gle/NnCHqpCz1aj6c9T26\n\nManage Your Stay:\nAccess your directions, Wi-Fi password, AI support, and housekeeping requests at your personalized Guest Portal:\n${process.env.NEXT_PUBLIC_APP_URL || 'https://ritumbhara-hospitality-os-q6er.vercel.app'}/stay/${payload.reservationId}\n\nIf you have any questions or need recommendations, just send us a message. We're here to help!\n\nBest, Ritumbhara Hospitality`;
 
       await sendWhatsAppMessage(
         guest.phone,
@@ -28,7 +28,7 @@ export function initWhatsAppListeners() {
           '2': unit?.unit.name || 'our property',
           '3': payload.checkIn.toLocaleDateString(),
           '4': payload.checkOut.toLocaleDateString(),
-          '5': unit?.property?.googleMapsUrl || 'https://maps.app.goo.gl',
+          '5': unit?.unit?.googleMapsUrl || unit?.property?.googleMapsUrl || 'https://maps.app.goo.gl',
           '6': unit?.property?.address || 'Ritumbhara Property',
           '7': `${process.env.NEXT_PUBLIC_APP_URL || 'https://ritumbhara-hospitality-os-q6er.vercel.app'}/stay/${payload.reservationId}`
         }
@@ -163,7 +163,7 @@ export function initWhatsAppListeners() {
       // Check if message already sent
       const existingMsg = await prisma.whatsAppMessage.findFirst({
         where: {
-          templateName: 'checkout_instructions',
+          templateName: { in: ['checkout_instructions', 'checkout_instructions_v2'] },
           relatedEntityId: payload.reservationId,
           status: { not: 'FAILED' }
         }
@@ -174,7 +174,7 @@ export function initWhatsAppListeners() {
       const guest = await prisma.guest.findUnique({ where: { id: payload.guestId } });
       if (!guest?.phone) return;
 
-      const messageContent = `Hi ${guest.name}\n\nWe hope you enjoyed your stay with us! Just a friendly reminder that checkout is today at 11AM.\nTo help our cleaning team prepare for the next guest, we would truly appreciate it if you could follow these quick steps before heading out:\n\nLights & AC: Please turn off all lights and the air conditioning.\nTrash: Place any bagged trash in the bin\nDishes: Please leave any used dishes in the sink\nFinal Check: Double-check for any chargers or personal items!\n\nPlease send us a quick message once you have officially checked out so we can give our housekeeping team a head start.\n\nSafe travels, and we hope to see you again soon!\n\nBest, Ritumbhara Hospitality`;
+      const messageContent = `Hi ${guest.name}\n\nWe hope you enjoyed your stay with us! Just a friendly reminder that checkout is today at 10AM.\nTo help our cleaning team prepare for the next guest, we would truly appreciate it if you could follow these quick steps before heading out:\n\nLights & AC: Please turn off all lights and the air conditioning.\nTrash: Place any bagged trash in the bin\nDishes: Please leave any used dishes in the sink\nFinal Check: Double-check for any chargers or personal items!\n\nPlease send us a quick message once you have officially checked out so we can give our housekeeping team a head start.\n\nSafe travels, and we hope to see you again soon!\n\nBest, Ritumbhara Hospitality`;
 
       await sendWhatsAppMessage(
         guest.phone,

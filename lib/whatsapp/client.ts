@@ -39,9 +39,11 @@ export async function sendWhatsAppMessage(
          'post_stay_thank_you': 'HX9beb28c25fde329a33b3ca227e5bb61a',
          'ticket_assigned': 'HXa9c1cda62b0c2f9e6763e2c0df027133',
          'pre_arrival_instructions': 'HXc53995bd6a9f7fd3323fa409d57a9e67',
-         'checkout_instructions': 'HX6972f5c3804258c5ddb58dd11d299d21',
+         'checkout_instructions': 'HX41dec96dc357ee23acabf2bf0cc75186',
+         'checkout_instructions_v2': 'HX41dec96dc357ee23acabf2bf0cc75186',
          'sla_breach_alert': 'HX65186e10f421d8084b22951e7bc23692',
-         'booking_confirmation': 'HX1218dec0f31aefbd7a0e122486ffed40',
+         'booking_confirmation': 'HX9efde0bf3a839c4264a6eae0a41740dd',
+         'booking_confirmation_v2': 'HX9efde0bf3a839c4264a6eae0a41740dd',
          'points_redemption_alert': 'HX3d80b33321468c4479577a1df798fae9'
       };
 

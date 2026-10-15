@@ -191,32 +191,32 @@ export async function sendTemplateMessage(phone: string, templateName: string, v
       include: { unit: { include: { property: true } }, property: true }
     });
 
-    if (templateName === 'booking_confirmation' && reservation) {
+    if ((templateName === 'booking_confirmation' || templateName === 'booking_confirmation_v2') && reservation) {
       variables = {
         '1': guest.name,
         '2': reservation.unit.name,
         '3': reservation.checkIn.toLocaleDateString(),
         '4': reservation.checkOut.toLocaleDateString(),
-        '5': reservation.property?.googleMapsUrl || 'https://maps.app.goo.gl',
+        '5': reservation.unit?.googleMapsUrl || reservation.property?.googleMapsUrl || 'https://maps.app.goo.gl',
         '6': reservation.property?.address || 'Ritumbhara Property',
         '7': `${process.env.NEXT_PUBLIC_APP_URL || 'https://ritumbhara-hospitality-os-q6er.vercel.app'}/stay/${reservation.id}`
       };
-      contentText = `Hi ${variables['1']},\n\nThanks for booking ${variables['2']}! We are thrilled to host you and aim to deliver a seamless 5-star experience.\n\nQuick Details:\nCheck-in: After 1PM ${variables['3']}\nCheck-out: Before 11AM ${variables['4']}\nDirections to the Studio : ${variables['5']}\nAddress: ${variables['6']}\n\nAction Required: To ensure an uninterrupted check-in, please fill out our Guest Form here:\nhttps://forms.gle/NnCHqpCz1aj6c9T26\n\nManage Your Stay:\nAccess your directions, Wi-Fi password, AI support, and housekeeping requests at your personalized Guest Portal:\n${variables['7']}\n\nIf you have any questions or need recommendations, just send us a message. We're here to help!\n\nBest, Ritumbhara Hospitality`;
+      contentText = `Hi ${variables['1']},\n\nThanks for booking ${variables['2']}! We are thrilled to host you and aim to deliver a seamless 5-star experience.\n\nQuick Details:\nCheck-in: After 1PM ${variables['3']}\nCheck-out: Before 10AM ${variables['4']}\nDirections to the Studio : ${variables['5']}\nAddress: ${variables['6']}\n\nAction Required: To ensure an uninterrupted check-in, please fill out our Guest Form here:\nhttps://forms.gle/NnCHqpCz1aj6c9T26\n\nManage Your Stay:\nAccess your directions, Wi-Fi password, AI support, and housekeeping requests at your personalized Guest Portal:\n${variables['7']}\n\nIf you have any questions or need recommendations, just send us a message. We're here to help!\n\nBest, Ritumbhara Hospitality`;
     } else if (templateName === 'pre_arrival_instructions' && reservation) {
       variables = {
         '1': guest.name,
         '2': reservation.unit.name,
         '3': reservation.checkIn.toLocaleDateString(),
-        '4': reservation.property?.wifiNetwork || 'Ritumbhara_Guest',
-        '5': reservation.property?.wifiPassword || 'Ritumbhara@123',
+        '4': reservation.unit?.wifiNetwork || reservation.property?.wifiNetwork || 'Ritumbhara_Guest',
+        '5': reservation.unit?.wifiPassword || reservation.property?.wifiPassword || 'Ritumbhara@123',
         '6': reservation.property?.address || 'Ritumbhara Property',
-        '7': reservation.property?.googleMapsUrl || 'https://maps.app.goo.gl',
+        '7': reservation.unit?.googleMapsUrl || reservation.property?.googleMapsUrl || 'https://maps.app.goo.gl',
         '8': `${process.env.NEXT_PUBLIC_APP_URL || 'https://ritumbhara-hospitality-os-q6er.vercel.app'}/stay/${reservation.id}`
       };
       contentText = `Hi ${variables['1']},\n\nYour stay at ${variables['2']} is coming up!\nCheck-in: anytime after 1PM on ${variables['3']}.\n\nWifi:\nNetwork: ${variables['4']}\nPassword: ${variables['5']}\n\nAction Required: Please share photos of IDs for all guests in this chat. This is required by local regulations to complete your registration.\n\nGood to know:\nHousekeeping: Complimentary, available in designated time slot on request.\n\nFriendly House Rules:\nQuiet Hours: 10PM - 8AM\nSmoking: Strictly NO smoking indoors\nEnergy: Please turn off AC/lights when leaving\nVisitors: Only registered guests allowed overnight\nDelivery: For safety, delivery persons are not allowed inside. Please self-pick up orders from the Gate.\n\nSupport: If you need anything, message us or use the call button!\n\nBest, Ritumbhara Hospitality`;
-    } else if (templateName === 'checkout_instructions' && reservation) {
+    } else if ((templateName === 'checkout_instructions' || templateName === 'checkout_instructions_v2') && reservation) {
       variables = { '1': guest.name };
-      contentText = `Hi ${variables['1']}\n\nWe hope you enjoyed your stay with us! Just a friendly reminder that checkout is today at 11AM.\nTo help our cleaning team prepare for the next guest, we would truly appreciate it if you could follow these quick steps before heading out:\n\nLights & AC: Please turn off all lights and the air conditioning.\nTrash: Place any bagged trash in the bin\nDishes: Please leave any used dishes in the sink\nFinal Check: Double-check for any chargers or personal items!\n\nPlease send us a quick message once you have officially checked out so we can give our housekeeping team a head start.\n\nSafe travels, and we hope to see you again soon!\n\nBest, Ritumbhara Hospitality`;
+      contentText = `Hi ${variables['1']}\n\nWe hope you enjoyed your stay with us! Just a friendly reminder that checkout is today at 10AM.\nTo help our cleaning team prepare for the next guest, we would truly appreciate it if you could follow these quick steps before heading out:\n\nLights & AC: Please turn off all lights and the air conditioning.\nTrash: Place any bagged trash in the bin\nDishes: Please leave any used dishes in the sink\nFinal Check: Double-check for any chargers or personal items!\n\nPlease send us a quick message once you have officially checked out so we can give our housekeeping team a head start.\n\nSafe travels, and we hope to see you again soon!\n\nBest, Ritumbhara Hospitality`;
     } else if (templateName === 'post_stay_thank_you') {
       variables = { '1': guest.name };
       contentText = `Thank you for staying with us, ${variables['1']}! We hope you had a wonderful time. Please let us know how we did. Have a safe journey home!`;
