@@ -99,6 +99,7 @@ model Property {
   inventoryItems   InventoryItem[]
   knowledgeBase    LocationKnowledge?
   agentActionLogs  AgentActionLog[]
+  inboxConversations InboxConversation[]
 }
 
 model Unit {
@@ -144,6 +145,7 @@ model Guest {
   reservations Reservation[]
   tickets      Ticket[]
   membership   Membership?
+  inboxConversations InboxConversation[]
 
   @@index([phone])
   @@index([email])
@@ -167,6 +169,7 @@ model Reservation {
   guest    Guest    @relation(fields: [guestId], references: [id])
   unit     Unit     @relation(fields: [unitId], references: [id])
   property Property @relation(fields: [propertyId], references: [id])
+  inboxConversations InboxConversation[]
 
   @@index([propertyId])
   @@index([guestId])
@@ -191,6 +194,8 @@ model TeamMember {
   property          Property           @relation(fields: [propertyId], references: [id])
   assignedTickets   Ticket[]           @relation("AssignedTickets")
   housekeepingTasks HousekeepingTask[] @relation("AssignedTasks")
+  inboxConversations InboxConversation[] @relation("InboxAssignee")
+  inboxMessagesSent  InboxMessage[]      @relation("InboxSender")
 
   @@index([propertyId])
   @@index([isActive])
@@ -290,6 +295,74 @@ model WhatsAppMessage {
 
   @@index([from])
   @@index([to])
+}
+
+enum InboxChannel {
+  WHATSAPP
+  AIRBNB
+  BOOKING_COM
+  AGODA
+  EXPEDIA
+  EMAIL
+}
+
+enum InboxConversationStatus {
+  OPEN
+  CLOSED
+}
+
+// One guest conversation in the unified inbox, whatever channel it came from.
+// WhatsApp threads keep their messages in WhatsAppMessage and use this row only
+// for team state (assignee, status, read). Other channels store messages in InboxMessage.
+model InboxConversation {
+  id                 String                  @id @default(cuid())
+  channel            InboxChannel
+  externalThreadId   String                  // phone for WhatsApp, OTA reservation code or email thread key otherwise
+  subject            String?
+  guestName          String?
+  guestContact       String?
+  replyTo            String?                 // OTA relay / email address replies are sent to
+  propertyId         String?
+  reservationId      String?
+  guestId            String?
+  assigneeId         String?
+  status             InboxConversationStatus @default(OPEN)
+  lastMessageAt      DateTime                @default(now())
+  lastMessagePreview String?
+  lastInboundAt      DateTime?
+  lastReadAt         DateTime?
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
+
+  property    Property?      @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+  reservation Reservation?   @relation(fields: [reservationId], references: [id], onDelete: SetNull)
+  guest       Guest?         @relation(fields: [guestId], references: [id], onDelete: SetNull)
+  assignee    TeamMember?    @relation("InboxAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  messages    InboxMessage[]
+
+  @@unique([channel, externalThreadId])
+  @@index([status])
+  @@index([lastMessageAt])
+  @@index([assigneeId])
+  @@index([reservationId])
+}
+
+model InboxMessage {
+  id                String           @id @default(cuid())
+  conversationId    String
+  direction         MessageDirection
+  body              String           @db.Text
+  senderName        String?
+  sentById          String?
+  externalMessageId String?          @unique
+  status            String           @default("RECEIVED")
+  raw               Json?
+  createdAt         DateTime         @default(now())
+
+  conversation InboxConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sentBy       TeamMember?       @relation("InboxSender", fields: [sentById], references: [id], onDelete: SetNull)
+
+  @@index([conversationId, createdAt])
 }
 
 model InventoryItem {
