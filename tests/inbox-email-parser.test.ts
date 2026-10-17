@@ -290,6 +290,18 @@ test("parseInboundEmail: Airbnb reservation notice takes the guest name from the
   assert.equal(parsed.ignore, false);
 });
 
+test("parseInboundEmail: Airbnb booking notice from express@ reads the name without the repeated button text", () => {
+  const filler = "Your guest's trip details and house rules are below. ".repeat(10);
+  const parsed = parseInboundEmail({
+    from: "Airbnb <express@airbnb.com>",
+    subject: "Booking confirmed for Studio 1210, Oct 20 – 22",
+    text: `${filler}\nSend Madhusudan a MessageSend Madhusudan a Message [https://www.airbnb.co.in/hosting/thread/2701111111?x=1]\n${filler}`,
+  });
+  assert.equal(parsed.guestName, "Madhusudan");
+  assert.equal(parsed.threadKey, "airbnb:2701111111");
+  assert.equal(parsed.body, "Booking confirmed for Studio 1210, Oct 20 – 22");
+});
+
 test("parseInboundEmail: Airbnb account notices are ignored", () => {
   const parsed = parseInboundEmail({
     from: "Airbnb <automated@airbnb.com>",
