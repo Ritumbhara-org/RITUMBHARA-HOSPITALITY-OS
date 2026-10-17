@@ -64,7 +64,7 @@ export function Topbar() {
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem>Settings</DropdownMenuItem>
-              <DropdownMenuItem>Support</DropdownMenuItem>
+              <DropdownMenuItem render={<a href="mailto:studios.jaipur@gmail.com" />}>Support</DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem className="text-destructive focus:text-destructive">Logout</DropdownMenuItem>
             </DropdownMenuContent>
