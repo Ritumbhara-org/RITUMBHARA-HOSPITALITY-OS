@@ -26,9 +26,19 @@ export interface ParsedInboundEmail {
   threadKey: string;
   /** Account / marketing notice with no guest conversation (login codes, co-host invites…): don't store. */
   ignore: boolean;
+  /** When the email was received, if the sender said (Gmail bridge `date`, Postmark `Date`). */
+  receivedAt: Date | null;
 }
 
 type Dict = Record<string, unknown>;
+
+/** Accepts a sane past date only: a missing, invalid or future value falls back to "now". */
+function parseReceivedAt(value: string): Date | null {
+  if (!value) return null;
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime()) || d.getTime() > Date.now() + 5 * 60 * 1000) return null;
+  return d;
+}
 
 const str = (v: unknown): string => (typeof v === "string" ? v : "");
 
@@ -397,5 +407,6 @@ export function parseInboundEmail(payload: Dict): ParsedInboundEmail {
     reservationCode,
     threadKey,
     ignore,
+    receivedAt: parseReceivedAt(str(payload.date) || str(payload.Date) || headerFromRawBlock(headersRaw, "Date")),
   };
 }

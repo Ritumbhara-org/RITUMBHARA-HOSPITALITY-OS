@@ -104,6 +104,7 @@ function syncOtaMessages(all) {
         subject: subject,
         text: msg.getPlainBody(),
         html: msg.getBody(),
+        date: msg.getDate().toISOString(),
         messageId: msg.getHeader('Message-ID') || msg.getId(),
         inReplyTo: msg.getHeader('In-Reply-To') || '',
       };
