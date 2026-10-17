@@ -24,6 +24,8 @@ export interface ParsedInboundEmail {
   reservationCode: string | null;
   /** Stable key used to group messages from the same guest conversation. */
   threadKey: string;
+  /** Account / marketing notice with no guest conversation (login codes, co-host invites…): don't store. */
+  ignore: boolean;
 }
 
 type Dict = Record<string, unknown>;
@@ -179,8 +181,56 @@ export function stripNoise(text: string): string {
   return text
     .replace(/\[image:[^\]]*\]/g, "")
     .replace(/<https?:\/\/[^>\s]*>/g, "")
+    .replace(/\[https?:\/\/[^\]\s]*\]/g, "")
+    .replace(/%opentrack%/gi, "")
+    // Lines that are nothing but links.
+    .replace(/^[ \t]*https?:\/\/\S+(?:[ \t]+https?:\/\/\S+)*[ \t]*$/gm, "")
     .replace(/[ \t]+\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n");
+}
+
+const AIRBNB_ROLE = /^(booker|guest|co-?host|host|cohost)$/i;
+
+function titleCase(name: string): string {
+  return name.toLowerCase().replace(/(^|[\s'-])\p{L}/gu, (c) => c.toUpperCase());
+}
+
+/**
+ * Airbnb "new message" digest emails list each message as three paragraphs:
+ * NAME / role (Booker, Co-host, …) / text, between the "always communicate through Airbnb"
+ * line and the "Reply" button.
+ */
+export function parseAirbnbDigest(text: string): { guestName: string | null; message: string | null } | null {
+  const start = text.match(/always communicate through airbnb\.?[^\n]*\n/i);
+  if (!start || start.index === undefined) return null;
+  let section = text.slice(start.index + start[0].length);
+  const end = section.match(/^\s*(?:reply|you can also respond by replying)/im);
+  if (end && end.index !== undefined) section = section.slice(0, end.index);
+
+  const paras = section.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
+  const entries: { name: string; role: string; text: string[] }[] = [];
+  for (let i = 0; i < paras.length; i++) {
+    const isHeader = !paras[i].includes("\n") && i + 1 < paras.length && AIRBNB_ROLE.test(paras[i + 1]);
+    if (isHeader) {
+      entries.push({ name: titleCase(paras[i]), role: paras[i + 1].toLowerCase(), text: [] });
+      i++;
+    } else if (entries.length) {
+      entries[entries.length - 1].text.push(paras[i]);
+    }
+  }
+  if (!entries.length) return null;
+
+  const isTeam = (role: string) => /host/.test(role);
+  const guest = entries.find((e) => !isTeam(e.role));
+  const speakers = new Set(entries.map((e) => e.name));
+  const lines = entries
+    .filter((e) => e.text.length)
+    .map((e) => {
+      const said = e.text.join("\n");
+      if (isTeam(e.role)) return `${e.name} (${e.role}): ${said}`;
+      return speakers.size > 1 ? `${e.name}: ${said}` : said;
+    });
+  return { guestName: guest?.name ?? null, message: lines.join("\n") || null };
 }
 
 // Lines where the guest's own words stop in Airbnb notification emails.
@@ -198,9 +248,14 @@ export function parseAirbnb(rawText: string): { threadId: string | null; guestNa
     ?? null;
 
   const text = stripNoise(rawText);
+  const digest = parseAirbnbDigest(text);
+  if (digest?.message) return { threadId, guestName: digest.guestName, message: digest.message };
+
+  const NAME = "([\\p{L}][\\p{L}.'-]*(?:\\s+[\\p{L}][\\p{L}.'-]*){0,3})";
   const nameMatch =
-    text.match(/(?:respond to|reply to)\s+([\p{L}][\p{L}.'-]*(?:\s+[\p{L}][\p{L}.'-]*){0,3})[’']s\s+(?:inquiry|request|message|booking)/iu) ||
-    text.match(/(?:new message from|message from)\s+([\p{L}][\p{L}.'-]*(?:\s+[\p{L}][\p{L}.'-]*){0,3})/iu);
+    text.match(new RegExp(`(?:respond to|reply to)\\s+${NAME}[’']s\\s+(?:inquiry|request|message|booking)`, "iu")) ||
+    text.match(new RegExp(`(?:new message from|message from)\\s+${NAME}`, "iu")) ||
+    text.match(new RegExp(`send\\s+${NAME}\\s+a\\s+message`, "iu"));
   const guestName = nameMatch ? nameMatch[1].trim() : null;
 
   let message: string | null = null;
@@ -282,10 +337,16 @@ export function parseInboundEmail(payload: Dict): ParsedInboundEmail {
 
   let otaThread: string | null = null;
   let body: string;
+  let ignore = false;
   if (channel === "AIRBNB") {
     const airbnb = parseAirbnb(text);
     otaThread = airbnb.threadId ? `airbnb:${airbnb.threadId}` : null;
-    guestName = airbnb.guestName || guestName;
+    guestName =
+      airbnb.guestName ||
+      subject.match(/reservation (?:confirmed|request|reminder)\s*[-–:]\s*(.+?)\s+(?:arrives|is arriving|wants|requested)/i)?.[1] ||
+      guestName;
+    // Airbnb sends many account/marketing emails; only ones tied to a guest thread or carrying guest text matter.
+    ignore = !airbnb.threadId && !airbnb.message;
     // Booking confirmations and notices carry no guest text: show the subject, not the whole email.
     body = airbnb.message
       ? cleanBody(airbnb.message)
@@ -327,5 +388,6 @@ export function parseInboundEmail(payload: Dict): ParsedInboundEmail {
     guestName,
     reservationCode,
     threadKey,
+    ignore,
   };
 }
