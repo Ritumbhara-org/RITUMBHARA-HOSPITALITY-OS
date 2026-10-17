@@ -90,17 +90,40 @@ export async function ingestInboundEmail(parsed: ParsedInboundEmail, raw: unknow
     },
   });
 
-  const message = await prisma.inboxMessage.create({
-    data: {
-      conversationId: conversation.id,
-      direction: "INBOUND",
-      body: parsed.body || "(empty message)",
-      senderName: parsed.guestName || parsed.fromName || parsed.fromEmail,
-      externalMessageId: parsed.messageId,
-      status: "RECEIVED",
-      raw: raw == null ? undefined : (raw as Prisma.InputJsonValue),
-    },
-  });
+  try {
+    const message = await prisma.inboxMessage.create({
+      data: {
+        conversationId: conversation.id,
+        direction: "INBOUND",
+        body: parsed.body || "(empty message)",
+        senderName: parsed.guestName || parsed.fromName || parsed.fromEmail,
+        externalMessageId: parsed.messageId,
+        status: "RECEIVED",
+        raw: raw == null ? undefined : (raw as Prisma.InputJsonValue),
+      },
+    });
+    return { conversationId: conversation.id, messageId: message.id, duplicate: false };
+  } catch (err) {
+    // Two deliveries of the same email at once (e.g. the 5-minute trigger and a manual run):
+    // the other one already stored it.
+    if (isUniqueViolation(err) && parsed.messageId) {
+      const existing = await prisma.inboxMessage.findUnique({ where: { externalMessageId: parsed.messageId } });
+      if (existing) return { conversationId: existing.conversationId, messageId: existing.id, duplicate: true };
+    }
+    throw err;
+  }
+}
 
-  return { conversationId: conversation.id, messageId: message.id, duplicate: false };
+function isUniqueViolation(err: unknown): boolean {
+  return err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002";
+}
+
+/** Same as ingestInboundEmail, retried once if a parallel delivery created the conversation first. */
+export async function ingestInboundEmailSafely(parsed: ParsedInboundEmail, raw: unknown): Promise<IngestResult> {
+  try {
+    return await ingestInboundEmail(parsed, raw);
+  } catch (err) {
+    if (isUniqueViolation(err)) return ingestInboundEmail(parsed, raw);
+    throw err;
+  }
 }

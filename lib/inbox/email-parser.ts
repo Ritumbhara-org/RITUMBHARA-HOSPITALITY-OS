@@ -286,13 +286,18 @@ export function parseInboundEmail(payload: Dict): ParsedInboundEmail {
     const airbnb = parseAirbnb(text);
     otaThread = airbnb.threadId ? `airbnb:${airbnb.threadId}` : null;
     guestName = airbnb.guestName || guestName;
-    body = airbnb.message ? cleanBody(airbnb.message) : cleanBody(stripNoise(text));
+    // Booking confirmations and notices carry no guest text: show the subject, not the whole email.
+    body = airbnb.message
+      ? cleanBody(airbnb.message)
+      : isNoReply(from.email) && subject
+        ? subject
+        : cleanBody(stripNoise(text));
   } else if (channel === "AGODA") {
     const agoda = parseAgoda(text);
     otaThread = agoda.conversationId ? `agoda:${agoda.conversationId}` : null;
     // The sender's display name is the guest ("Rishabh Khandelwal <notifications@agoda-messaging.com>").
     if (!guestName && from.name && !/agoda/i.test(from.name)) guestName = from.name;
-    body = agoda.message ? cleanBody(agoda.message) : cleanBody(stripNoise(text));
+    body = agoda.message ? cleanBody(agoda.message) : subject || cleanBody(stripNoise(text));
   } else {
     body = cleanBody(stripNoise(text));
   }

@@ -199,6 +199,17 @@ test("parseInboundEmail: Agoda message via the Gmail bridge can be replied to", 
   assert.equal(parsed.replyTo, "notifications@agoda-messaging.com");
 });
 
+test("parseInboundEmail: Airbnb notice with no guest text shows its subject", () => {
+  const parsed = parseInboundEmail({
+    from: "Airbnb <automated@airbnb.com>",
+    subject: "Reservation confirmed - Ravi Kumar arrives Oct 17",
+    text: "[image: Airbnb]\nNew booking confirmed! Ravi arrives Oct 17.\n<https://www.airbnb.co.in/hosting/thread/555?x=1>\nGet the Airbnb app",
+  });
+  assert.equal(parsed.channel, "AIRBNB");
+  assert.equal(parsed.threadKey, "airbnb:555");
+  assert.equal(parsed.body, "Reservation confirmed - Ravi Kumar arrives Oct 17");
+});
+
 test("parseInboundEmail: HTML-only Booking.com email uses relay as thread key", () => {
   const parsed = parseInboundEmail({
     from: "Booking.com <noreply@booking.com>",

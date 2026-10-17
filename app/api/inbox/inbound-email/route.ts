@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { parseInboundEmail } from "@/lib/inbox/email-parser";
-import { ingestInboundEmail } from "@/lib/inbox/ingest";
+import { ingestInboundEmailSafely } from "@/lib/inbox/ingest";
 
 export const dynamic = "force-dynamic";
 
@@ -50,7 +50,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const result = await ingestInboundEmail(parsed, payload);
+    const result = await ingestInboundEmailSafely(parsed, payload);
     return NextResponse.json({ ok: true, channel: parsed.channel, ...result });
   } catch (err) {
     console.error("[Inbox inbound-email]", err);

@@ -30,7 +30,7 @@ var SENDERS = [
 var SKIP_SUBJECT_WORDS = [
   'sign-in', 'sign in', 'password', 'confirm email', 'account is ready', 'thank you for joining',
   'payout', 'invoice', 'statement', 'commission', 'newsletter', 'tips', 'webinar',
-  'review', 'reviewed', 'rating', 'policy update', 'terms',
+  'review', 'reviewed', 'rating', 'policy update', 'terms', 'off-schedule', 'scheduled message',
 ];
 
 var LABEL = 'ritumbhara-synced';
