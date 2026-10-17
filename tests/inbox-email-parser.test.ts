@@ -6,6 +6,7 @@ import {
   extractGuestName,
   extractReservationCode,
   parseAddress,
+  parseAirbnb,
   parseInboundEmail,
   unwrapForward,
 } from "../lib/inbox/email-parser";
@@ -79,6 +80,76 @@ test("parseInboundEmail: plain guest email groups by sender", () => {
   assert.equal(parsed.replyTo, "arjun@example.com");
   assert.equal(parsed.guestName, "Arjun");
   assert.equal(parsed.threadKey, "mail:arjun@example.com:");
+});
+
+// Same layout as a real Airbnb "host initial inquiry" email (name, ids and listing changed).
+const AIRBNB_INQUIRY_TEXT = `[image: Airbnb]
+<https://www.airbnb.co.in/?c=.pi80.abc&euid=1>
+
+Respond to Ravi’s inquiry
+
+Ravi
+<https://www.airbnb.co.in/hosting/thread/1234567890?thread_type=home_booking&c=.pi80.abc>
+
+On Airbnb since 2026
+
+society name ??
+Pre-approve / DeclinePre-approve / Decline
+<https://www.airbnb.co.in/hosting/thread/1234567890?thread_type=home_booking>
+[image: Test Studio|Near Hospital|100MbpsWiFi]
+<https://www.airbnb.co.in/rooms/111?c=x>
+
+Test Studio|Near Hospital|100MbpsWiFi
+
+Check-in
+
+Tue, Oct 20
+
+1:00 PM
+You have 24 hours to respond
+
+Frequently Asked Questions
+[image:
+Google Play]`;
+
+test("parseAirbnb reads thread id, guest name and the guest's message", () => {
+  const out = parseAirbnb(AIRBNB_INQUIRY_TEXT);
+  assert.equal(out.threadId, "1234567890");
+  assert.equal(out.guestName, "Ravi");
+  assert.equal(out.message, "society name ??");
+});
+
+test("parseInboundEmail: Airbnb inquiry sent by the Gmail bridge", () => {
+  const parsed = parseInboundEmail({
+    from: "Airbnb <automated@airbnb.com>",
+    to: "studios.jaipur@gmail.com",
+    replyTo: "automated@airbnb.com",
+    subject: "Inquiry for Test Studio|Near Hospital|100MbpsWiFi for Oct 20 – 22, 2026",
+    text: AIRBNB_INQUIRY_TEXT,
+    messageId: "<abc@airbnb.com>",
+  });
+  assert.equal(parsed.channel, "AIRBNB");
+  assert.equal(parsed.threadKey, "airbnb:1234567890");
+  assert.equal(parsed.guestName, "Ravi");
+  assert.equal(parsed.body, "society name ??");
+  assert.equal(parsed.replyTo, null, "automated@ addresses can't take replies");
+});
+
+test("parseInboundEmail: manually forwarded Airbnb inquiry with a wrapped subject", () => {
+  const parsed = parseInboundEmail({
+    from: "Studios <studios.jaipur@gmail.com>",
+    to: "inbox@ritumbhara.com",
+    subject: "Fwd: Inquiry for Test Studio|Near Hospital|100MbpsWiFi for Oct 20 – 22, 2026",
+    text:
+      "---------- Forwarded message ---------\nFrom: Airbnb <automated@airbnb.com>\nDate: Fri, 16 Oct 2026 at 12:36\n" +
+      "Subject: Inquiry for Test Studio|Near Hospital|100MbpsWiFi for\nOct 20 – 22, 2026\nTo: <studios.jaipur@gmail.com>\n\n" +
+      AIRBNB_INQUIRY_TEXT,
+  });
+  assert.equal(parsed.channel, "AIRBNB");
+  assert.equal(parsed.subject, "Inquiry for Test Studio|Near Hospital|100MbpsWiFi for Oct 20 – 22, 2026");
+  assert.equal(parsed.threadKey, "airbnb:1234567890");
+  assert.equal(parsed.guestName, "Ravi");
+  assert.equal(parsed.body, "society name ??");
 });
 
 test("parseInboundEmail: HTML-only Booking.com email uses relay as thread key", () => {

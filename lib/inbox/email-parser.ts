@@ -152,13 +152,72 @@ export function unwrapForward(text: string): { inner: string; from?: string; rep
   const lines = after.split(/\r?\n/);
   const meta: Record<string, string> = {};
   let i = 0;
+  let last: string | null = null;
+  // The header block runs until the first blank line. Gmail wraps long values
+  // (e.g. a long Subject) onto the next line, so non-header lines continue the previous value.
   for (; i < lines.length; i++) {
+    if (!lines[i].trim()) {
+      i++;
+      break;
+    }
     const m = lines[i].match(/^\s*(from|reply-to|subject|date|to|cc|sent)\s*:\s*(.*)$/i);
-    if (!m) break;
-    meta[m[1].toLowerCase()] = m[2].trim();
+    if (m) {
+      last = m[1].toLowerCase();
+      meta[last] = m[2].trim();
+    } else if (last) {
+      meta[last] = `${meta[last]} ${lines[i].trim()}`.trim();
+    } else {
+      break;
+    }
   }
   if (!meta.from) return null;
   return { inner: lines.slice(i).join("\n").trim(), from: meta.from, replyTo: meta["reply-to"], subject: meta.subject };
+}
+
+/** Drops image placeholders and bare tracking links that plain-text OTA emails are full of. */
+export function stripNoise(text: string): string {
+  return text
+    .replace(/\[image:[^\]]*\]/g, "")
+    .replace(/<https?:\/\/[^>\s]*>/g, "")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n");
+}
+
+// Lines where the guest's own words stop in Airbnb notification emails.
+const AIRBNB_END =
+  /^\s*(pre-approve|accept|decline|reply|respond|send a message|translate|you have \d+ hours|frequently asked questions|customer support|get the airbnb app|airbnb ireland|for your protection|always communicate through airbnb)/im;
+
+/**
+ * Airbnb host emails ("Respond to Karan’s inquiry", "New message from Karan", "RE: Reservation at …")
+ * carry the conversation id in their /hosting/thread/<id> links and the guest's text after the
+ * "On Airbnb since 2026" / "Identity verified" profile lines.
+ */
+export function parseAirbnb(rawText: string): { threadId: string | null; guestName: string | null; message: string | null } {
+  const threadId = rawText.match(/airbnb\.[a-z.]+\/hosting\/(?:thread|inbox\/thread)\/(\d+)/i)?.[1]
+    ?? rawText.match(/airbnb\.[a-z.]+\/(?:messaging\/thread|z\/q)\/(\d+)/i)?.[1]
+    ?? null;
+
+  const text = stripNoise(rawText);
+  const nameMatch =
+    text.match(/(?:respond to|reply to)\s+([\p{L}][\p{L}.'-]*(?:\s+[\p{L}][\p{L}.'-]*){0,3})[’']s\s+(?:inquiry|request|message|booking)/iu) ||
+    text.match(/(?:new message from|message from)\s+([\p{L}][\p{L}.'-]*(?:\s+[\p{L}][\p{L}.'-]*){0,3})/iu);
+  const guestName = nameMatch ? nameMatch[1].trim() : null;
+
+  let message: string | null = null;
+  const profile = text.match(/^\s*(?:on airbnb since \d{4}|identity verified|\d+ reviews?)\s*$/im);
+  if (profile && profile.index !== undefined) {
+    let rest = text.slice(profile.index + profile[0].length);
+    // Skip any further profile lines (reviews, verified, location).
+    rest = rest.replace(/^(\s*(?:identity verified|\d+ reviews?|lives in .*|on airbnb since \d{4})\s*\n)+/i, "");
+    const end = rest.match(AIRBNB_END);
+    if (end && end.index !== undefined) rest = rest.slice(0, end.index);
+    message = rest.trim() || null;
+  }
+  return { threadId, guestName, message };
+}
+
+function isNoReply(addr: string | null): boolean {
+  return !!addr && /(^|[._-])(no-?reply|noreply|do-?not-?reply|automated|notifications?)@/i.test(addr);
 }
 
 function normalizeSubject(subject: string): string {
@@ -192,24 +251,38 @@ export function parseInboundEmail(payload: Dict): ParsedInboundEmail {
     text = forwarded.inner;
   }
 
-  const replyTo = replyToRaw ? parseAddress(replyToRaw).email : null;
-  const body = cleanBody(text);
+  const parsedReplyTo = replyToRaw ? parseAddress(replyToRaw).email : null;
+  // automated@airbnb.com, noreply@booking.com and the like can't take replies.
+  const replyTo = isNoReply(parsedReplyTo) ? null : parsedReplyTo;
 
   const messageId =
     str(payload.messageId) || str(payload.MessageID) || headerFromRawBlock(headersRaw, "Message-ID") || headerFromList(payload.Headers, "Message-ID") || null;
   const inReplyTo =
     str(payload.inReplyTo) || headerFromRawBlock(headersRaw, "In-Reply-To") || headerFromList(payload.Headers, "In-Reply-To") || null;
 
-  const channel = detectChannel([from.email, replyTo || "", toRaw, fromRaw]);
-  const guestName = extractGuestName(subject, from.name, channel);
+  const channel = detectChannel([from.email, parsedReplyTo || "", toRaw, fromRaw]);
+  let guestName = extractGuestName(subject, from.name, channel);
   const reservationCode = extractReservationCode(`${subject}\n${text}`, channel);
 
-  // Group by reservation code first, then the OTA relay address (one per guest thread), then sender + subject.
-  const threadKey = reservationCode
-    ? `res:${reservationCode}`
-    : replyTo && channel !== "EMAIL"
-      ? `relay:${replyTo}`
-      : `mail:${channel === "EMAIL" ? from.email : replyTo || from.email}:${channel === "EMAIL" ? "" : normalizeSubject(subject)}`;
+  let otaThread: string | null = null;
+  let body: string;
+  if (channel === "AIRBNB") {
+    const airbnb = parseAirbnb(text);
+    otaThread = airbnb.threadId ? `airbnb:${airbnb.threadId}` : null;
+    guestName = airbnb.guestName || guestName;
+    body = airbnb.message ? cleanBody(airbnb.message) : cleanBody(stripNoise(text));
+  } else {
+    body = cleanBody(stripNoise(text));
+  }
+
+  // Group by the OTA's own thread id first, then reservation code, then the relay address, then sender + subject.
+  const threadKey = otaThread
+    ? otaThread
+    : reservationCode
+      ? `res:${reservationCode}`
+      : replyTo && channel !== "EMAIL"
+        ? `relay:${replyTo}`
+        : `mail:${channel === "EMAIL" ? from.email : replyTo || from.email}:${channel === "EMAIL" ? "" : normalizeSubject(subject)}`;
 
   return {
     channel,
