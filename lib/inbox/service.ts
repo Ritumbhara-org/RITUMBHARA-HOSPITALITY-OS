@@ -257,8 +257,18 @@ export async function getThread(key: string): Promise<InboxThread | null> {
     status: m.status,
   }));
 
+  // Airbnb emails carry the thread id, so link straight to that conversation.
+  const airbnbThread = c.externalThreadId.match(/^airbnb:(\d+)$/)?.[1];
+  const extranetUrl = airbnbThread
+    ? `https://www.airbnb.com/hosting/thread/${airbnbThread}`
+    : CHANNELS[channel].extranetUrl ?? null;
+
   let replyNote: string | null = null;
-  if (!c.replyTo) replyNote = `No reply address came with this ${CHANNELS[channel].label} message. Reply from the extranet.`;
+  if (!c.replyTo)
+    replyNote =
+      channel === "AIRBNB"
+        ? "Airbnb doesn't accept email replies for this message. Draft here, then reply in Airbnb."
+        : `No reply address came with this ${CHANNELS[channel].label} message. Reply from the extranet.`;
   else if (!mailReady) replyNote = "Email replies aren't set up yet. Reply from the extranet, or add RESEND_API_KEY and INBOX_FROM_EMAIL.";
 
   return {
@@ -266,7 +276,7 @@ export async function getThread(key: string): Promise<InboxThread | null> {
     messages,
     canReply: Boolean(c.replyTo) && mailReady,
     replyNote,
-    extranetUrl: CHANNELS[channel].extranetUrl ?? null,
+    extranetUrl,
   };
 }
 
