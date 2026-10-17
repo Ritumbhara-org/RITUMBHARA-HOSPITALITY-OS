@@ -265,8 +265,13 @@ export function parseAirbnb(rawText: string): { threadId: string | null; guestNa
     let rest = text.slice(profile.index + profile[0].length);
     // Skip any further profile lines (reviews, verified, location).
     rest = rest.replace(/^(\s*(?:identity verified|\d+ reviews?|lives in .*|on airbnb since \d{4})\s*\n)+/i, "");
+    // The guest's home town ("Jaipur, India") sits on its own line before the message.
+    rest = rest.replace(/^\s*\p{Lu}[\p{L} .'-]*,\s*\p{Lu}[\p{L} .'-]*[ \t]*\n/u, "");
     const end = rest.match(AIRBNB_END);
     if (end && end.index !== undefined) rest = rest.slice(0, end.index);
+    // "Send Muskan a Message" button: booking confirmations have no guest text, the listing follows it.
+    const button = rest.match(/send\s+[\p{L}][\p{L}.'-]*(?:\s+[\p{L}][\p{L}.'-]*){0,3}?\s+a\s+message/iu);
+    if (button && button.index !== undefined) rest = rest.slice(0, button.index);
     message = rest.trim() || null;
   }
   return { threadId, guestName, message };
