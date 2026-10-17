@@ -312,6 +312,47 @@ test("parseInboundEmail: short Airbnb booking notice shows its subject, not the 
   assert.equal(parsed.body, "Reservation confirmed - Madhusudan arrives Oct 20");
 });
 
+test("parseInboundEmail: Airbnb reservation confirmed shows its subject, not the listing after the profile", () => {
+  const parsed = parseInboundEmail({
+    from: "Airbnb <automated@airbnb.com>",
+    subject: "Reservation confirmed - Riya Mehta arrives Oct 13",
+    text: [
+      "New booking confirmed! Riya arrives Oct 13.",
+      "Send a message to confirm check-in details or welcome Riya.",
+      "Riya Mehta",
+      "Identity verified",
+      "On Airbnb since 2026",
+      "Send Riya a MessageSend Riya a Message [https://www.airbnb.co.in/hosting/thread/2701111113?x=1]",
+      "Sun Drenched Studio | Juliet Balcony 100Mbps WiFi",
+      "Entire home/apt",
+      "Check-in",
+      "Tue, Oct 13",
+      "Confirmation code",
+      "HMAAAAAAAA",
+    ].join("\n"),
+  });
+  assert.equal(parsed.body, "Reservation confirmed - Riya Mehta arrives Oct 13");
+  assert.equal(parsed.threadKey, "airbnb:2701111113");
+});
+
+test("parseInboundEmail: Airbnb inquiry drops the guest's home town and the button text", () => {
+  const parsed = parseInboundEmail({
+    from: "Airbnb <express@airbnb.com>",
+    subject: "Respond to Vikram’s inquiry",
+    text: [
+      "Respond to Vikram’s inquiry",
+      "Vikram",
+      "On Airbnb since 2024",
+      "New Delhi, India",
+      "Reaching Jaipur by 8 am, can I check in early?",
+      "Send Vikram a MessageSend Vikram a Message [https://www.airbnb.co.in/hosting/thread/2701111114?x=1]",
+      "Chic Couple Studio",
+    ].join("\n"),
+  });
+  assert.equal(parsed.guestName, "Vikram");
+  assert.equal(parsed.body, "Reaching Jaipur by 8 am, can I check in early?");
+});
+
 test("parseInboundEmail: Airbnb account notices are ignored", () => {
   const parsed = parseInboundEmail({
     from: "Airbnb <automated@airbnb.com>",
