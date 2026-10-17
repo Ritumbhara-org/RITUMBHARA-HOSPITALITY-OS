@@ -89,7 +89,7 @@ export function Sidebar() {
       <div className="mx-3 mb-4 rounded-xl bg-gradient-to-br from-rose-500/10 to-red-500/10 border border-rose-500/10 p-4">
         <p className="text-[11px] font-medium text-rose-100">Need help?</p>
         <p className="text-[10px] text-rose-200/60 mt-1">Contact support for assistance with your account.</p>
-        <a href="mailto:ritumbharahotel@gmail.com" className="text-[10px] font-medium text-white/80 hover:text-white mt-2 inline-block transition-colors">ritumbharahotel@gmail.com</a>
+        <a href="mailto:studios.jaipur@gmail.com" className="text-[10px] font-medium text-white/80 hover:text-white mt-2 inline-block transition-colors">studios.jaipur@gmail.com</a>
       </div>
     </div>
   )
