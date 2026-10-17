@@ -6,6 +6,7 @@ import {
   extractGuestName,
   extractReservationCode,
   parseAddress,
+  parseAgoda,
   parseAirbnb,
   parseInboundEmail,
   unwrapForward,
@@ -150,6 +151,52 @@ test("parseInboundEmail: manually forwarded Airbnb inquiry with a wrapped subjec
   assert.equal(parsed.threadKey, "airbnb:1234567890");
   assert.equal(parsed.guestName, "Ravi");
   assert.equal(parsed.body, "society name ??");
+});
+
+// Same layout as a real Agoda guest-message email (name, ids and property changed).
+const AGODA_TEXT = `[image: Agoda.com]
+<http://tracking.agoda.com/click?cid=1&memberID=2&linkType=logo&messageId=99&conversationId=1,071,348,000,000,000,111&messageType=Message%20&templateName=>
+
+Hi, Test Studios
+This traveler has an upcoming booking at your property.
+
+New *inquiry* from Neha Sharma
+
+  Neha Sharma Aug 01, 11:21 AM ICT
+  Booking ID: 0
+
+Message : Price for today?
+Did you know?
+Prompt replies to guests result in fewer cancellations and can improve
+review scores.
+Replying to this email, will be sent directly to the guest.
+
+REPLY IN YCS APP
+<https://go.onelink.me/Vq0Z?af_dp=ycsapp%3A%2F%2Fagoda%2Fdashboard%3FhotelId%3D2%26conversationId%3D1071348000000000111>
+------------------------------
+Test Studios Aug 1, 2026 - Aug 2, 2026`;
+
+test("parseAgoda reads the conversation id and the guest's message", () => {
+  const out = parseAgoda(AGODA_TEXT);
+  assert.equal(out.conversationId, "1071348000000000111");
+  assert.equal(out.message, "Price for today?");
+});
+
+test("parseInboundEmail: Agoda message via the Gmail bridge can be replied to", () => {
+  const parsed = parseInboundEmail({
+    from: "Neha Sharma <notifications@agoda-messaging.com>",
+    to: "studios.jaipur@gmail.com",
+    replyTo: "",
+    subject: "Reply from Neha Sharma (Aug 1-2, 2026)",
+    text: AGODA_TEXT,
+    messageId: "<m1@agoda-messaging.com>",
+  });
+  assert.equal(parsed.channel, "AGODA");
+  assert.equal(parsed.threadKey, "agoda:1071348000000000111");
+  assert.equal(parsed.guestName, "Neha Sharma");
+  assert.equal(parsed.body, "Price for today?");
+  assert.equal(parsed.reservationCode, null, "Booking ID 0 is an inquiry, not a booking");
+  assert.equal(parsed.replyTo, "notifications@agoda-messaging.com");
 });
 
 test("parseInboundEmail: HTML-only Booking.com email uses relay as thread key", () => {

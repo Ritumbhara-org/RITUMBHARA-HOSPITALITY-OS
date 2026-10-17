@@ -216,8 +216,24 @@ export function parseAirbnb(rawText: string): { threadId: string | null; guestNa
   return { threadId, guestName, message };
 }
 
+/**
+ * Agoda guest-message emails ("Reply from X (dates)", "New inquiry from X") come from
+ * notifications@agoda-messaging.com, carry a conversationId in every link, and put the
+ * guest's text after "Message :". Replying to the email reaches the guest.
+ */
+export function parseAgoda(rawText: string): { conversationId: string | null; message: string | null } {
+  const idMatch = rawText.match(/conversationId(?:=|%3D)([\d,]+)/i);
+  const conversationId = idMatch ? idMatch[1].replace(/,/g, "") || null : null;
+
+  const text = stripNoise(rawText);
+  const m = text.match(
+    /^\s*Message\s*:\s*([\s\S]*?)(?=\n\s*(?:Did you know\?|Prompt replies|Replying to this email|REPLY IN YCS|To chat live|-{5,})|$)/im
+  );
+  return { conversationId, message: m ? m[1].trim() || null : null };
+}
+
 function isNoReply(addr: string | null): boolean {
-  return !!addr && /(^|[._-])(no-?reply|noreply|do-?not-?reply|automated|notifications?)@/i.test(addr);
+  return !!addr && /(^|[._-])(no-?reply|noreply|do-?not-?reply|automated)@/i.test(addr);
 }
 
 function normalizeSubject(subject: string): string {
@@ -271,24 +287,34 @@ export function parseInboundEmail(payload: Dict): ParsedInboundEmail {
     otaThread = airbnb.threadId ? `airbnb:${airbnb.threadId}` : null;
     guestName = airbnb.guestName || guestName;
     body = airbnb.message ? cleanBody(airbnb.message) : cleanBody(stripNoise(text));
+  } else if (channel === "AGODA") {
+    const agoda = parseAgoda(text);
+    otaThread = agoda.conversationId ? `agoda:${agoda.conversationId}` : null;
+    // The sender's display name is the guest ("Rishabh Khandelwal <notifications@agoda-messaging.com>").
+    if (!guestName && from.name && !/agoda/i.test(from.name)) guestName = from.name;
+    body = agoda.message ? cleanBody(agoda.message) : cleanBody(stripNoise(text));
   } else {
     body = cleanBody(stripNoise(text));
   }
+
+  // Agoda routes replies sent to its notification address back to the guest.
+  let effectiveReplyTo = replyTo;
+  if (!effectiveReplyTo && channel === "AGODA" && /agoda-messaging\.com$/.test(from.email)) effectiveReplyTo = from.email;
 
   // Group by the OTA's own thread id first, then reservation code, then the relay address, then sender + subject.
   const threadKey = otaThread
     ? otaThread
     : reservationCode
       ? `res:${reservationCode}`
-      : replyTo && channel !== "EMAIL"
-        ? `relay:${replyTo}`
-        : `mail:${channel === "EMAIL" ? from.email : replyTo || from.email}:${channel === "EMAIL" ? "" : normalizeSubject(subject)}`;
+      : effectiveReplyTo && channel !== "EMAIL" && channel !== "AGODA"
+        ? `relay:${effectiveReplyTo}`
+        : `mail:${channel === "EMAIL" ? from.email : effectiveReplyTo || from.email}:${channel === "EMAIL" ? "" : normalizeSubject(subject)}`;
 
   return {
     channel,
     fromEmail: from.email,
     fromName: from.name,
-    replyTo: replyTo || (channel === "EMAIL" ? from.email : null),
+    replyTo: effectiveReplyTo || (channel === "EMAIL" ? from.email : null),
     subject,
     body,
     messageId: messageId ? messageId.replace(/^<|>$/g, "") : null,
