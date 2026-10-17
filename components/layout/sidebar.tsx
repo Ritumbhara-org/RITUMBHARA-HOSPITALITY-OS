@@ -11,6 +11,7 @@ import {
   BedDouble,
   Wrench,
   MessageSquare,
+  Inbox,
   Globe,
   Sparkles,
   ShieldCheck,
@@ -28,6 +29,7 @@ const navigation = [
   { name: 'Operations', href: '/operations', icon: Wrench },
   { name: 'Inventory', href: '/inventory', icon: Package },
   { name: 'Team', href: '/team', icon: ShieldCheck },
+  { name: 'Inbox', href: '/inbox', icon: Inbox },
   { name: 'WhatsApp', href: '/whatsapp', icon: MessageSquare },
   { name: 'SEO Tools', href: '/seo', icon: Globe },
 ]

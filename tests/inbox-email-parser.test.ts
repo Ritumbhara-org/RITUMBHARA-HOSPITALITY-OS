@@ -1,0 +1,95 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import {
+  cleanBody,
+  detectChannel,
+  extractGuestName,
+  extractReservationCode,
+  parseAddress,
+  parseInboundEmail,
+  unwrapForward,
+} from "../lib/inbox/email-parser";
+
+test("parseAddress handles display names and bare addresses", () => {
+  assert.deepEqual(parseAddress('"Rahul Sharma" <Rahul@Example.com>'), { name: "Rahul Sharma", email: "rahul@example.com" });
+  assert.deepEqual(parseAddress("guest@example.com"), { name: null, email: "guest@example.com" });
+});
+
+test("detectChannel recognises OTA domains", () => {
+  assert.equal(detectChannel(["abc123@reply.airbnb.com"]), "AIRBNB");
+  assert.equal(detectChannel(["rsharma.123456@guest.booking.com"]), "BOOKING_COM");
+  assert.equal(detectChannel(["no-reply@agoda-messaging.com"]), "AGODA");
+  assert.equal(detectChannel(["someone@gmail.com"]), "EMAIL");
+});
+
+test("extractGuestName reads 'via' display names and common subjects", () => {
+  assert.equal(extractGuestName("RE: Reservation at Studio 4", "Priya via Airbnb", "AIRBNB"), "Priya");
+  assert.equal(extractGuestName("New message from guest Arjun Mehta", null, "BOOKING_COM"), "Arjun Mehta");
+  assert.equal(extractGuestName("Rahul sent you a message", null, "AGODA"), "Rahul");
+  assert.equal(extractGuestName("Hello", "Walk-in Guest", "EMAIL"), "Walk-in Guest");
+});
+
+test("extractReservationCode finds Airbnb and labelled codes", () => {
+  assert.equal(extractReservationCode("Your reservation HMABCD1234 is confirmed", "AIRBNB"), "HMABCD1234");
+  assert.equal(extractReservationCode("Booking number: 4521098734", "BOOKING_COM"), "4521098734");
+  assert.equal(extractReservationCode("Booking ID #98765432", "AGODA"), "98765432");
+  assert.equal(extractReservationCode("No code here", "AGODA"), null);
+});
+
+test("cleanBody drops quoted history and footers", () => {
+  const text = "Can we check in at 11am?\nThanks\n\nOn Mon, 12 Oct 2026 at 10:00, Ritumbhara wrote:\n> Hi there";
+  assert.equal(cleanBody(text), "Can we check in at 11am?\nThanks");
+});
+
+test("unwrapForward pulls the original sender out of a manual forward", () => {
+  const fwd = "FYI\n\n---------- Forwarded message ---------\nFrom: Priya via Airbnb <express@airbnb.com>\nDate: Mon, 12 Oct 2026\nSubject: RE: Reservation at Studio 4\nTo: host@example.com\n\nIs parking available?";
+  const out = unwrapForward(fwd);
+  assert.ok(out);
+  assert.equal(out!.from, "Priya via Airbnb <express@airbnb.com>");
+  assert.equal(out!.inner, "Is parking available?");
+});
+
+test("parseInboundEmail: Postmark-shaped Airbnb notification", () => {
+  const parsed = parseInboundEmail({
+    From: "Priya via Airbnb <express@airbnb.com>",
+    FromFull: { Email: "express@airbnb.com", Name: "Priya via Airbnb" },
+    To: "inbox@ritumbhara.com",
+    ReplyTo: "4abc-relay@reply.airbnb.com",
+    Subject: "RE: Reservation at Studio 4 for 20 – 22 Oct",
+    TextBody: "Hi! Is early check-in possible?\n\nReservation code HMQX12AB34\n\n-- \nAirbnb, Inc.",
+    MessageID: "<msg-1@airbnb.com>",
+  });
+  assert.equal(parsed.channel, "AIRBNB");
+  assert.equal(parsed.guestName, "Priya");
+  assert.equal(parsed.reservationCode, "HMQX12AB34");
+  assert.equal(parsed.replyTo, "4abc-relay@reply.airbnb.com");
+  assert.equal(parsed.threadKey, "res:HMQX12AB34");
+  assert.equal(parsed.messageId, "msg-1@airbnb.com");
+  assert.match(parsed.body, /early check-in/);
+});
+
+test("parseInboundEmail: plain guest email groups by sender", () => {
+  const parsed = parseInboundEmail({
+    from: "Arjun <arjun@example.com>",
+    to: "inbox@ritumbhara.com",
+    subject: "Re: Airport pickup",
+    text: "Can you arrange a cab?",
+  });
+  assert.equal(parsed.channel, "EMAIL");
+  assert.equal(parsed.replyTo, "arjun@example.com");
+  assert.equal(parsed.guestName, "Arjun");
+  assert.equal(parsed.threadKey, "mail:arjun@example.com:");
+});
+
+test("parseInboundEmail: HTML-only Booking.com email uses relay as thread key", () => {
+  const parsed = parseInboundEmail({
+    from: "Booking.com <noreply@booking.com>",
+    replyTo: "asharma.884422@guest.booking.com",
+    subject: "New message from guest Arjun Sharma",
+    html: "<p>Do you have a <b>baby cot</b>?</p><p>Reply above this line</p>",
+  });
+  assert.equal(parsed.channel, "BOOKING_COM");
+  assert.equal(parsed.guestName, "Arjun Sharma");
+  assert.equal(parsed.threadKey, "relay:asharma.884422@guest.booking.com");
+  assert.equal(parsed.body, "Do you have a baby cot?");
+});
