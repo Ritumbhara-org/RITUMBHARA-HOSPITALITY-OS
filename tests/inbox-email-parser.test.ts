@@ -8,7 +8,9 @@ import {
   parseAddress,
   parseAgoda,
   parseAirbnb,
+  parseAirbnbDigest,
   parseInboundEmail,
+  stripNoise,
   unwrapForward,
 } from "../lib/inbox/email-parser";
 
@@ -197,6 +199,104 @@ test("parseInboundEmail: Agoda message via the Gmail bridge can be replied to", 
   assert.equal(parsed.body, "Price for today?");
   assert.equal(parsed.reservationCode, null, "Booking ID 0 is an inquiry, not a booking");
   assert.equal(parsed.replyTo, "notifications@agoda-messaging.com");
+});
+
+test("parseInboundEmail: Airbnb notice with no guest text shows its subject", () => {
+  const parsed = parseInboundEmail({
+    from: "Airbnb <automated@airbnb.com>",
+    subject: "Reservation confirmed - Ravi Kumar arrives Oct 17",
+    text: "[image: Airbnb]\nNew booking confirmed! Ravi arrives Oct 17.\n<https://www.airbnb.co.in/hosting/thread/555?x=1>\nGet the Airbnb app",
+  });
+  assert.equal(parsed.channel, "AIRBNB");
+  assert.equal(parsed.threadKey, "airbnb:555");
+  assert.equal(parsed.body, "Reservation confirmed - Ravi Kumar arrives Oct 17");
+});
+
+// Same layout as a real Airbnb "new message" digest (Gmail plain text; names and ids changed).
+const AIRBNB_DIGEST_TEXT = `%opentrack%
+https://www.airbnb.co.in/?c=.pi80.pkTUVT&euid=e73b
+
+PRE-APPROVAL FOR TEST FLAT, OCT 24 – 25
+
+For your protection and safety, always communicate through Airbnb
+[https://www.airbnb.co.in/help/article/209?c=.pi80.pkTUVT&euid=e73b].
+
+PAKHI
+
+Booker
+
+Error is there
+
+ASHA
+
+Co-host
+
+Please try it has been approved
+
+PAKHI
+
+Booker
+
+It's still coming.
+
+Automatically translated from original message:
+
+Abhi bhi same aarhaa hai
+
+Reply
+[https://www.airbnb.co.in/hosting/thread/2700845867?thread_type=home_booking&inbox_type=host&c=x]
+
+You can also respond by replying directly to this email.
+
+https://www.airbnb.co.in/rooms/1790000997137527092?c=x
+
+TEST FLAT
+
+Get the app.`;
+
+test("parseAirbnbDigest reads guest and co-host messages", () => {
+  const out = parseAirbnbDigest(stripNoise(AIRBNB_DIGEST_TEXT));
+  assert.ok(out);
+  assert.equal(out!.guestName, "Pakhi");
+  assert.equal(
+    out!.message,
+    "Pakhi: Error is there\nAsha (co-host): Please try it has been approved\nPakhi: It's still coming.\nAutomatically translated from original message:\nAbhi bhi same aarhaa hai"
+  );
+});
+
+test("parseInboundEmail: Airbnb digest is grouped by thread and keeps the relay for replies", () => {
+  const parsed = parseInboundEmail({
+    from: "Airbnb <express@airbnb.com>",
+    replyTo: "6syl2x1nbae89g7wbf@reply.airbnb.com",
+    subject: "RE: Pre-approval for Test Flat, Oct 24 – 25",
+    text: AIRBNB_DIGEST_TEXT,
+  });
+  assert.equal(parsed.channel, "AIRBNB");
+  assert.equal(parsed.threadKey, "airbnb:2700845867");
+  assert.equal(parsed.guestName, "Pakhi");
+  assert.equal(parsed.replyTo, "6syl2x1nbae89g7wbf@reply.airbnb.com");
+  assert.equal(parsed.ignore, false);
+  assert.ok(!parsed.body.includes("http"));
+});
+
+test("parseInboundEmail: Airbnb reservation notice takes the guest name from the subject", () => {
+  const parsed = parseInboundEmail({
+    from: "Airbnb <automated@airbnb.com>",
+    subject: "Reservation confirmed - Ravi Kumar arrives Oct 17",
+    text: "Send Ravi Kumar a MessageSend Ravi Kumar a Message [https://www.airbnb.co.in/hosting/thread/2700876466?thread_type=home_booking]",
+  });
+  assert.equal(parsed.guestName, "Ravi Kumar");
+  assert.equal(parsed.threadKey, "airbnb:2700876466");
+  assert.equal(parsed.ignore, false);
+});
+
+test("parseInboundEmail: Airbnb account notices are ignored", () => {
+  const parsed = parseInboundEmail({
+    from: "Airbnb <automated@airbnb.com>",
+    subject: "Here’s your Airbnb code",
+    text: "%opentrack% https://www.airbnb.co.in/?c=.pi80.x\nHERE’S YOUR AIRBNB CODE\nNever share this code.",
+  });
+  assert.equal(parsed.ignore, true);
 });
 
 test("parseInboundEmail: HTML-only Booking.com email uses relay as thread key", () => {

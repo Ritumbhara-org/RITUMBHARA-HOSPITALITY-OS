@@ -46,7 +46,10 @@ export type IngestResult = { conversationId: string; messageId: string; duplicat
 export async function ingestInboundEmail(parsed: ParsedInboundEmail, raw: unknown): Promise<IngestResult> {
   if (parsed.messageId) {
     const existing = await prisma.inboxMessage.findUnique({ where: { externalMessageId: parsed.messageId } });
-    if (existing) return { conversationId: existing.conversationId, messageId: existing.id, duplicate: true };
+    if (existing) {
+      await refreshExisting(existing.id, existing.conversationId, parsed);
+      return { conversationId: existing.conversationId, messageId: existing.id, duplicate: true };
+    }
   }
 
   const existingConversation = await prisma.inboxConversation.findUnique({
@@ -90,17 +93,71 @@ export async function ingestInboundEmail(parsed: ParsedInboundEmail, raw: unknow
     },
   });
 
-  const message = await prisma.inboxMessage.create({
+  try {
+    const message = await prisma.inboxMessage.create({
+      data: {
+        conversationId: conversation.id,
+        direction: "INBOUND",
+        body: parsed.body || "(empty message)",
+        senderName: parsed.guestName || parsed.fromName || parsed.fromEmail,
+        externalMessageId: parsed.messageId,
+        status: "RECEIVED",
+        raw: raw == null ? undefined : (raw as Prisma.InputJsonValue),
+      },
+    });
+    return { conversationId: conversation.id, messageId: message.id, duplicate: false };
+  } catch (err) {
+    // Two deliveries of the same email at once (e.g. the 5-minute trigger and a manual run):
+    // the other one already stored it.
+    if (isUniqueViolation(err) && parsed.messageId) {
+      const existing = await prisma.inboxMessage.findUnique({ where: { externalMessageId: parsed.messageId } });
+      if (existing) return { conversationId: existing.conversationId, messageId: existing.id, duplicate: true };
+    }
+    throw err;
+  }
+}
+
+/**
+ * A re-delivered email (e.g. after the Gmail bridge is re-run) is parsed again with the
+ * current parser, so earlier mis-parsed messages fix themselves.
+ */
+async function refreshExisting(messageId: string, conversationId: string, parsed: ParsedInboundEmail) {
+  await prisma.inboxMessage.update({
+    where: { id: messageId },
+    data: { body: parsed.body || "(empty message)", senderName: parsed.guestName || parsed.fromName || parsed.fromEmail },
+  });
+  const latest = await prisma.inboxMessage.findFirst({ where: { conversationId }, orderBy: { createdAt: "desc" } });
+  await prisma.inboxConversation.update({
+    where: { id: conversationId },
     data: {
-      conversationId: conversation.id,
-      direction: "INBOUND",
-      body: parsed.body || "(empty message)",
-      senderName: parsed.guestName || parsed.fromName || parsed.fromEmail,
-      externalMessageId: parsed.messageId,
-      status: "RECEIVED",
-      raw: raw == null ? undefined : (raw as Prisma.InputJsonValue),
+      ...(parsed.guestName ? { guestName: parsed.guestName } : {}),
+      ...(parsed.replyTo ? { replyTo: parsed.replyTo } : {}),
+      ...(latest?.id === messageId ? { lastMessagePreview: (parsed.body || "").slice(0, 160) } : {}),
     },
   });
+}
 
-  return { conversationId: conversation.id, messageId: message.id, duplicate: false };
+/** Removes a stored message that the parser now classifies as a notice, and its conversation if that leaves it empty. */
+export async function removeIgnoredMessage(externalMessageId: string | null): Promise<boolean> {
+  if (!externalMessageId) return false;
+  const existing = await prisma.inboxMessage.findUnique({ where: { externalMessageId } });
+  if (!existing) return false;
+  await prisma.inboxMessage.delete({ where: { id: existing.id } });
+  const left = await prisma.inboxMessage.count({ where: { conversationId: existing.conversationId } });
+  if (left === 0) await prisma.inboxConversation.delete({ where: { id: existing.conversationId } });
+  return true;
+}
+
+function isUniqueViolation(err: unknown): boolean {
+  return err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002";
+}
+
+/** Same as ingestInboundEmail, retried once if a parallel delivery created the conversation first. */
+export async function ingestInboundEmailSafely(parsed: ParsedInboundEmail, raw: unknown): Promise<IngestResult> {
+  try {
+    return await ingestInboundEmail(parsed, raw);
+  } catch (err) {
+    if (isUniqueViolation(err)) return ingestInboundEmail(parsed, raw);
+    throw err;
+  }
 }

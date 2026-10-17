@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { parseInboundEmail } from "@/lib/inbox/email-parser";
-import { ingestInboundEmail } from "@/lib/inbox/ingest";
+import { ingestInboundEmailSafely, removeIgnoredMessage } from "@/lib/inbox/ingest";
 
 export const dynamic = "force-dynamic";
 
@@ -45,12 +45,17 @@ export async function POST(request: Request) {
   }
 
   const parsed = parseInboundEmail(payload);
+  if (parsed.ignore) {
+    // Also clears it out if an older parser had stored it.
+    const removed = await removeIgnoredMessage(parsed.messageId).catch(() => false);
+    return NextResponse.json({ ok: true, ignored: true, removed, channel: parsed.channel });
+  }
   if (!parsed.body && !parsed.subject) {
     return NextResponse.json({ error: "Empty email" }, { status: 400 });
   }
 
   try {
-    const result = await ingestInboundEmail(parsed, payload);
+    const result = await ingestInboundEmailSafely(parsed, payload);
     return NextResponse.json({ ok: true, channel: parsed.channel, ...result });
   } catch (err) {
     console.error("[Inbox inbound-email]", err);
