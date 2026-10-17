@@ -255,7 +255,8 @@ export function parseAirbnb(rawText: string): { threadId: string | null; guestNa
   const nameMatch =
     text.match(new RegExp(`(?:respond to|reply to)\\s+${NAME}[’']s\\s+(?:inquiry|request|message|booking)`, "iu")) ||
     text.match(new RegExp(`(?:new message from|message from)\\s+${NAME}`, "iu")) ||
-    text.match(new RegExp(`send\\s+${NAME}\\s+a\\s+message`, "iu"));
+    // "Send Madhusudan a MessageSend Madhusudan a Message": stop at the first "a Message".
+    text.match(/send\s+([\p{L}][\p{L}.'-]*(?:\s+[\p{L}][\p{L}.'-]*){0,3}?)\s+a\s+message/iu);
   const guestName = nameMatch ? nameMatch[1].trim() : null;
 
   let message: string | null = null;
@@ -348,11 +349,13 @@ export function parseInboundEmail(payload: Dict): ParsedInboundEmail {
     // Airbnb sends many account/marketing emails; only ones tied to a guest thread or carrying guest text matter.
     ignore = !airbnb.threadId && !airbnb.message;
     // Booking confirmations and notices carry no guest text: show the subject, not the whole email.
+    // A short plain message (older relay emails) is kept; long templated emails collapse to their subject.
+    const plain = cleanBody(stripNoise(text));
     body = airbnb.message
       ? cleanBody(airbnb.message)
-      : isNoReply(from.email) && subject
+      : subject && (isNoReply(from.email) || plain.length > 300)
         ? subject
-        : cleanBody(stripNoise(text));
+        : plain;
   } else if (channel === "AGODA") {
     const agoda = parseAgoda(text);
     otaThread = agoda.conversationId ? `agoda:${agoda.conversationId}` : null;

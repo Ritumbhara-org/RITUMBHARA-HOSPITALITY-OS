@@ -10,8 +10,9 @@
  *       INBOX_URL    = https://ritumbhara-hospitality-os-q6er.vercel.app/api/inbox/inbound-email
  *       INBOX_SECRET = (the same value as INBOX_WEBHOOK_SECRET in Vercel)
  *  3. Select `setup` in the toolbar and click Run. Approve the Gmail permission prompt.
- *     It creates a 5-minute trigger and a label "ritumbhara-synced".
+ *     It creates a 5-minute trigger and a label "ritumbhara-synced-v2".
  *  4. Optional: run `syncOtaMessages` once to send the last 2 days straight away.
+ *  After an inbox parser update, run `resync` once to re-send the last 3 days.
  */
 
 // Senders that carry guest messages. Edit if an OTA uses another address.
@@ -33,7 +34,7 @@ var SKIP_SUBJECT_WORDS = [
   'review', 'reviewed', 'rating', 'policy update', 'terms', 'off-schedule', 'scheduled message',
 ];
 
-var LABEL = 'ritumbhara-synced';
+var LABEL = 'ritumbhara-synced-v2';
 
 function setup() {
   ScriptApp.getProjectTriggers().forEach(function (t) {
@@ -44,18 +45,28 @@ function setup() {
   Logger.log('Trigger created. New OTA emails will sync every 5 minutes.');
 }
 
-function syncOtaMessages() {
+/** Re-sends the last 3 days, already-synced ones included, so the OS re-reads them after a parser update. */
+function resync() {
+  syncOtaMessages(true);
+}
+
+function syncOtaMessages(all) {
   var props = PropertiesService.getScriptProperties();
   var url = props.getProperty('INBOX_URL');
   var secret = props.getProperty('INBOX_SECRET');
   if (!url || !secret) throw new Error('Set INBOX_URL and INBOX_SECRET in Script Properties.');
 
   var label = getLabel_();
-  var query = 'from:(' + SENDERS.join(' OR ') + ') newer_than:2d -label:' + LABEL;
+  var query = all === true
+    ? 'from:(' + SENDERS.join(' OR ') + ') newer_than:3d'
+    : 'from:(' + SENDERS.join(' OR ') + ') newer_than:2d -label:' + LABEL;
   var threads = GmailApp.search(query, 0, 50);
   var sent = 0, skipped = 0, failed = 0;
+  // Apps Script stops runs at 6 minutes; leave the rest for the next 5-minute run.
+  var started = Date.now();
 
   threads.forEach(function (thread) {
+    if (Date.now() - started > 270000) return;
     var ok = true;
     thread.getMessages().forEach(function (msg) {
       if (!isOtaSender_(msg.getFrom()) && !isOtaSender_(msg.getReplyTo())) return;
