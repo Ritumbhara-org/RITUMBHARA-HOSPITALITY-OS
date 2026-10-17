@@ -12,7 +12,7 @@
  *  3. Select `setup` in the toolbar and click Run. Approve the Gmail permission prompt.
  *     It creates a 5-minute trigger and a label "ritumbhara-synced-v2".
  *  4. Optional: run `syncOtaMessages` once to send the last 2 days straight away.
- *  After an inbox parser update, run `resync` once to re-send the last 3 days.
+ *  After an inbox parser update, run `resync` to re-send the last 3 days (repeat until the log says "Resync complete").
  */
 
 // Senders that carry guest messages. Edit if an OTA uses another address.
@@ -45,11 +45,30 @@ function setup() {
   Logger.log('Trigger created. New OTA emails will sync every 5 minutes.');
 }
 
-/** Re-sends the last 3 days, already-synced ones included, so the OS re-reads them after a parser update. */
+var RESYNC_LABEL = 'ritumbhara-resynced';
+
+/**
+ * Re-sends the last 3 days, already-synced ones included, so the OS re-reads them after a
+ * parser update. A big batch can take more than one run: run `resync` again until the log
+ * says "Resync complete". Starting a new resync after a completed one begins from scratch.
+ */
 function resync() {
-  syncOtaMessages(true);
+  var props = PropertiesService.getScriptProperties();
+  var resyncLabel = GmailApp.getUserLabelByName(RESYNC_LABEL) || GmailApp.createLabel(RESYNC_LABEL);
+  if (props.getProperty('RESYNC_ACTIVE') !== '1') {
+    resyncLabel.getThreads().forEach(function (t) { t.removeLabel(resyncLabel); });
+    props.setProperty('RESYNC_ACTIVE', '1');
+  }
+  var left = syncOtaMessages(true);
+  if (left === 0) {
+    props.deleteProperty('RESYNC_ACTIVE');
+    Logger.log('Resync complete.');
+  } else {
+    Logger.log('Resync paused with ' + left + ' threads left. Run resync again to continue.');
+  }
 }
 
+/** Returns how many matching threads were left unprocessed because the run ran out of time. */
 function syncOtaMessages(all) {
   var props = PropertiesService.getScriptProperties();
   var url = props.getProperty('INBOX_URL');
@@ -57,16 +76,21 @@ function syncOtaMessages(all) {
   if (!url || !secret) throw new Error('Set INBOX_URL and INBOX_SECRET in Script Properties.');
 
   var label = getLabel_();
-  var query = all === true
-    ? 'from:(' + SENDERS.join(' OR ') + ') newer_than:3d'
+  var resyncing = all === true;
+  if (resyncing) label = GmailApp.getUserLabelByName(RESYNC_LABEL) || GmailApp.createLabel(RESYNC_LABEL);
+  var query = resyncing
+    ? 'from:(' + SENDERS.join(' OR ') + ') newer_than:3d -label:' + RESYNC_LABEL
     : 'from:(' + SENDERS.join(' OR ') + ') newer_than:2d -label:' + LABEL;
-  var threads = GmailApp.search(query, 0, 50);
+  var PAGE = 100;
+  var threads = GmailApp.search(query, 0, PAGE);
+  // A full page means there may be more after it.
+  var left = threads.length === PAGE ? 1 : 0;
   var sent = 0, skipped = 0, failed = 0;
   // Apps Script stops runs at 6 minutes; leave the rest for the next 5-minute run.
   var started = Date.now();
 
   threads.forEach(function (thread) {
-    if (Date.now() - started > 270000) return;
+    if (Date.now() - started > 270000) { left++; return; }
     var ok = true;
     thread.getMessages().forEach(function (msg) {
       if (!isOtaSender_(msg.getFrom()) && !isOtaSender_(msg.getReplyTo())) return;
@@ -94,10 +118,14 @@ function syncOtaMessages(all) {
       else { failed++; ok = false; Logger.log('Failed (' + res.getResponseCode() + '): ' + subject + ' → ' + res.getContentText()); }
     });
     // Only mark the thread done when every message went through, so failures retry next run.
-    if (ok) thread.addLabel(label);
+    if (ok) {
+      thread.addLabel(label);
+      if (resyncing) thread.addLabel(getLabel_());
+    }
   });
 
-  Logger.log('Sent ' + sent + ', skipped ' + skipped + ', failed ' + failed + '.');
+  Logger.log('Sent ' + sent + ', skipped ' + skipped + ', failed ' + failed + (left ? ', ' + left + ' left for next run' : '') + '.');
+  return left;
 }
 
 function isOtaSender_(addr) {

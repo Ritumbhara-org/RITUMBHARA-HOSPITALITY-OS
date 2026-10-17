@@ -302,6 +302,16 @@ test("parseInboundEmail: Airbnb booking notice from express@ reads the name with
   assert.equal(parsed.body, "Booking confirmed for Studio 1210, Oct 20 – 22");
 });
 
+test("parseInboundEmail: short Airbnb booking notice shows its subject, not the button text", () => {
+  const parsed = parseInboundEmail({
+    from: "Airbnb <express@airbnb.com>",
+    subject: "Reservation confirmed - Madhusudan arrives Oct 20",
+    text: "Send Madhusudan a MessageSend Madhusudan a Message [https://www.airbnb.co.in/hosting/thread/2701111112?x=1]",
+  });
+  assert.equal(parsed.guestName, "Madhusudan");
+  assert.equal(parsed.body, "Reservation confirmed - Madhusudan arrives Oct 20");
+});
+
 test("parseInboundEmail: Airbnb account notices are ignored", () => {
   const parsed = parseInboundEmail({
     from: "Airbnb <automated@airbnb.com>",

@@ -353,7 +353,7 @@ export function parseInboundEmail(payload: Dict): ParsedInboundEmail {
     const plain = cleanBody(stripNoise(text));
     body = airbnb.message
       ? cleanBody(airbnb.message)
-      : subject && (isNoReply(from.email) || plain.length > 300)
+      : subject && (isNoReply(from.email) || plain.length > 300 || /send\s.+\sa\s+message/i.test(plain))
         ? subject
         : plain;
   } else if (channel === "AGODA") {
