@@ -62,8 +62,11 @@ function syncOtaMessages(all) {
     : 'from:(' + SENDERS.join(' OR ') + ') newer_than:2d -label:' + LABEL;
   var threads = GmailApp.search(query, 0, 50);
   var sent = 0, skipped = 0, failed = 0;
+  // Apps Script stops runs at 6 minutes; leave the rest for the next 5-minute run.
+  var started = Date.now();
 
   threads.forEach(function (thread) {
+    if (Date.now() - started > 270000) return;
     var ok = true;
     thread.getMessages().forEach(function (msg) {
       if (!isOtaSender_(msg.getFrom()) && !isOtaSender_(msg.getReplyTo())) return;
