@@ -3,12 +3,14 @@ import { cookies } from "next/headers"
 import { prisma } from "@/lib/prisma"
 import { getInventoryItems } from "@/app/actions/inventory"
 import { InventoryClient } from "@/components/inventory/inventory-client"
+import { requireAdminPage } from "@/lib/auth/guard"
 
 export default async function InventoryPage({
   searchParams,
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }) {
+  await requireAdminPage("/inventory")
   const cookieStore = await cookies()
   const token = cookieStore.get("auth-token")
 

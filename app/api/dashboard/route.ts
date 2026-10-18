@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { adminApiGuard } from "@/lib/auth/guard";
 
 // GET /api/dashboard — aggregated stats for management dashboard
 export async function GET(req: NextRequest) {
+  const denied = await adminApiGuard()
+  if (denied) return denied
   try {
     const { searchParams } = new URL(req.url)
     const propertyId = searchParams.get("propertyId")

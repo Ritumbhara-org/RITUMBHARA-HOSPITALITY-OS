@@ -1,9 +1,11 @@
 import { prisma } from "@/lib/prisma"
 import { OperationsClient } from "@/components/operations/operations-client"
+import { requireAdminPage } from "@/lib/auth/guard"
 
 export const revalidate = 15
 
 export default async function OperationsPage() {
+  await requireAdminPage("/operations")
   const [tickets, housekeepingTasks, properties, units, teamMembers] = await Promise.all([
     prisma.ticket.findMany({
       include: {

@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import { intellistay } from "@/lib/intellistay/client";
+import { adminApiGuard } from "@/lib/auth/guard";
 
 export const dynamic = 'force-dynamic'; // Prevent caching so we hit the live server every time
 
 export async function GET() {
+  const denied = await adminApiGuard()
+  if (denied) return denied
   try {
     const success = await intellistay.authenticate();
     

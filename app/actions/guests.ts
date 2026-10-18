@@ -1,10 +1,12 @@
 "use server"
 
+import { requireAdmin } from "@/lib/auth/guard"
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { normalizePhoneNumber } from "@/lib/utils/phone"
 
 export async function createGuest(formData: FormData) {
+  await requireAdmin()
   try {
     const name = formData.get("name") as string
     const email = formData.get("email") as string
@@ -46,6 +48,7 @@ export async function createGuest(formData: FormData) {
 }
 
 export async function updateGuest(guestId: string, formData: FormData) {
+  await requireAdmin()
   try {
     const name = formData.get("name") as string
     const email = formData.get("email") as string

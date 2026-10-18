@@ -1,10 +1,12 @@
 import { notFound } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import { GuestProfileClient } from "./guest-profile-client"
+import { requireAdminPage } from "@/lib/auth/guard"
 
 export const revalidate = 15
 
 export default async function GuestProfilePage({ params }: { params: Promise<{ id: string }> }) {
+  await requireAdminPage("/guests")
   const { id } = await params
   
   const guest = await prisma.guest.findUnique({

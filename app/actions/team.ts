@@ -1,10 +1,12 @@
 "use server";
+import { requireAdmin } from "@/lib/auth/guard";
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { normalizePhoneNumber } from "@/lib/utils/phone";
 
 export async function createTeamMember(formData: FormData) {
+  await requireAdmin()
   try {
     const data = {
       name: formData.get("name") as string,
@@ -33,6 +35,7 @@ export async function createTeamMember(formData: FormData) {
 }
 
 export async function updateTeamMember(id: string, formData: FormData) {
+  await requireAdmin()
   try {
     const data = {
       name: formData.get("name") as string,
@@ -62,6 +65,7 @@ export async function updateTeamMember(id: string, formData: FormData) {
 }
 
 export async function deleteTeamMember(id: string) {
+  await requireAdmin()
   try {
     await prisma.teamMember.delete({
       where: { id },

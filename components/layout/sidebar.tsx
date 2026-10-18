@@ -15,11 +15,13 @@ import {
   Sparkles,
   ShieldCheck,
   Package,
-  LineChart
+  LineChart,
+  Inbox
 } from 'lucide-react'
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'Leads', href: '/leads', icon: Inbox },
   { name: 'Analytics', href: '/analytics', icon: LineChart },
   { name: 'Locations', href: '/locations', icon: MapPin },
   { name: 'Reservations', href: '/reservations', icon: CalendarCheck },

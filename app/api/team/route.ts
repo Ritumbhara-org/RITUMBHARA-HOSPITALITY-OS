@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { prisma } from "@/lib/prisma"
+import { adminApiGuard } from "@/lib/auth/guard";
 
 const CreateTeamMemberSchema = z.object({
   propertyId: z.string().min(1, "Property ID is required"),
@@ -14,6 +15,8 @@ const CreateTeamMemberSchema = z.object({
 
 // GET /api/team — list team members
 export async function GET(req: NextRequest) {
+  const denied = await adminApiGuard()
+  if (denied) return denied
   try {
     const { searchParams } = new URL(req.url)
     const propertyId = searchParams.get("propertyId")
@@ -39,6 +42,8 @@ export async function GET(req: NextRequest) {
 
 // POST /api/team — create a team member
 export async function POST(req: NextRequest) {
+  const denied = await adminApiGuard()
+  if (denied) return denied
   try {
     const body = await req.json()
     const parsed = CreateTeamMemberSchema.safeParse(body)

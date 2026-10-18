@@ -1,9 +1,11 @@
 import { prisma } from "@/lib/prisma"
 import { DashboardClient } from "@/components/dashboard/dashboard-client"
+import { requireAdminPage } from "@/lib/auth/guard"
 
 export const dynamic = 'force-dynamic'
 
 export default async function DashboardPage() {
+  await requireAdminPage("/dashboard")
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   const tomorrow = new Date(today)

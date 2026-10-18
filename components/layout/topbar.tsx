@@ -4,6 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -11,6 +12,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from '@/components/ui/sheet'
 import { Sidebar } from './sidebar'
+import { LogoutMenuItem } from './logout-menu-item'
 
 export function Topbar() {
   return (
@@ -56,17 +58,20 @@ export function Topbar() {
               </Avatar>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuLabel className="font-normal">
-                <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-semibold">Admin</p>
-                  <p className="text-xs text-muted-foreground">admin@ritumbhara.com</p>
-                </div>
-              </DropdownMenuLabel>
+              {/* Base UI requires a menu label to sit inside a group; without it the menu crashed on open. */}
+              <DropdownMenuGroup>
+                <DropdownMenuLabel className="font-normal">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-semibold">Admin</p>
+                    <p className="text-xs text-muted-foreground">admin@ritumbhara.com</p>
+                  </div>
+                </DropdownMenuLabel>
+              </DropdownMenuGroup>
               <DropdownMenuSeparator />
               <DropdownMenuItem>Settings</DropdownMenuItem>
               <DropdownMenuItem>Support</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-destructive focus:text-destructive">Logout</DropdownMenuItem>
+              <LogoutMenuItem />
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
