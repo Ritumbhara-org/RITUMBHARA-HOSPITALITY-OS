@@ -1,10 +1,12 @@
 "use server";
+import { requireAdmin } from "@/lib/auth/guard";
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { createTicket } from "./operations";
 
 export async function getInventoryItems(propertyId: string) {
+  await requireAdmin()
   return prisma.inventoryItem.findMany({
     where: { propertyId },
     orderBy: { category: 'asc' }
@@ -20,6 +22,7 @@ export async function addInventoryItem(data: {
   minThreshold: number;
   defaultDeduction?: number;
 }) {
+  await requireAdmin()
   const item = await prisma.inventoryItem.create({
     data
   });
@@ -28,6 +31,7 @@ export async function addInventoryItem(data: {
 }
 
 export async function updateInventoryQuantity(itemId: string, change: number, reporterId: string) {
+  await requireAdmin()
   // 1. Fetch current item
   const item = await prisma.inventoryItem.findUnique({ where: { id: itemId } });
   if (!item) throw new Error("Item not found");

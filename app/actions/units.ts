@@ -1,9 +1,11 @@
 "use server"
 
+import { requireAdmin } from "@/lib/auth/guard"
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 
 export async function createUnit(formData: FormData) {
+  await requireAdmin()
   try {
     const name = formData.get("name") as string
     const type = formData.get("type") as string
@@ -53,6 +55,7 @@ export async function createUnit(formData: FormData) {
 }
 
 export async function updateUnit(formData: FormData) {
+  await requireAdmin()
   try {
     const id = formData.get("id") as string
     const name = formData.get("name") as string

@@ -1,12 +1,15 @@
 import { Sidebar } from "@/components/layout/sidebar"
 import { Topbar } from "@/components/layout/topbar"
+import { requireAdminPage } from "@/lib/auth/guard"
 
 export const dynamic = 'force-dynamic'
-export default function DashboardLayout({
+export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  // Every OS page is admin-only. Each page and server action also checks on its own.
+  await requireAdminPage()
   return (
     <div className="flex h-[100dvh] overflow-hidden w-full flex-col bg-muted/30">
       <div className="flex flex-col flex-1 sm:gap-4 sm:py-4 sm:pl-64 h-full">

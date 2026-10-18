@@ -1,14 +1,12 @@
 import { NextResponse } from "next/server";
 import { processDailyAutomations, checkSlaBreaches } from "@/lib/events/cron";
+import { cronGuard } from "@/lib/auth/cron";
 
 export async function GET(request: Request) {
+  // Cron service only: requires "Authorization: Bearer <CRON_SECRET>"; refused if CRON_SECRET is not configured.
+  const denied = cronGuard(request);
+  if (denied) return denied;
   try {
-    // Optional: Add authorization check here if needed (e.g. Vercel Cron Secret)
-    // const authHeader = request.headers.get('authorization');
-    // if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    //   return new Response('Unauthorized', { status: 401 });
-    // }
-
     const results = await processDailyAutomations();
     await checkSlaBreaches();
     

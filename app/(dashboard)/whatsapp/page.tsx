@@ -4,12 +4,14 @@ import { getWhatsAppConversations, getBroadcastCampaigns } from "@/app/actions/w
 import { WhatsAppClient } from "@/components/whatsapp/whatsapp-client"
 
 import { prisma } from "@/lib/prisma"
+import { requireAdminPage } from "@/lib/auth/guard"
 
 export default async function WhatsAppPage({
   searchParams,
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }) {
+  await requireAdminPage("/whatsapp")
   const cookieStore = await cookies()
   const token = cookieStore.get("auth-token")
 
