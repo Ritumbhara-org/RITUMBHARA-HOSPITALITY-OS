@@ -7,10 +7,10 @@ import path from "node:path"
 import { pathToFileURL } from "node:url"
 import { createElement } from "react"
 import { renderToString } from "react-dom/server"
-import { clearTokenCache, createGoogleSheetsApi } from "../lib/leads/google-sheets"
+import { createGoogleSheetsApi } from "../lib/leads/google-sheets"
 import { listLeads } from "../lib/leads/service"
 import type { LeadsLoadResult } from "../lib/leads/types"
-import { sampleSheet, TEST_PRIVATE_KEY } from "./helpers/fake-google-sheets"
+import { sampleSheet } from "./helpers/fake-google-sheets"
 
 const root = path.resolve(__dirname, "..")
 const mod = (p: string) => pathToFileURL(path.join(root, p)).href
@@ -31,8 +31,7 @@ async function render(data: LeadsLoadResult): Promise<string> {
 
 async function realData(): Promise<Extract<LeadsLoadResult, { ok: true }>> {
   const sheet = sampleSheet()
-  clearTokenCache()
-  const api = createGoogleSheetsApi({ spreadsheetId: sheet.spreadsheetId, account: { clientEmail: "a@b.iam.gserviceaccount.com", privateKey: TEST_PRIVATE_KEY.privateKey }, fetchImpl: sheet.fetch })
+  const api = createGoogleSheetsApi({ spreadsheetId: sheet.spreadsheetId, tokenSource: sheet.tokenSource(), fetchImpl: sheet.fetch })
   const { leads, tabGids, missingTabs } = await listLeads(api)
   leads[1].guest = { id: "guest-1", name: "Asha Verma" }
   return { ok: true, leads, tabGids, missingTabs, sheetUrl: "https://docs.google.com/spreadsheets/d/" + sheet.spreadsheetId + "/edit", fetchedAt: NOW }
@@ -43,11 +42,11 @@ function text(html: string): string {
 }
 
 test("not connected: explains the setup and names only the missing settings", async () => {
-  const html = text(await render({ ok: false, code: "not_configured", missing: ["LEADS_SHEET_ID", "GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY"], fetchedAt: NOW }))
+  const html = text(await render({ ok: false, code: "not_configured", missing: ["LEADS_SHEET_ID", "GCP_PROJECT_NUMBER"], fetchedAt: NOW }))
   assert.match(html, /Leads are not connected yet/)
   assert.match(html, /LEADS_SHEET_ID/)
-  assert.match(html, /GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY/)
-  assert.doesNotMatch(html, /GOOGLE_SERVICE_ACCOUNT_EMAIL/)
+  assert.match(html, /GCP_PROJECT_NUMBER/)
+  assert.doesNotMatch(html, /GCP_PROJECT_ID|GCP_SERVICE_ACCOUNT_EMAIL/)
 })
 
 test("load error: shows the message and a Try again button", async () => {

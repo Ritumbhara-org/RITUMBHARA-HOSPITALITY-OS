@@ -1,9 +1,6 @@
 import { test } from "node:test"
 import assert from "node:assert/strict"
-import { createVerify } from "node:crypto"
-import {
-  buildServiceAccountJwt, clearTokenCache, createGoogleSheetsApi, SheetsRequestError,
-} from "../lib/leads/google-sheets"
+import { createGoogleSheetsApi, SheetsRequestError } from "../lib/leads/google-sheets"
 import {
   cellTimeMs, columnLetter, getLeadsConfig, istText, listLeads, loadLeads, nextFollowUpFor, parseSheetId,
   updateLeadStatus, LeadUpdateError, type LeadsConfig,
@@ -11,20 +8,32 @@ import {
 import { canonicalStatus, type Lead } from "../lib/leads/types"
 import { countLeads, endOfTodayIst, isFollowUpDue, matchesSearch, sortLeads, visibleLeads } from "../lib/leads/view"
 import {
-  FakeGoogleSheets, QUALIFIED_HEADERS, TEST_PRIVATE_KEY, qualifiedRow, sampleSheet,
+  FakeGoogleSheets, QUALIFIED_HEADERS, qualifiedRow, sampleSheet,
 } from "./helpers/fake-google-sheets"
 
-const ACCOUNT = { clientEmail: "leads-reader@ritumbhara-os.iam.gserviceaccount.com", privateKey: TEST_PRIVATE_KEY.privateKey }
+const WIF = {
+  projectId: "ritumbhara-test-project",
+  projectNumber: "123456789012",
+  serviceAccountEmail: "leads-reader@ritumbhara-test-project.iam.gserviceaccount.com",
+  poolId: "vercel",
+  providerId: "vercel",
+}
+const WIF_ENV = {
+  GCP_PROJECT_ID: WIF.projectId,
+  GCP_PROJECT_NUMBER: WIF.projectNumber,
+  GCP_SERVICE_ACCOUNT_EMAIL: WIF.serviceAccountEmail,
+  GCP_WORKLOAD_IDENTITY_POOL_ID: WIF.poolId,
+  GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID: WIF.providerId,
+}
 // 17 Oct 2026, 12:00 IST
 const NOW = new Date("2026-10-17T06:30:00Z")
 
 function apiFor(sheet: FakeGoogleSheets) {
-  clearTokenCache()
-  return createGoogleSheetsApi({ spreadsheetId: sheet.spreadsheetId, account: ACCOUNT, fetchImpl: sheet.fetch, now: () => NOW.getTime() })
+  return createGoogleSheetsApi({ spreadsheetId: sheet.spreadsheetId, tokenSource: sheet.tokenSource(), fetchImpl: sheet.fetch })
 }
 
 function configFor(sheet: FakeGoogleSheets): LeadsConfig {
-  return { spreadsheetId: sheet.spreadsheetId, ...ACCOUNT }
+  return { spreadsheetId: sheet.spreadsheetId, workloadIdentity: WIF }
 }
 
 // ---------- status rules (same as the Sheet's Apps Script) ----------
@@ -64,45 +73,50 @@ test("columnLetter converts column numbers to A1 letters", () => {
 test("getLeadsConfig reports exactly which settings are missing, never their values", () => {
   const r = getLeadsConfig({})
   assert.equal(r.ok, false)
-  assert.deepEqual(!r.ok && r.missing, ["LEADS_SHEET_ID", "GOOGLE_SERVICE_ACCOUNT_EMAIL", "GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY"])
+  assert.deepEqual(!r.ok && r.missing, [
+    "LEADS_SHEET_ID", "GCP_PROJECT_ID", "GCP_PROJECT_NUMBER", "GCP_SERVICE_ACCOUNT_EMAIL",
+    "GCP_WORKLOAD_IDENTITY_POOL_ID", "GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID",
+  ])
+  // A service-account key is no longer used: setting the old variables configures nothing.
+  const legacy = getLeadsConfig({ LEADS_SHEET_ID: "1AbCdEfGhIjKlMnOpQrStUvWxYz0123456789abcd", GOOGLE_SERVICE_ACCOUNT_EMAIL: WIF.serviceAccountEmail, GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY: "-----BEGIN PRIVATE KEY-----" })
+  assert.equal(legacy.ok, false)
 })
 
-test("getLeadsConfig accepts a pasted Sheet URL and an env-style escaped private key", () => {
+test("getLeadsConfig accepts a pasted Sheet URL plus the five GCP_* Workload Identity settings", () => {
   const id = "1AbCdEfGhIjKlMnOpQrStUvWxYz0123456789abcd"
-  const r = getLeadsConfig({
-    LEADS_SHEET_ID: "https://docs.google.com/spreadsheets/d/" + id + "/edit#gid=0",
-    GOOGLE_SERVICE_ACCOUNT_EMAIL: ACCOUNT.clientEmail,
-    GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY: ACCOUNT.privateKey.replace(/\n/g, "\\n"),
-  })
+  const r = getLeadsConfig({ LEADS_SHEET_ID: "https://docs.google.com/spreadsheets/d/" + id + "/edit#gid=0", ...WIF_ENV })
   assert.equal(r.ok, true)
   if (r.ok) {
     assert.equal(r.config.spreadsheetId, id)
-    assert.equal(r.config.privateKey, ACCOUNT.privateKey.trim())
+    assert.deepEqual(r.config.workloadIdentity, WIF)
   }
   assert.equal(parseSheetId("not a sheet"), null)
 })
 
-// ---------- Google client ----------
-
-test("service account JWT is RS256-signed with the Sheets scope", () => {
-  const jwt = buildServiceAccountJwt(ACCOUNT, 1760000000)
-  const [h, c, s] = jwt.split(".")
-  const claims = JSON.parse(Buffer.from(c, "base64url").toString())
-  assert.equal(JSON.parse(Buffer.from(h, "base64url").toString()).alg, "RS256")
-  assert.equal(claims.iss, ACCOUNT.clientEmail)
-  assert.equal(claims.scope, "https://www.googleapis.com/auth/spreadsheets")
-  assert.equal(claims.exp - claims.iat, 3600)
-  const verify = createVerify("RSA-SHA256")
-  verify.update(h + "." + c)
-  assert.ok(verify.verify(TEST_PRIVATE_KEY.publicKey, Buffer.from(s, "base64url")))
+test("getLeadsConfig rejects malformed GCP_* values by name", () => {
+  const r = getLeadsConfig({
+    LEADS_SHEET_ID: "1AbCdEfGhIjKlMnOpQrStUvWxYz0123456789abcd",
+    ...WIF_ENV,
+    GCP_PROJECT_NUMBER: "ritumbhara-test-project", // project ID pasted into the number slot
+    GCP_SERVICE_ACCOUNT_EMAIL: "someone@gmail.com",
+  })
+  assert.deepEqual(!r.ok && r.missing, ["GCP_PROJECT_NUMBER", "GCP_SERVICE_ACCOUNT_EMAIL"])
 })
 
-test("the access token is reused across requests", async () => {
+// ---------- Google client ----------
+
+test("the Sheets client sends the token source's access token and resets it after a 401", async () => {
   const sheet = sampleSheet()
   const api = apiFor(sheet)
   await api.getMeta()
-  await api.batchGet(["'Handoffs'"], "FORMATTED_VALUE")
   assert.equal(sheet.tokensIssued, 1)
+  const stale = createGoogleSheetsApi({
+    spreadsheetId: sheet.spreadsheetId,
+    tokenSource: { getAccessToken: async () => "expired-token", reset: () => { sheet.tokenResets++ } },
+    fetchImpl: sheet.fetch,
+  })
+  await assert.rejects(stale.getMeta(), (err: unknown) => err instanceof SheetsRequestError && err.status === 401)
+  assert.equal(sheet.tokenResets, 1)
 })
 
 test("Google errors become SheetsRequestError with the status only (no response text, no phone numbers)", async () => {
@@ -117,12 +131,16 @@ test("Google errors become SheetsRequestError with the status only (no response 
   })
 })
 
-test("a bad private key is reported clearly without calling Google", async () => {
+test("a Google sign-in failure stops before any Sheets call and is shown as a clear admin message", async () => {
   const sheet = sampleSheet()
-  clearTokenCache()
-  const api = createGoogleSheetsApi({ spreadsheetId: sheet.spreadsheetId, account: { clientEmail: ACCOUNT.clientEmail, privateKey: "-----BEGIN PRIVATE KEY-----\nnope\n-----END PRIVATE KEY-----" }, fetchImpl: sheet.fetch })
-  await assert.rejects(api.getMeta(), /private key could not be used/)
+  sheet.failAuth = true
+  await assert.rejects(apiFor(sheet).getMeta(), (err: unknown) => err instanceof SheetsRequestError && err.auth === true)
   assert.equal(sheet.calls.length, 0)
+  const logged: unknown[] = []
+  const r = await loadLeads({ getConfig: () => ({ ok: true, config: configFor(sheet) }), createApi: () => apiFor(sheet), log: (e, d) => logged.push([e, d]) })
+  assert.equal(r.ok, false)
+  assert.equal(!r.ok && r.code, "load_failed")
+  assert.match(!r.ok && r.code === "load_failed" ? r.message : "", /Workload Identity credentials/)
 })
 
 // ---------- reading leads ----------

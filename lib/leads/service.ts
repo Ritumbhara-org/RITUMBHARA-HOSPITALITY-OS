@@ -23,6 +23,7 @@ import {
   type UpdateLeadStatusResult,
 } from "./types"
 import { createGoogleSheetsApi, SheetsRequestError, type CellValue, type Grid, type SheetsApi } from "./google-sheets"
+import { createWorkloadIdentityTokenSource, readWorkloadIdentityConfig, type WorkloadIdentityConfig } from "./google-auth"
 
 if (typeof window !== "undefined") {
   throw new Error("lib/leads/service is server-only and must not be imported in browser code.")
@@ -37,10 +38,10 @@ export const NEXT_FOLLOW_UP_HEADER = "Next Follow-up"
 
 // ---------- configuration ----------
 
+// Google access is through Vercel OIDC + Workload Identity Federation (lib/leads/google-auth.ts): no key.
 export interface LeadsConfig {
   spreadsheetId: string
-  clientEmail: string
-  privateKey: string
+  workloadIdentity: WorkloadIdentityConfig
 }
 
 export type ConfigResult = { ok: true; config: LeadsConfig } | { ok: false; missing: string[] }
@@ -57,20 +58,17 @@ export function parseSheetId(raw: string | undefined): string | null {
 export function getLeadsConfig(env: Record<string, string | undefined> = process.env): ConfigResult {
   const missing: string[] = []
   const spreadsheetId = parseSheetId(env.LEADS_SHEET_ID)
-  const clientEmail = String(env.GOOGLE_SERVICE_ACCOUNT_EMAIL || "").trim()
-  // Private keys pasted into env settings usually carry literal "\n" sequences instead of line breaks.
-  const privateKey = String(env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY || "").replace(/\\n/g, "\n").trim()
   if (!spreadsheetId) missing.push("LEADS_SHEET_ID")
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(clientEmail)) missing.push("GOOGLE_SERVICE_ACCOUNT_EMAIL")
-  if (!privateKey.includes("PRIVATE KEY")) missing.push("GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY")
-  if (missing.length || !spreadsheetId) return { ok: false, missing }
-  return { ok: true, config: { spreadsheetId, clientEmail, privateKey } }
+  const wif = readWorkloadIdentityConfig(env)
+  if (!wif.ok) missing.push(...wif.missing)
+  if (missing.length || !spreadsheetId || !wif.ok) return { ok: false, missing }
+  return { ok: true, config: { spreadsheetId, workloadIdentity: wif.config } }
 }
 
 export function sheetsApiFromConfig(config: LeadsConfig): SheetsApi {
   return createGoogleSheetsApi({
     spreadsheetId: config.spreadsheetId,
-    account: { clientEmail: config.clientEmail, privateKey: config.privateKey },
+    tokenSource: createWorkloadIdentityTokenSource(config.workloadIdentity),
   })
 }
 
@@ -359,7 +357,7 @@ export async function loadLeads(deps: LoadLeadsDeps = {}): Promise<LeadsLoadResu
     let message = "The leads could not be loaded from the Google Sheet. Try again in a minute."
     if (status === 403 || status === 404) {
       message = "The OS cannot open the leads Google Sheet. Check LEADS_SHEET_ID and that the Sheet is shared with the service account as an Editor."
-    } else if (err instanceof SheetsRequestError && (status === 400 || status === 401 || status === undefined) && /credentials|private key/i.test(err.message)) {
+    } else if (err instanceof SheetsRequestError && err.auth) {
       message = err.message
     }
     return { ok: false, code: "load_failed", message, fetchedAt: now }

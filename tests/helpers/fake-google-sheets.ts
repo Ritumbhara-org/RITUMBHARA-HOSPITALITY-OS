@@ -1,8 +1,8 @@
-// In-memory stand-in for Google's OAuth token endpoint and the Sheets v4 REST API, used through a fake `fetch`.
+// In-memory stand-in for the Sheets v4 REST API (through a fake `fetch`) and for the Google access-token source.
 // It stores each cell as { formatted, raw } so FORMATTED_VALUE and UNFORMATTED_VALUE reads behave like Sheets:
 // text that looks like "yyyy-MM-dd[ HH:mm:ss]" becomes a date serial (IST) when written with USER_ENTERED.
 
-import { generateKeyPairSync } from "node:crypto"
+import { SheetsRequestError, type AccessTokenSource } from "../../lib/leads/google-sheets"
 
 type Raw = string | number | boolean
 interface Cell { formatted: string; raw: Raw }
@@ -39,21 +39,18 @@ function parseTabName(range: string): { tab: string; rest: string } {
   return { tab: m[1].replace(/''/g, "'"), rest: m[2] || "" }
 }
 
-export const TEST_PRIVATE_KEY = generateKeyPairSync("rsa", {
-  modulusLength: 2048,
-  privateKeyEncoding: { type: "pkcs8", format: "pem" },
-  publicKeyEncoding: { type: "spki", format: "pem" },
-})
-
 export class FakeGoogleSheets {
   spreadsheetId: string
   timeZone = "Asia/Kolkata"
   tabs = new Map<string, { sheetId: number; rows: Cell[][] }>()
   calls: FakeCall[] = []
   tokensIssued = 0
+  tokenResets = 0
+  // Set to make the token source fail the way lib/leads/google-auth.ts reports a Google sign-in failure.
+  failAuth = false
   // Set to make the next matching request fail with this HTTP status.
-  failNext: { match: "token" | "meta" | "get" | "update"; status: number } | null = null
-  failAlways: { match: "token" | "meta" | "get" | "update"; status: number } | null = null
+  failNext: { match: "meta" | "get" | "update"; status: number } | null = null
+  failAlways: { match: "meta" | "get" | "update"; status: number } | null = null
 
   constructor(spreadsheetId = "1AbCdEfGhIjKlMnOpQrStUvWxYz0123456789abcd") {
     this.spreadsheetId = spreadsheetId
@@ -82,7 +79,19 @@ export class FakeGoogleSheets {
     return c ? c.formatted : ""
   }
 
-  private fail(kind: "token" | "meta" | "get" | "update"): Response | null {
+  // Access tokens accepted by this fake (stands in for the Vercel OIDC / Workload Identity token source).
+  tokenSource(): AccessTokenSource {
+    return {
+      getAccessToken: async () => {
+        if (this.failAuth) throw new SheetsRequestError("Google rejected the OS's Workload Identity credentials.", undefined, true)
+        this.tokensIssued++
+        return "fake-token-" + this.tokensIssued
+      },
+      reset: () => { this.tokenResets++ },
+    }
+  }
+
+  private fail(kind: "meta" | "get" | "update"): Response | null {
     const f = this.failNext && this.failNext.match === kind ? this.failNext : this.failAlways && this.failAlways.match === kind ? this.failAlways : null
     if (!f) return null
     if (f === this.failNext) this.failNext = null
@@ -94,17 +103,6 @@ export class FakeGoogleSheets {
     const method = (init && init.method) || "GET"
     const body = init && typeof init.body === "string" ? init.body : undefined
     this.calls.push({ method, url, body })
-
-    if (url === "https://oauth2.googleapis.com/token") {
-      const failed = this.fail("token")
-      if (failed) return failed
-      const params = new URLSearchParams(body || "")
-      if (params.get("grant_type") !== "urn:ietf:params:oauth:grant-type:jwt-bearer" || (params.get("assertion") || "").split(".").length !== 3) {
-        return new Response("{}", { status: 400 })
-      }
-      this.tokensIssued++
-      return Response.json({ access_token: "fake-token-" + this.tokensIssued, expires_in: 3600, token_type: "Bearer" })
-    }
 
     const base = "https://sheets.googleapis.com/v4/spreadsheets/" + this.spreadsheetId
     if (!url.startsWith(base)) return new Response("{}", { status: 404 })
