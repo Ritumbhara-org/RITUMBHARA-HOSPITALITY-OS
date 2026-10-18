@@ -1,19 +1,15 @@
 // Minimal Google Sheets REST client for the website leads Sheet. SERVER-ONLY.
 //
-// Authenticates as a Google service account (signed JWT -> OAuth access token) using only node:crypto, so the OS
-// needs no extra dependency. The service account must be shared on the leads Sheet as an Editor.
-// Credentials come from server-side environment variables, are never logged, and never leave this module.
-// Google error bodies are not logged or returned either (they can echo cell contents); only the HTTP status is.
-
-import { createSign } from "node:crypto"
+// The access token comes from an AccessTokenSource (in production: Vercel OIDC -> Google Workload Identity
+// Federation -> the leads service account, see lib/leads/google-auth.ts). No key or credential lives here.
+// The service account must be shared on the leads Sheet as an Editor.
+// Google error bodies are not logged or returned (they can echo cell contents); only the HTTP status is.
 
 if (typeof window !== "undefined") {
   throw new Error("lib/leads/google-sheets is server-only and must not be imported in browser code.")
 }
 
-const TOKEN_URL = "https://oauth2.googleapis.com/token"
 const SHEETS_BASE = "https://sheets.googleapis.com/v4/spreadsheets"
-const SCOPE = "https://www.googleapis.com/auth/spreadsheets"
 const REQUEST_TIMEOUT_MS = 10000
 
 export type CellValue = string | number | boolean
@@ -39,38 +35,23 @@ export interface SheetsApi {
   batchUpdate(data: { range: string; values: CellValue[][] }[]): Promise<void>
 }
 
-export interface ServiceAccount {
-  clientEmail: string
-  privateKey: string
+// Supplies OAuth access tokens for the Sheets scope. `reset` drops any cached credentials (called after a 401).
+export interface AccessTokenSource {
+  getAccessToken(): Promise<string>
+  reset?(): void
 }
 
-// Raised for any failure talking to Google. `status` is the HTTP status when Google answered.
+// Raised for any failure talking to Google. `status` is the HTTP status when Google answered. `auth` marks a
+// failure to obtain Google credentials at all (nothing was read or written); its message is safe to show admins.
 export class SheetsRequestError extends Error {
   status?: number
-  constructor(message: string, status?: number) {
+  auth?: boolean
+  constructor(message: string, status?: number, auth?: boolean) {
     super(message)
     this.name = "SheetsRequestError"
     this.status = status
+    this.auth = auth
   }
-}
-
-function base64url(input: string | Buffer): string {
-  return Buffer.from(input).toString("base64").replace(/=+$/, "").replace(/\+/g, "-").replace(/\//g, "_")
-}
-
-// The signed JWT a service account exchanges for an access token (RFC 7523).
-export function buildServiceAccountJwt(account: ServiceAccount, nowSeconds: number): string {
-  const header = base64url(JSON.stringify({ alg: "RS256", typ: "JWT" }))
-  const claims = base64url(JSON.stringify({
-    iss: account.clientEmail,
-    scope: SCOPE,
-    aud: TOKEN_URL,
-    iat: nowSeconds,
-    exp: nowSeconds + 3600,
-  }))
-  const signer = createSign("RSA-SHA256")
-  signer.update(header + "." + claims)
-  return header + "." + claims + "." + base64url(signer.sign(account.privateKey))
 }
 
 async function timedFetch(fetchImpl: typeof fetch, url: string, init: RequestInit): Promise<Response> {
@@ -86,57 +67,24 @@ async function timedFetch(fetchImpl: typeof fetch, url: string, init: RequestIni
   }
 }
 
-// One cached token per service account email, per server instance.
-const tokenCache = new Map<string, { token: string; expiresAt: number }>()
-
-export function clearTokenCache() {
-  tokenCache.clear()
-}
-
-async function accessToken(account: ServiceAccount, fetchImpl: typeof fetch, nowMs: number): Promise<string> {
-  const cached = tokenCache.get(account.clientEmail)
-  if (cached && cached.expiresAt - 60000 > nowMs) return cached.token
-
-  let assertion: string
-  try {
-    assertion = buildServiceAccountJwt(account, Math.floor(nowMs / 1000))
-  } catch {
-    throw new SheetsRequestError("The Google service account private key could not be used. Check GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY.")
-  }
-  const res = await timedFetch(fetchImpl, TOKEN_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({ grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer", assertion }).toString(),
-  })
-  const body = (await res.json().catch(() => null)) as { access_token?: unknown; expires_in?: unknown } | null
-  if (!res.ok || !body || typeof body.access_token !== "string") {
-    throw new SheetsRequestError("Google rejected the service account credentials.", res.status)
-  }
-  const ttl = typeof body.expires_in === "number" && body.expires_in > 0 ? body.expires_in : 3600
-  tokenCache.set(account.clientEmail, { token: body.access_token, expiresAt: nowMs + ttl * 1000 })
-  return body.access_token
-}
-
 export interface GoogleSheetsOptions {
   spreadsheetId: string
-  account: ServiceAccount
+  tokenSource: AccessTokenSource
   fetchImpl?: typeof fetch
-  now?: () => number
 }
 
 export function createGoogleSheetsApi(options: GoogleSheetsOptions): SheetsApi {
   const fetchImpl = options.fetchImpl || fetch
-  const now = options.now || Date.now
   const base = SHEETS_BASE + "/" + encodeURIComponent(options.spreadsheetId)
 
   async function call(path: string, init: RequestInit = {}): Promise<unknown> {
-    const token = await accessToken(options.account, fetchImpl, now())
+    const token = await options.tokenSource.getAccessToken()
     const res = await timedFetch(fetchImpl, base + path, {
       ...init,
       headers: { ...(init.headers || {}), Authorization: "Bearer " + token, "Content-Type": "application/json" },
     })
     if (!res.ok) {
-      if (res.status === 401) tokenCache.delete(options.account.clientEmail)
+      if (res.status === 401 && options.tokenSource.reset) options.tokenSource.reset()
       throw new SheetsRequestError("Google Sheets request failed (HTTP " + res.status + ").", res.status)
     }
     return res.json().catch(() => {

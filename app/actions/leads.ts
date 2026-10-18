@@ -39,7 +39,9 @@ export async function updateLeadStatusAction(input: unknown): Promise<UpdateLead
     }
     const status = err instanceof SheetsRequestError ? err.status : undefined
     console.error("[leads] status update failed", { status })
-    const error = status === 403 || status === 404
+    const error = err instanceof SheetsRequestError && err.auth
+      ? err.message
+      : status === 403 || status === 404
       ? "The OS is not allowed to edit the leads Sheet. Check that it is shared with the service account as an Editor."
       : "The status could not be confirmed as saved in the Google Sheet. Refresh the page to check it, then try again if needed."
     return { success: false, code: "save_failed", error }

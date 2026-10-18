@@ -1,12 +1,13 @@
 // Server action + page tests for the Leads tab. Google is replaced by the in-memory fake behind global fetch, so
-// the real action -> service -> Google client -> Sheet path runs end to end. next/cache and Prisma are mocked.
+// the real action -> service -> Google client -> Sheet path runs end to end. next/cache and Prisma are mocked, and
+// the Vercel OIDC / Workload Identity token source is replaced by the fake's (tests/google-auth.test.ts covers it).
 // Run with: node --import tsx --experimental-test-module-mocks --test "tests/**/*.test.ts"
 import { test, mock, beforeEach } from "node:test"
 import assert from "node:assert/strict"
 import path from "node:path"
 import { pathToFileURL } from "node:url"
-import { clearTokenCache } from "../lib/leads/google-sheets"
-import { sampleSheet, TEST_PRIVATE_KEY, type FakeGoogleSheets } from "./helpers/fake-google-sheets"
+import { readWorkloadIdentityConfig, WORKLOAD_IDENTITY_ENV } from "../lib/leads/google-auth"
+import { sampleSheet, type FakeGoogleSheets } from "./helpers/fake-google-sheets"
 import type { LeadsLoadResult, UpdateLeadStatusResult } from "../lib/leads/types"
 import { SESSION_COOKIE } from "../lib/auth/session"
 import { clearAuthEnv, fakeCookies, nextHeadersMock, setAuthEnv, validSessionToken } from "./helpers/auth-env"
@@ -16,7 +17,18 @@ const mod = (p: string) => pathToFileURL(path.join(root, p)).href
 
 const revalidated: string[] = []
 const guestQueries: unknown[] = []
+let sheet: FakeGoogleSheets
+const tokenSourceConfigs: unknown[] = []
 mock.module("next/headers", nextHeadersMock)
+mock.module(mod("lib/leads/google-auth.ts"), {
+  namedExports: {
+    readWorkloadIdentityConfig,
+    createWorkloadIdentityTokenSource: (config: unknown) => {
+      tokenSourceConfigs.push(config)
+      return sheet.tokenSource()
+    },
+  },
+})
 mock.module("next/cache", { namedExports: { revalidatePath: (p: string) => { revalidated.push(p) } } })
 mock.module(mod("lib/prisma.ts"), {
   namedExports: {
@@ -39,14 +51,16 @@ async function loadPage(): Promise<() => Promise<{ props: { data: LeadsLoadResul
   return ((await import(mod("app/(dashboard)/leads/page.tsx"))) as { default: () => Promise<{ props: { data: LeadsLoadResult } }> }).default
 }
 
-const ENV_KEYS = ["LEADS_SHEET_ID", "GOOGLE_SERVICE_ACCOUNT_EMAIL", "GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY"] as const
-let sheet: FakeGoogleSheets
+const ENV_KEYS = ["LEADS_SHEET_ID", ...Object.values(WORKLOAD_IDENTITY_ENV)]
 const realFetch = globalThis.fetch
 
 function connect(s: FakeGoogleSheets) {
   process.env.LEADS_SHEET_ID = s.spreadsheetId
-  process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL = "leads@ritumbhara-os.iam.gserviceaccount.com"
-  process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY = TEST_PRIVATE_KEY.privateKey.replace(/\n/g, "\\n")
+  process.env.GCP_PROJECT_ID = "ritumbhara-test-project"
+  process.env.GCP_PROJECT_NUMBER = "123456789012"
+  process.env.GCP_SERVICE_ACCOUNT_EMAIL = "leads@ritumbhara-test-project.iam.gserviceaccount.com"
+  process.env.GCP_WORKLOAD_IDENTITY_POOL_ID = "vercel"
+  process.env.GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID = "vercel"
   globalThis.fetch = s.fetch
 }
 
@@ -64,7 +78,7 @@ beforeEach(async () => {
   for (const k of ENV_KEYS) delete process.env[k]
   await signIn()
   globalThis.fetch = realFetch
-  clearTokenCache()
+  tokenSourceConfigs.length = 0
   revalidated.length = 0
   guestQueries.length = 0
   sheet = sampleSheet()
@@ -78,6 +92,31 @@ test("action: saves the status to the Sheet and revalidates /leads", async () =>
   assert.equal(r.success && r.status, "Contacted")
   assert.equal(sheet.valueById("Qualified Leads", "Lead ID", "L-00000000A1", "Status"), "Contacted")
   assert.deepEqual(revalidated, ["/leads"])
+  // Google access is configured from the GCP_* Workload Identity settings only (no key).
+  assert.deepEqual(tokenSourceConfigs[0], {
+    projectId: "ritumbhara-test-project",
+    projectNumber: "123456789012",
+    serviceAccountEmail: "leads@ritumbhara-test-project.iam.gserviceaccount.com",
+    poolId: "vercel",
+    providerId: "vercel",
+  })
+})
+
+test("action: a Google sign-in failure (Vercel OIDC / Workload Identity) writes nothing and says why", async () => {
+  connect(sheet)
+  sheet.failAuth = true
+  const origError = console.error
+  console.error = () => {}
+  try {
+    const action = await loadAction()
+    const r = await action({ kind: "qualified", id: "L-00000000A1", status: "Booked", expectedStatus: "New" })
+    assert.equal(!r.success && r.code, "save_failed")
+    assert.match(!r.success ? r.error : "", /Workload Identity credentials/)
+  } finally {
+    console.error = origError
+  }
+  assert.equal(sheet.calls.length, 0)
+  assert.equal(sheet.valueById("Qualified Leads", "Lead ID", "L-00000000A1", "Status"), "New")
 })
 
 test("action: rejects malformed input before touching the Sheet", async () => {
