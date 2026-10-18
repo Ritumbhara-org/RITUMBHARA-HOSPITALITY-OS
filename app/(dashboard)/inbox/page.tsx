@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { listConversations } from "@/lib/inbox/service"
 import { InboxClient } from "@/components/inbox/inbox-client"
 import type { InboxConversationSummary } from "@/lib/inbox/types"
+import { requireAdminPage } from "@/lib/auth/guard"
 
 export const dynamic = "force-dynamic"
 
@@ -11,6 +12,7 @@ export default async function InboxPage({
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }) {
+  await requireAdminPage("/inbox")
   const token = (await cookies()).get("auth-token")
 
   let user = token ? await prisma.teamMember.findUnique({ where: { id: token.value } }) : null

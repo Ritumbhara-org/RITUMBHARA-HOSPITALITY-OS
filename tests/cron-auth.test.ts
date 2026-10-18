@@ -187,7 +187,12 @@ const INTENTIONALLY_PUBLIC: Record<string, string> = {
   "app/api/whatsapp/webhook/route.ts": "Twilio inbound webhook (out of scope of this change)",
 }
 
-test("every API route is admin-only, cron-only (with the secret check first), or on the intentional public list", () => {
+// Machine-only routes that check their own secret first (no admin session). See tests/inbox-auth.test.ts.
+const SELF_AUTHENTICATED_MACHINE: Record<string, RegExp> = {
+  "app/api/inbox/inbound-email/route.ts": /^\s*if \(!process\.env\.INBOX_WEBHOOK_SECRET\) \{[\s\S]{0,160}status: 503[\s\S]{0,40}\}\s*\n\s*if \(!authorized\(request\)\) \{[\s\S]{0,120}status: 401/,
+}
+
+test("every API route is admin-only, cron-only, machine-only with its own secret, or on the intentional public list", () => {
   const unclassified: string[] = []
   for (const f of routeFiles(path.join(root, "app/api"))) {
     const src = fs.readFileSync(path.join(root, f), "utf8")
@@ -198,6 +203,11 @@ test("every API route is admin-only, cron-only (with the secret check first), or
       continue
     }
     if (INTENTIONALLY_PUBLIC[f]) continue
+    if (SELF_AUTHENTICATED_MACHINE[f]) {
+      assert.ok(handlers.length > 0, f)
+      for (const h of handlers) assert.match(h[3], SELF_AUTHENTICATED_MACHINE[f], f + " " + h[1] + " must check its secret first")
+      continue
+    }
     if (handlers.length && handlers.every((h) => /^\s*const denied = await adminApiGuard\(\)\s*\n\s*if \(denied\) return denied/.test(h[3]))) continue
     unclassified.push(f)
   }

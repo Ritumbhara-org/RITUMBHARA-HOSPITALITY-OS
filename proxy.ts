@@ -2,6 +2,7 @@
 //
 // - Public paths (lib/auth/policy.ts) pass through.
 // - Cron paths need "Authorization: Bearer <CRON_SECRET>" (fail closed if CRON_SECRET is not set).
+// - /api/inbox/inbound-email passes through; the route checks its own INBOX_WEBHOOK_SECRET (fail closed).
 // - Everything else needs a valid admin session cookie:
 //     page requests (GET/HEAD)  -> redirect to /login?next=<path>
 //     API requests              -> 401 JSON
@@ -10,7 +11,7 @@
 // This is defence in depth: pages, server actions and API routes also check the session themselves.
 
 import { NextResponse, type NextRequest } from "next/server"
-import { isCronPath, isPublicPath } from "@/lib/auth/policy"
+import { isCronPath, isPublicPath, isSelfAuthenticatedMachinePath } from "@/lib/auth/policy"
 import { checkCronAuth } from "@/lib/auth/cron"
 import { isValidSession, safeNextPath, SESSION_COOKIE } from "@/lib/auth/session"
 
@@ -24,6 +25,10 @@ export function proxy(request: NextRequest) {
     if (cron.ok) return NextResponse.next()
     return NextResponse.json({ success: false, error: cron.error }, { status: cron.status, headers: { "Cache-Control": "no-store" } })
   }
+
+  // Machine endpoints with their own secret (the inbox email webhook): the route checks INBOX_WEBHOOK_SECRET and
+  // refuses everything when it is not set, so no admin session is required here.
+  if (isSelfAuthenticatedMachinePath(pathname)) return NextResponse.next()
 
   const signedIn = isValidSession(request.cookies.get(SESSION_COOKIE)?.value)
 

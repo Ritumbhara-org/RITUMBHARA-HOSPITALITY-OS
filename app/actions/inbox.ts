@@ -3,6 +3,7 @@
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/auth/guard";
 import * as inbox from "@/lib/inbox/service";
 import type { ActionResult, InboxConversationSummary, InboxThread } from "@/lib/inbox/types";
 
@@ -19,14 +20,17 @@ function fail(err: unknown): { success: false; error: string } {
 }
 
 export async function getInboxConversations(propertyId: string): Promise<InboxConversationSummary[]> {
+  await requireAdmin();
   return inbox.listConversations(propertyId);
 }
 
 export async function getInboxThread(key: string): Promise<InboxThread | null> {
+  await requireAdmin();
   return inbox.getThread(key);
 }
 
 export async function sendInboxReply(key: string, body: string): Promise<ActionResult> {
+  await requireAdmin();
   try {
     const result = await inbox.sendReply(key, body, await currentTeamMemberId());
     if (result.success) revalidatePath("/inbox");
@@ -37,6 +41,7 @@ export async function sendInboxReply(key: string, body: string): Promise<ActionR
 }
 
 export async function assignInboxConversation(key: string, teamMemberId: string | null): Promise<ActionResult> {
+  await requireAdmin();
   try {
     return await inbox.assignConversation(key, teamMemberId);
   } catch (err) {
@@ -45,6 +50,7 @@ export async function assignInboxConversation(key: string, teamMemberId: string 
 }
 
 export async function setInboxConversationStatus(key: string, status: "OPEN" | "CLOSED"): Promise<ActionResult> {
+  await requireAdmin();
   try {
     return await inbox.setConversationStatus(key, status);
   } catch (err) {
@@ -53,6 +59,7 @@ export async function setInboxConversationStatus(key: string, status: "OPEN" | "
 }
 
 export async function markInboxConversationRead(key: string): Promise<ActionResult> {
+  await requireAdmin();
   try {
     return await inbox.markConversationRead(key);
   } catch (err) {
@@ -61,6 +68,7 @@ export async function markInboxConversationRead(key: string): Promise<ActionResu
 }
 
 export async function linkInboxReservation(key: string, reservationId: string | null): Promise<ActionResult> {
+  await requireAdmin();
   try {
     return await inbox.linkReservation(key, reservationId);
   } catch (err) {
@@ -69,10 +77,12 @@ export async function linkInboxReservation(key: string, reservationId: string | 
 }
 
 export async function searchInboxReservations(query: string) {
+  await requireAdmin();
   return inbox.searchReservations(query);
 }
 
 export async function draftInboxReply(key: string): Promise<ActionResult<{ draft: string }>> {
+  await requireAdmin();
   try {
     return await inbox.draftReply(key);
   } catch (err) {

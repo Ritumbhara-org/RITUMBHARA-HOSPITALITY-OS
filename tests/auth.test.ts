@@ -244,7 +244,7 @@ async function runProxy(url: string, init: { method?: string; headers?: Record<s
 }
 
 test("proxy: signed-out page requests go to /login (keeping where they were going)", async () => {
-  for (const p of ["/leads", "/dashboard", "/guests", "/guests/abc123", "/reservations?newBooking=true", "/whatsapp", "/team", "/seo", "/units", "/inventory", "/analytics", "/locations", "/operations"]) {
+  for (const p of ["/leads", "/dashboard", "/guests", "/guests/abc123", "/reservations?newBooking=true", "/whatsapp", "/team", "/seo", "/units", "/inventory", "/analytics", "/locations", "/operations", "/inbox"]) {
     const r = await runProxy(p)
     assert.equal(r.status, 307, p)
     const loc = new URL(r.location as string)
@@ -312,7 +312,7 @@ test("public path list is exactly the intended set", () => {
 
 // ---------- every admin server action and API route refuses unauthenticated calls ----------
 
-const ADMIN_ACTION_FILES = ["units", "operations", "guests", "locations", "inventory", "whatsapp", "reservations", "team"]
+const ADMIN_ACTION_FILES = ["units", "operations", "guests", "locations", "inventory", "whatsapp", "reservations", "team", "inbox"]
 const PUBLIC_ACTIONS = new Set(["membership.ts:joinMembership", "membership.ts:redeemPoints"]) // guest portal
 
 test("every server action file is either admin-guarded or an approved public guest action", () => {
@@ -341,7 +341,7 @@ test("signed out: every admin server action throws before touching the database"
       await assert.rejects((impl as (...a: unknown[]) => Promise<unknown>)(fd, fd, fd), (err: unknown) => err instanceof Error && err.name === "UnauthorizedError", name + "." + fn)
     }
   }
-  assert.ok(called >= 24, "checked " + called + " actions")
+  assert.ok(called >= 33, "checked " + called + " actions") // 24 OS actions + 9 Inbox actions
   assert.deepEqual(prismaTouches, [])
 })
 
