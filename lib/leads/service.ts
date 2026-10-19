@@ -185,6 +185,8 @@ export function parseLeadRows(
       status: canonicalStatus(statusText),
       statusText,
       phone: text(row, index, "Phone").replace(/^'/, ""),
+      guestName: text(row, index, "Guest Name"),
+      bookingCode: text(row, index, "Booking Code"),
       destination: text(row, index, "Destination"),
       property: text(row, index, "Property"),
       checkIn: text(row, index, "Check-in"),

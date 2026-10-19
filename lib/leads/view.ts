@@ -35,12 +35,23 @@ function digits(s: string): string {
   return s.replace(/\D/g, "")
 }
 
+// What the Guest column shows: the OS guest profile (linked), else the Sheet's "Guest Name" (the verified booking's
+// name, written for Guest Escalation leads), else nothing (the page then says "No guest profile"). Never invented.
+export type GuestDisplay = { kind: "profile"; id: string; name: string } | { kind: "sheet"; name: string } | { kind: "none" }
+
+export function guestDisplay(lead: Lead): GuestDisplay {
+  if (lead.guest) return { kind: "profile", id: lead.guest.id, name: lead.guest.name }
+  const name = lead.guestName.trim()
+  return name ? { kind: "sheet", name } : { kind: "none" }
+}
+
 export function matchesSearch(lead: Lead, query: string): boolean {
   const q = query.trim().toLowerCase()
   if (!q) return true
   const fields = [
     lead.id, lead.phone, lead.destination, lead.property, lead.source, lead.ref, lead.notes,
     lead.requirements, lead.reason, lead.statusText, lead.priority, lead.guest ? lead.guest.name : "",
+    lead.guestName, lead.bookingCode,
   ]
   if (fields.some((f) => f.toLowerCase().includes(q))) return true
   const qDigits = digits(q)
