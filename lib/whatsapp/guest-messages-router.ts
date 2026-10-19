@@ -16,14 +16,15 @@ import { normalizePhoneNumber } from "@/lib/utils/phone";
  *      next step can file an escalation and email the team.
  *   5. Asks the website with requireBooking: true. The website answers or escalates ONLY when the phone matches a
  *      current Intellistay (TEST) booking; otherwise it returns "not_guest" and stores nothing.
- *   6. A verified answer/escalation reply is returned as TwiML (the guest's reply to their own message). Anything
- *      else (not a guest, website down, timeout, unexpected reply) returns null and the caller continues with the
+ *   6. A verified answer/escalation reply is returned as TwiML (the guest's reply to their own message). A timeout
+ *      returns empty TwiML: the website may still escalate, so the lead bot must not answer the same message.
+ *      Anything else (not a guest, website down, unexpected reply) returns null and the caller continues with the
  *      unchanged flow (website lead bot, then the OS AI).
  *
  * It never sends a proactive WhatsApp message, never changes a booking, and never calls Intellistay itself.
  */
 
-export const GUEST_MESSAGES_ROUTER_TIMEOUT_MS = 4000; // keeps room in Twilio's ~15 s for the lead bot fallback
+export const GUEST_MESSAGES_ROUTER_TIMEOUT_MS = 4000; // keeps room in Twilio's ~15 s; a timeout ends the flow (empty TwiML)
 export const GUEST_MESSAGES_ENTITY = "GUEST_MESSAGES"; // WhatsAppMessage.relatedEntityType for these replies
 const MIN_SECRET_LENGTH = 32;
 const MAX_QUESTION_LENGTH = 500;
@@ -100,8 +101,8 @@ const defaultLog: NonNullable<GuestMessagesRouterDeps["log"]> = (event, meta) =>
 };
 
 /**
- * Returns TwiML with the website's reply when a verified guest's stay question was answered or escalated, or null
- * when the caller should continue with the normal flow.
+ * Returns TwiML with the website's reply when a verified guest's stay question was answered or escalated, empty
+ * TwiML when the website did not answer in time, or null when the caller should continue with the normal flow.
  */
 export async function routeToGuestMessages(input: GuestMessagesRouterInput, deps: GuestMessagesRouterDeps): Promise<string | null> {
   const askUrl = guestAskUrl(deps.askUrl);
@@ -167,8 +168,14 @@ export async function routeToGuestMessages(input: GuestMessagesRouterInput, deps
     }
     reply = JSON.parse(await res.text());
   } catch (err) {
-    const reason = err instanceof Error && err.name === "AbortError" ? "timeout" : "network";
-    log("ask_unreachable", Object.assign({ reason: reason }, meta));
+    if (err instanceof Error && err.name === "AbortError") {
+      // The verified request already reached the website, which keeps working after we stop waiting and may still
+      // escalate to the team. Falling through would also let the lead bot answer the same stay question, so reply
+      // with empty TwiML instead (no WhatsApp message) and let the website's escalation stand.
+      log("ask_timeout_suppressed", meta);
+      return "<Response></Response>";
+    }
+    log("ask_unreachable", Object.assign({ reason: "network" }, meta));
     return null;
   } finally {
     clearTimeout(timer);

@@ -123,7 +123,7 @@ test("verified guest: asks the website with requireBooking, returns its reply as
   assert.match(String(await routeToGuestMessages(signed("What is the check-in time?"), answered.deps)), /Check-in at Studio 925 is from 13:00 – 23:00\./);
 });
 
-test("not a guest, older website, errors and timeouts all fall back to the old flow (null)", async () => {
+test("not a guest, older website and errors all fall back to the old flow (null)", async () => {
   const cases: [string, unknown, number?][] = [
     ["not_guest", { ok: true, outcome: "not_guest" }],
     ["older website without requireBooking", { ...ESCALATED, bookingVerified: undefined }],
@@ -139,16 +139,28 @@ test("not a guest, older website, errors and timeouts all fall back to the old f
     assert.equal(await routeToGuestMessages(signed("Please cancel my booking"), f.deps), null, label);
     assert.deepEqual(f.logged, [], label + ": nothing logged as sent");
   }
+  const network = fakeDeps(new Error("ECONNRESET"));
+  await routeToGuestMessages(signed("Please cancel my booking"), network.deps);
+  assert.ok(network.events.includes("ask_unreachable"), "network errors keep the old log event");
+  assert.ok(!network.events.includes("ask_timeout_suppressed"));
+});
+
+test("timeout: empty TwiML (not null) so the lead bot cannot answer a stay question the website may still escalate", async () => {
+  let asked = 0;
   const slow = fakeDeps(ESCALATED, {
     overrides: {
       timeoutMs: 20,
       fetchImpl: ((_u: string, init?: RequestInit) => new Promise((_res, rej) => {
+        asked++;
         init?.signal?.addEventListener("abort", () => rej(Object.assign(new Error("aborted"), { name: "AbortError" })));
       })) as unknown as typeof fetch,
     },
   });
-  assert.equal(await routeToGuestMessages(signed("Please cancel my booking"), slow.deps), null);
-  assert.ok(slow.events.includes("ask_unreachable"));
+  assert.equal(await routeToGuestMessages(signed("Hi, I have a booking for Villa 65 Sariska. Can I extend my stay by one night?"), slow.deps), "<Response></Response>");
+  assert.equal(asked, 1, "the website was asked once");
+  assert.deepEqual(slow.logged, [], "no outbound message logged: nothing was sent to the guest");
+  assert.ok(slow.events.includes("ask_timeout_suppressed"));
+  assert.ok(!slow.events.includes("ask_unreachable"));
 });
 
 test("logs never contain the full phone number, the message or the secret", async () => {
