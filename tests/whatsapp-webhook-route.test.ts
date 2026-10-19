@@ -161,3 +161,19 @@ test("guest-messages router returns null: the lead bot and then the OS AI run ex
   const lead = await (await loadRoute()).POST(twilioRequest());
   assert.equal(await lead.text(), state.routerResult, "website leads still get the lead bot");
 });
+
+test("guest-messages router times out (empty TwiML): the lead bot and the OS AI are NOT called", async () => {
+  reset();
+  state.guestResult = "<Response></Response>"; // what routeToGuestMessages returns on an /ask timeout
+  state.routerResult = "<Response><Message>What are your check-in and check-out dates? For example: 12 Dec to 15 Dec.</Message></Response>";
+  const body = "Body=Hi%2C+I+have+a+booking+for+Villa+65+Sariska.+Can+I+extend+my+stay+by+one+night%3F&From=whatsapp%3A%2B919000000001&To=whatsapp%3A%2B918306312778";
+  const { POST } = await loadRoute();
+  const res = await POST(twilioRequest(body, "sig-2"));
+  assert.equal(res.status, 200);
+  assert.equal(res.headers.get("content-type"), "text/xml");
+  assert.equal(await res.text(), "<Response></Response>", "no WhatsApp message is sent");
+  assert.equal(state.guestCalls.length, 1);
+  assert.equal(state.routerCalls.length, 0, "the website lead bot is not asked");
+  assert.equal(state.aiCalls.length, 0, "the OS AI is not called");
+  assert.equal(state.outbound, 0, "nothing logged as sent");
+});
