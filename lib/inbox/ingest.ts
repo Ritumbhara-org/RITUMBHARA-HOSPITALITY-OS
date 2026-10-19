@@ -64,8 +64,10 @@ export async function ingestInboundEmail(parsed: ParsedInboundEmail, raw: unknow
     }
   }
 
-  const now = new Date();
+  // Older emails (e.g. from a resync) keep their own date instead of jumping to the top.
+  const at = parsed.receivedAt ?? new Date();
   const preview = parsed.body.slice(0, 160);
+  const isLatest = !existingConversation || at >= existingConversation.lastMessageAt;
 
   const conversation = await prisma.inboxConversation.upsert({
     where: { channel_externalThreadId: { channel: parsed.channel, externalThreadId: parsed.threadKey } },
@@ -76,17 +78,14 @@ export async function ingestInboundEmail(parsed: ParsedInboundEmail, raw: unknow
       guestName: parsed.guestName,
       guestContact: parsed.channel === "EMAIL" ? parsed.fromEmail : parsed.replyTo,
       replyTo: parsed.replyTo,
-      lastMessageAt: now,
-      lastInboundAt: now,
+      lastMessageAt: at,
+      lastInboundAt: at,
       lastMessagePreview: preview,
       ...link,
     },
     update: {
-      // A new guest message re-opens a closed conversation.
-      status: "OPEN",
-      lastMessageAt: now,
-      lastInboundAt: now,
-      lastMessagePreview: preview,
+      // A new guest message re-opens a closed conversation; an older one filed late doesn't.
+      ...(isLatest ? { status: "OPEN" as const, lastMessageAt: at, lastInboundAt: at, lastMessagePreview: preview } : {}),
       ...(parsed.replyTo ? { replyTo: parsed.replyTo } : {}),
       ...(parsed.guestName && !existingConversation?.guestName ? { guestName: parsed.guestName } : {}),
       ...link,
@@ -102,6 +101,7 @@ export async function ingestInboundEmail(parsed: ParsedInboundEmail, raw: unknow
         senderName: parsed.guestName || parsed.fromName || parsed.fromEmail,
         externalMessageId: parsed.messageId,
         status: "RECEIVED",
+        createdAt: at,
         raw: raw == null ? undefined : (raw as Prisma.InputJsonValue),
       },
     });
@@ -124,15 +124,25 @@ export async function ingestInboundEmail(parsed: ParsedInboundEmail, raw: unknow
 async function refreshExisting(messageId: string, conversationId: string, parsed: ParsedInboundEmail) {
   await prisma.inboxMessage.update({
     where: { id: messageId },
-    data: { body: parsed.body || "(empty message)", senderName: parsed.guestName || parsed.fromName || parsed.fromEmail },
+    data: {
+      body: parsed.body || "(empty message)",
+      senderName: parsed.guestName || parsed.fromName || parsed.fromEmail,
+      // Messages stored before the bridge sent dates were stamped with the sync time.
+      ...(parsed.receivedAt ? { createdAt: parsed.receivedAt } : {}),
+    },
   });
   const latest = await prisma.inboxMessage.findFirst({ where: { conversationId }, orderBy: { createdAt: "desc" } });
+  const latestInbound = await prisma.inboxMessage.findFirst({
+    where: { conversationId, direction: "INBOUND" },
+    orderBy: { createdAt: "desc" },
+  });
   await prisma.inboxConversation.update({
     where: { id: conversationId },
     data: {
       ...(parsed.guestName ? { guestName: parsed.guestName } : {}),
       ...(parsed.replyTo ? { replyTo: parsed.replyTo } : {}),
-      ...(latest?.id === messageId ? { lastMessagePreview: (parsed.body || "").slice(0, 160) } : {}),
+      ...(latest ? { lastMessageAt: latest.createdAt, lastMessagePreview: latest.body.slice(0, 160) } : {}),
+      ...(latestInbound ? { lastInboundAt: latestInbound.createdAt } : {}),
     },
   });
 }

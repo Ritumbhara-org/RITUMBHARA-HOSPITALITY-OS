@@ -374,3 +374,11 @@ test("parseInboundEmail: HTML-only Booking.com email uses relay as thread key", 
   assert.equal(parsed.threadKey, "relay:asharma.884422@guest.booking.com");
   assert.equal(parsed.body, "Do you have a baby cot?");
 });
+
+test("parseInboundEmail: keeps the email's own date, ignoring bad or future ones", () => {
+  const base = { from: "Airbnb <express@airbnb.com>", subject: "Respond to Vikram’s inquiry", text: "hi" };
+  assert.equal(parseInboundEmail({ ...base, date: "2026-10-13T10:31:00.000Z" }).receivedAt?.toISOString(), "2026-10-13T10:31:00.000Z");
+  assert.equal(parseInboundEmail({ ...base, date: "not a date" }).receivedAt, null);
+  assert.equal(parseInboundEmail({ ...base, date: new Date(Date.now() + 864e5).toISOString() }).receivedAt, null);
+  assert.equal(parseInboundEmail(base).receivedAt, null);
+});

@@ -12,7 +12,7 @@
  *  3. Select `setup` in the toolbar and click Run. Approve the Gmail permission prompt.
  *     It creates a 5-minute trigger and a label "ritumbhara-synced-v2".
  *  4. Optional: run `syncOtaMessages` once to send the last 2 days straight away.
- *  After an inbox parser update, run `resync` to re-send the last 3 days (repeat until the log says "Resync complete").
+ *  After an inbox parser update, run `resync` to re-send the last 14 days (repeat until the log says "Resync complete").
  */
 
 // Senders that carry guest messages. Edit if an OTA uses another address.
@@ -48,7 +48,7 @@ function setup() {
 var RESYNC_LABEL = 'ritumbhara-resynced';
 
 /**
- * Re-sends the last 3 days, already-synced ones included, so the OS re-reads them after a
+ * Re-sends the last 14 days, already-synced ones included, so the OS re-reads them after a
  * parser update. A big batch can take more than one run: run `resync` again until the log
  * says "Resync complete". Starting a new resync after a completed one begins from scratch.
  */
@@ -79,7 +79,7 @@ function syncOtaMessages(all) {
   var resyncing = all === true;
   if (resyncing) label = GmailApp.getUserLabelByName(RESYNC_LABEL) || GmailApp.createLabel(RESYNC_LABEL);
   var query = resyncing
-    ? 'from:(' + SENDERS.join(' OR ') + ') newer_than:3d -label:' + RESYNC_LABEL
+    ? 'from:(' + SENDERS.join(' OR ') + ') newer_than:14d -label:' + RESYNC_LABEL
     : 'from:(' + SENDERS.join(' OR ') + ') newer_than:2d -label:' + LABEL;
   var PAGE = 100;
   var threads = GmailApp.search(query, 0, PAGE);
@@ -104,6 +104,7 @@ function syncOtaMessages(all) {
         subject: subject,
         text: msg.getPlainBody(),
         html: msg.getBody(),
+        date: msg.getDate().toISOString(),
         messageId: msg.getHeader('Message-ID') || msg.getId(),
         inReplyTo: msg.getHeader('In-Reply-To') || '',
       };
