@@ -16,6 +16,8 @@ const state = {
   outbound: 0,
   routerCalls: [] as { senderPhone: string; rawBody: string; signature: string | null }[],
   routerResult: null as string | null,
+  guestCalls: [] as { senderPhone: string; text: string; rawBody: string; signature: string | null }[],
+  guestResult: null as string | null,
 };
 
 mock.module(mod("lib/prisma.ts"), {
@@ -37,6 +39,16 @@ mock.module(mod("lib/whatsapp/website-lead-router.ts"), {
   },
 });
 
+mock.module(mod("lib/whatsapp/guest-messages-router.ts"), {
+  namedExports: {
+    defaultGuestMessagesRouterDeps: () => ({}),
+    routeToGuestMessages: async (input: { senderPhone: string; text: string; rawBody: string; signature: string | null }) => {
+      state.guestCalls.push(input);
+      return state.guestResult;
+    },
+  },
+});
+
 function reset() {
   state.staffReply = null;
   state.aiCalls = [];
@@ -44,6 +56,8 @@ function reset() {
   state.outbound = 0;
   state.routerCalls = [];
   state.routerResult = null;
+  state.guestCalls = [];
+  state.guestResult = null;
 }
 
 const BODY = "Body=Hi%0ARef%3A+W-FLOATING&From=whatsapp%3A%2B919000000001&To=whatsapp%3A%2B918306312778";
@@ -106,4 +120,44 @@ test("invalid payload (no Body) still returns 400 before any routing", async () 
   const res = await POST(twilioRequest("From=whatsapp%3A%2B919000000001&NumMedia=1"));
   assert.equal(res.status, 400);
   assert.equal(state.routerCalls.length, 0);
+});
+
+// ---------- Week 7 Guest Messages routing ----------
+
+test("staff command: the guest-messages router is never consulted", async () => {
+  reset();
+  state.staffReply = "✅ Ticket Acknowledged!";
+  const { POST } = await loadRoute();
+  await POST(twilioRequest("Body=ACCEPT&From=whatsapp%3A%2B919111111111"));
+  assert.equal(state.guestCalls.length, 0);
+});
+
+test("verified guest stay question: the guest-messages reply is returned; lead bot and OS AI are not called", async () => {
+  reset();
+  state.guestResult = "<Response><Message>Thanks for your message. I've passed it to our team.</Message></Response>";
+  const body = "Body=Can+I+extend+my+stay%3F&From=whatsapp%3A%2B919000000001&To=whatsapp%3A%2B918306312778";
+  const { POST } = await loadRoute();
+  const res = await POST(twilioRequest(body, "sig-1"));
+  assert.equal(res.status, 200);
+  assert.equal(res.headers.get("content-type"), "text/xml");
+  assert.equal(await res.text(), state.guestResult);
+  assert.deepEqual(state.guestCalls, [{ senderPhone: "+919000000001", text: "Can I extend my stay?", rawBody: body, signature: "sig-1" }]);
+  assert.equal(state.routerCalls.length, 0, "the website lead bot is not asked");
+  assert.equal(state.aiCalls.length, 0);
+  assert.equal(state.inbound, 1, "inbound still logged");
+});
+
+test("guest-messages router returns null: the lead bot and then the OS AI run exactly as before", async () => {
+  reset();
+  const { POST } = await loadRoute();
+  const res = await POST(twilioRequest());
+  assert.equal((await res.text()).trim(), "<Response></Response>");
+  assert.equal(state.guestCalls.length, 1, "consulted first");
+  assert.equal(state.routerCalls.length, 1, "then the website lead bot, unchanged");
+  assert.deepEqual(state.aiCalls, ["+919000000001"]);
+
+  reset();
+  state.routerResult = "<Response><Message>When would you like to check in?</Message></Response>";
+  const lead = await (await loadRoute()).POST(twilioRequest());
+  assert.equal(await lead.text(), state.routerResult, "website leads still get the lead bot");
 });
