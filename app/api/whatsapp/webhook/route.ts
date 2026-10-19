@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { handleWhatsAppAction } from "@/lib/whatsapp/action-handler";
 import { handleGuestAIChat } from "@/lib/whatsapp/ai-handler";
 import { defaultLeadRouterDeps, routeToWebsiteLeadBot } from "@/lib/whatsapp/website-lead-router";
+import { defaultGuestMessagesRouterDeps, routeToGuestMessages } from "@/lib/whatsapp/guest-messages-router";
 
 export async function POST(req: Request) {
   try {
@@ -45,6 +46,20 @@ export async function POST(req: Request) {
 
     // If no response is needed (e.g., standard guest chat), forward to AI!
     if (!responseMessage) {
+      // Week 7 Guest Messages: a sender the OS does not know, asking about an existing stay (extension, early check-in,
+      // cancellation...), whose phone matches a current Intellistay booking on the website, gets the website's guest
+      // assistant reply/escalation instead of the lead bot. OFF unless configured; otherwise, or on any failure, null.
+      const guestReply = await routeToGuestMessages(
+        { senderPhone, text: originalText, rawBody: text, signature: req.headers.get("x-twilio-signature") },
+        defaultGuestMessagesRouterDeps()
+      );
+      if (guestReply !== null) {
+        return new NextResponse(guestReply, {
+          status: 200,
+          headers: { "Content-Type": "text/xml" },
+        });
+      }
+
       // Website leads: senders who are neither staff nor known guests go to the website's qualification bot
       // (only when WEBSITE_LEAD_BOT_URL is set; otherwise, or on any failure, the flow below is unchanged).
       const leadBotReply = await routeToWebsiteLeadBot(
