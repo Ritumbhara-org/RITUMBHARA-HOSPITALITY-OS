@@ -16,7 +16,7 @@ import { GuestMessagesSection } from "@/components/leads/guest-messages-section"
 import type { GuestMessagesLoadResult } from "@/lib/guest-messages/types"
 import { LEAD_STATUSES, LEAD_TABS, type Lead, type LeadStatus, type LeadsLoadResult } from "@/lib/leads/types"
 import {
-  SORT_LABELS, countLeads, isFollowUpDue, visibleLeads,
+  SORT_LABELS, countLeads, guestDisplay, isFollowUpDue, visibleLeads,
   type KindFilter, type LeadSort, type StatusFilter,
 } from "@/lib/leads/view"
 
@@ -412,10 +412,13 @@ function LeadIdCell({ lead }: { lead: Lead }) {
 
 function GuestCell({ lead }: { lead: Lead }) {
   const wa = whatsappLink(lead.phone)
+  const shown = guestDisplay(lead)
   return (
     <div className="min-w-0">
-      {lead.guest ? (
-        <Link href={`/guests/${lead.guest.id}`} className="font-semibold text-foreground hover:text-primary hover:underline">{lead.guest.name}</Link>
+      {shown.kind === "profile" ? (
+        <Link href={`/guests/${shown.id}`} className="font-semibold text-foreground hover:text-primary hover:underline">{shown.name}</Link>
+      ) : shown.kind === "sheet" ? (
+        <span className="font-semibold text-foreground">{shown.name}</span>
       ) : (
         <span className="text-xs text-muted-foreground italic">No guest profile</span>
       )}
