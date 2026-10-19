@@ -1,3 +1,4 @@
+import { after } from "next/server";
 import { normalizePhoneNumber } from "@/lib/utils/phone";
 
 /**
@@ -16,15 +17,20 @@ import { normalizePhoneNumber } from "@/lib/utils/phone";
  *      next step can file an escalation and email the team.
  *   5. Asks the website with requireBooking: true. The website answers or escalates ONLY when the phone matches a
  *      current Intellistay (TEST) booking; otherwise it returns "not_guest" and stores nothing.
- *   6. A verified answer/escalation reply is returned as TwiML (the guest's reply to their own message). A timeout
- *      returns empty TwiML: the website may still escalate, so the lead bot must not answer the same message.
+ *   6. A verified answer/escalation reply is returned as TwiML (the guest's reply to their own message).
+ *      If the website has not answered within 4 s (its Intellistay TEST booking check can take ~6 s), Twilio gets
+ *      empty TwiML right away (so the lead bot never answers a stay question the website is still handling) and the
+ *      OS keeps waiting AFTER the response (Next after(), up to 25 s). If the website then returns a VERIFIED reply,
+ *      that same reply is sent to the guest with the OS's Twilio sender (the reply to their own message, logged in
+ *      the Unified Inbox). A late "not a guest", error or no answer sends nothing.
  *      Anything else (not a guest, website down, unexpected reply) returns null and the caller continues with the
  *      unchanged flow (website lead bot, then the OS AI).
  *
  * It never sends a proactive WhatsApp message, never changes a booking, and never calls Intellistay itself.
  */
 
-export const GUEST_MESSAGES_ROUTER_TIMEOUT_MS = 4000; // keeps room in Twilio's ~15 s; a timeout ends the flow (empty TwiML)
+export const GUEST_MESSAGES_ROUTER_TIMEOUT_MS = 4000; // TwiML reply budget; slower verified replies are sent after the response
+export const GUEST_MESSAGES_MAX_WAIT_MS = 25000; // hard limit for the website call, including the after-response wait
 export const GUEST_MESSAGES_ENTITY = "GUEST_MESSAGES"; // WhatsAppMessage.relatedEntityType for these replies
 const MIN_SECRET_LENGTH = 32;
 const MAX_QUESTION_LENGTH = 500;
@@ -84,8 +90,13 @@ export interface GuestMessagesRouterDeps {
   isKnownContact: (senderPhone: string) => Promise<boolean>;
   validateSignature: (authToken: string, signature: string, url: string, params: Record<string, string>) => boolean | Promise<boolean>;
   logOutbound: (toPhone: string, text: string) => Promise<void>;
+  // Late replies (website slower than timeoutMs): keep work running after the webhook response, and send the reply.
+  // Without both, a slow website ends the flow with empty TwiML and nothing is sent (the previous behaviour).
+  defer?: (task: Promise<void>) => void;
+  sendReply?: (toPhone: string, text: string) => Promise<boolean>;
   fetchImpl?: typeof fetch;
   timeoutMs?: number;
+  maxWaitMs?: number;
   log?: (event: string, meta?: Record<string, string | number | boolean>) => void;
 }
 
@@ -150,54 +161,92 @@ export async function routeToGuestMessages(input: GuestMessagesRouterInput, deps
   if (/^[A-Za-z0-9_-]{6,64}$/.test(messageSid)) payload.messageId = messageSid; // makes Twilio retries idempotent
 
   const fetchImpl = deps.fetchImpl || fetch;
+  const fastMs = deps.timeoutMs || GUEST_MESSAGES_ROUTER_TIMEOUT_MS;
+  const canSendLate = !!deps.defer && !!deps.sendReply;
+  // Without a late sender, the call is cut at the TwiML budget exactly as before; with one, it may run to the hard limit.
+  const hardMs = canSendLate ? Math.max(deps.maxWaitMs || GUEST_MESSAGES_MAX_WAIT_MS, fastMs) : fastMs;
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), deps.timeoutMs || GUEST_MESSAGES_ROUTER_TIMEOUT_MS);
-  let reply: { ok?: unknown; outcome?: unknown; bookingVerified?: unknown; reply?: unknown; reason?: unknown };
-  try {
-    const res = await fetchImpl(askUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: "Bearer " + secret },
-      body: JSON.stringify(payload),
-      redirect: "manual",
-      signal: controller.signal,
-      cache: "no-store",
-    });
-    if (res.status !== 200) {
-      log("ask_rejected", Object.assign({ status: res.status }, meta));
-      return null;
+  const hardTimer = setTimeout(() => controller.abort(), hardMs);
+
+  // The website call. Never rejects: resolves to the verified reply to send, or the reason there is none.
+  type AskResult = { kind: "reply"; text: string; outcome: string; reason: string } | { kind: "none"; event: string; status?: number };
+  const pending: Promise<AskResult> = (async (): Promise<AskResult> => {
+    let reply: { ok?: unknown; outcome?: unknown; bookingVerified?: unknown; reply?: unknown; reason?: unknown };
+    try {
+      const res = await fetchImpl(askUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + secret },
+        body: JSON.stringify(payload),
+        redirect: "manual",
+        signal: controller.signal,
+        cache: "no-store",
+      });
+      if (res.status !== 200) return { kind: "none", event: "ask_rejected", status: res.status };
+      reply = JSON.parse(await res.text());
+    } catch (err) {
+      return { kind: "none", event: err instanceof Error && err.name === "AbortError" ? "ask_timeout" : "ask_unreachable" };
+    } finally {
+      clearTimeout(hardTimer);
     }
-    reply = JSON.parse(await res.text());
-  } catch (err) {
-    if (err instanceof Error && err.name === "AbortError") {
-      // The verified request already reached the website, which keeps working after we stop waiting and may still
-      // escalate to the team. Falling through would also let the lead bot answer the same stay question, so reply
-      // with empty TwiML instead (no WhatsApp message) and let the website's escalation stand.
-      log("ask_timeout_suppressed", meta);
-      return "<Response></Response>";
+    if (!reply || typeof reply !== "object" || reply.ok !== true) return { kind: "none", event: "ask_bad_reply" };
+    if (reply.outcome === "not_guest") return { kind: "none", event: "not_a_guest" };
+    // Only a reply for a VERIFIED booking is used (an older website version without requireBooking never sets this).
+    if (reply.bookingVerified !== true || (reply.outcome !== "answered" && reply.outcome !== "escalated")) return { kind: "none", event: "ask_unverified" };
+    const text = typeof reply.reply === "string" ? reply.reply.trim() : "";
+    if (!text || text.length > 1600) return { kind: "none", event: "ask_bad_reply" };
+    return { kind: "reply", text, outcome: String(reply.outcome), reason: typeof reply.reason === "string" ? reply.reason : "" };
+  })();
+
+  // Wait at most the TwiML budget for the answer.
+  let fastTimer: ReturnType<typeof setTimeout> | undefined;
+  const slow = new Promise<"slow">((resolve) => { fastTimer = setTimeout(() => resolve("slow"), fastMs); });
+  const first = await Promise.race([pending, slow]);
+  clearTimeout(fastTimer);
+
+  if (first !== "slow" && !(first.kind === "none" && first.event === "ask_timeout")) {
+    // Fast path: unchanged behaviour.
+    if (first.kind === "none") {
+      if (first.event === "ask_rejected") log("ask_rejected", Object.assign({ status: first.status || 0 }, meta));
+      else if (first.event === "ask_unreachable") log("ask_unreachable", Object.assign({ reason: "network" }, meta));
+      else if (first.event === "not_a_guest") log("not_a_guest", meta);
+      return null; // the caller continues with the lead bot / OS AI
     }
-    log("ask_unreachable", Object.assign({ reason: "network" }, meta));
-    return null;
-  } finally {
-    clearTimeout(timer);
+    try {
+      await deps.logOutbound(phone, first.text); // keep the Unified Inbox complete; never blocks the reply
+    } catch {
+      log("outbound_log_failed", meta);
+    }
+    log("guest_" + first.outcome, Object.assign({ reason: first.reason }, meta));
+    return "<Response><Message>" + escapeXml(first.text) + "</Message></Response>";
   }
 
-  if (!reply || typeof reply !== "object" || reply.ok !== true) return null;
-  if (reply.outcome === "not_guest") {
-    log("not_a_guest", meta);
-    return null;
+  // Slower than the TwiML budget. The verified request already reached the website, which keeps working and may still
+  // escalate to the team, so the lead bot must not answer this stay question: Twilio gets empty TwiML now.
+  if (!canSendLate) {
+    controller.abort();
+    log("ask_timeout_suppressed", meta);
+    return "<Response></Response>";
   }
-  // Only a reply for a VERIFIED booking is used (an older website version without requireBooking never sets this).
-  if (reply.bookingVerified !== true || (reply.outcome !== "answered" && reply.outcome !== "escalated")) return null;
-  const text = typeof reply.reply === "string" ? reply.reply.trim() : "";
-  if (!text || text.length > 1600) return null;
-
-  try {
-    await deps.logOutbound(phone, text); // keep the Unified Inbox complete; never blocks the reply
-  } catch {
-    log("outbound_log_failed", meta);
-  }
-  log("guest_" + String(reply.outcome), Object.assign({ reason: typeof reply.reason === "string" ? reply.reason : "" }, meta));
-  return "<Response><Message>" + escapeXml(text) + "</Message></Response>";
+  const sendReply = deps.sendReply as NonNullable<GuestMessagesRouterDeps["sendReply"]>;
+  log("ask_reply_deferred", meta);
+  (deps.defer as NonNullable<GuestMessagesRouterDeps["defer"]>)(
+    pending
+      .then(async (late) => {
+        if (late.kind === "none") {
+          log("late_" + late.event, meta); // nothing is sent: not a guest, error, or no answer within the hard limit
+          return;
+        }
+        let sent = false;
+        try {
+          sent = await sendReply(phone, late.text); // the sender logs the message in the Unified Inbox itself
+        } catch {
+          sent = false;
+        }
+        log(sent ? "guest_" + late.outcome + "_sent_late" : "late_reply_send_failed", Object.assign({ reason: late.reason }, meta));
+      })
+      .catch(() => { /* never surfaces: the guest simply gets no late reply */ })
+  );
+  return "<Response></Response>";
 }
 
 // Production dependencies: environment + Prisma + Twilio (imported lazily so this module stays testable without them).
@@ -216,6 +265,14 @@ export function defaultGuestMessagesRouterDeps(): GuestMessagesRouterDeps {
       const target = normalizePhoneNumber(senderPhone);
       const same = (p: string | null | undefined) => !!p && normalizePhoneNumber(p) === target;
       return guests.some((g: { phone: string | null }) => same(g.phone)) || team.some((t: { whatsappNumber: string | null }) => same(t.whatsappNumber));
+    },
+    // Keeps the late-reply task alive after the webhook has answered Twilio (Next.js after()).
+    defer: (task) => { after(task); },
+    // A late reply goes out through the OS's existing Twilio sender, which also logs it in the Unified Inbox.
+    sendReply: async (toPhone, text) => {
+      const { sendWhatsAppMessage } = await import("@/lib/whatsapp/client");
+      const r = await sendWhatsAppMessage(toPhone, "text", text, undefined, GUEST_MESSAGES_ENTITY);
+      return r.success;
     },
     validateSignature: async (authToken, signature, url, params) => {
       const twilio = (await import("twilio")).default;

@@ -163,6 +163,120 @@ test("timeout: empty TwiML (not null) so the lead bot cannot answer a stay quest
   assert.ok(!slow.events.includes("ask_unreachable"));
 });
 
+// Production incident (E-FFF6E04826): the website's verified booking check took ~6.2 s, the router gave up at 4 s and
+// returned empty TwiML, so the escalation was stored but the guest never got the acknowledgement.
+const VILLA_Q = "Hi, I have a booking for Villa 65 Sariska. Can I extend my stay by one night?";
+
+function slowWebsite(reply: unknown, delayMs: number, status = 200) {
+  let asked = 0;
+  let aborted = false;
+  const fetchImpl = ((_u: string, init?: RequestInit) => new Promise((resolve, reject) => {
+    asked++;
+    const t = setTimeout(() => {
+      if (reply instanceof Error) reject(reply);
+      else resolve(new Response(JSON.stringify(reply), { status }));
+    }, delayMs);
+    init?.signal?.addEventListener("abort", () => {
+      aborted = true;
+      clearTimeout(t);
+      reject(Object.assign(new Error("aborted"), { name: "AbortError" }));
+    });
+  })) as unknown as typeof fetch;
+  return { fetchImpl, asked: () => asked, aborted: () => aborted };
+}
+
+function lateDeps(reply: unknown, delayMs: number, opts: { status?: number; maxWaitMs?: number; sendOk?: boolean | Error } = {}) {
+  const site = slowWebsite(reply, delayMs, opts.status);
+  const deferred: Promise<void>[] = [];
+  const sent: { to: string; text: string }[] = [];
+  const f = fakeDeps(null, {
+    overrides: {
+      timeoutMs: 20,
+      maxWaitMs: opts.maxWaitMs ?? 2000,
+      fetchImpl: site.fetchImpl,
+      defer: (p) => { deferred.push(p); },
+      sendReply: async (to, text) => {
+        if (opts.sendOk instanceof Error) throw opts.sendOk;
+        sent.push({ to, text });
+        return opts.sendOk ?? true;
+      },
+    },
+  });
+  return { ...f, site, deferred, sent, settle: () => Promise.all(deferred) };
+}
+
+test("slow website (verified escalation after the 4 s budget): empty TwiML now, then the same ack is sent once", async () => {
+  const l = lateDeps(ESCALATED, 80);
+  assert.equal(await routeToGuestMessages(signed(VILLA_Q), l.deps), "<Response></Response>", "Twilio is answered at once, no lead bot");
+  assert.equal(l.deferred.length, 1, "the website call keeps running after the response");
+  assert.deepEqual(l.sent, [], "nothing sent before the website answers");
+  assert.ok(l.events.includes("ask_reply_deferred"));
+  await l.settle();
+  assert.equal(l.site.asked(), 1, "the website was asked once (no retry)");
+  assert.equal(l.site.aborted(), false, "the slow call was not cut at 4 s");
+  assert.deepEqual(l.sent, [{ to: GUEST, text: ESCALATED.reply }], "the verified acknowledgement reaches the guest once");
+  assert.deepEqual(l.logged, [], "not logged twice: the Twilio sender logs the late message itself");
+  assert.ok(l.events.includes("guest_escalated_sent_late"));
+  assert.ok(!l.events.includes("ask_timeout_suppressed"));
+});
+
+test("slow website, late verified answer: sent as well", async () => {
+  const answered = { ok: true, outcome: "answered", intent: "check_in_time", reply: "Check-in is from 13:00.", bookingVerified: true };
+  const l = lateDeps(answered, 60);
+  assert.equal(await routeToGuestMessages(signed("What is the check-in time?"), l.deps), "<Response></Response>");
+  await l.settle();
+  assert.deepEqual(l.sent.map((s) => s.text), ["Check-in is from 13:00."]);
+  assert.ok(l.events.includes("guest_answered_sent_late"));
+});
+
+test("slow website, late not-guest / unverified / error / no answer: nothing is sent", async () => {
+  const cases: [string, unknown, number, { status?: number; maxWaitMs?: number }?][] = [
+    ["not_guest", { ok: true, outcome: "not_guest" }, 60],
+    ["unverified (older website)", { ...ESCALATED, bookingVerified: undefined }, 60],
+    ["server error", {}, 60, { status: 500 }],
+    ["network", new Error("ECONNRESET"), 60],
+    ["no answer within the hard limit", ESCALATED, 5000, { maxWaitMs: 100 }],
+  ];
+  for (const [label, reply, delay, o] of cases) {
+    const l = lateDeps(reply, delay, o);
+    assert.equal(await routeToGuestMessages(signed(VILLA_Q), l.deps), "<Response></Response>", label);
+    await l.settle();
+    assert.deepEqual(l.sent, [], label + ": nothing sent");
+    assert.deepEqual(l.logged, [], label);
+    assert.ok(l.events.some((e) => e.startsWith("late_")), label + ": logged as late, no reply");
+  }
+});
+
+test("slow website, Twilio send fails: logged, never thrown", async () => {
+  for (const sendOk of [false, new Error("twilio down")]) {
+    const l = lateDeps(ESCALATED, 40, { sendOk });
+    assert.equal(await routeToGuestMessages(signed(VILLA_Q), l.deps), "<Response></Response>");
+    await l.settle();
+    assert.ok(l.events.includes("late_reply_send_failed"));
+  }
+});
+
+test("fast website with late sending enabled: unchanged TwiML reply, nothing deferred or sent separately", async () => {
+  const l = lateDeps(ESCALATED, 0);
+  l.deps.timeoutMs = 1000;
+  assert.match(String(await routeToGuestMessages(signed(VILLA_Q), l.deps)), /^<Response><Message>Thanks for your message\./);
+  assert.equal(l.deferred.length, 0);
+  assert.deepEqual(l.sent, []);
+  assert.deepEqual(l.logged, [ESCALATED.reply]);
+
+  const notGuest = lateDeps({ ok: true, outcome: "not_guest" }, 0);
+  notGuest.deps.timeoutMs = 1000;
+  assert.equal(await routeToGuestMessages(signed(VILLA_Q), notGuest.deps), null, "not a guest still falls back to the lead bot");
+  assert.equal(notGuest.deferred.length, 0);
+});
+
+test("production deps wire the late-reply path", async () => {
+  const { defaultGuestMessagesRouterDeps } = await import("../lib/whatsapp/guest-messages-router");
+  const d = defaultGuestMessagesRouterDeps();
+  assert.equal(typeof d.defer, "function");
+  assert.equal(typeof d.sendReply, "function");
+});
+
 test("logs never contain the full phone number, the message or the secret", async () => {
   const lines: string[] = [];
   const f = fakeDeps(ESCALATED, { overrides: { log: (e, m) => { lines.push(e + " " + JSON.stringify(m || {})); } } });
