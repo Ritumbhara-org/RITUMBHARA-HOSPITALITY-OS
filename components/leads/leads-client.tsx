@@ -12,6 +12,8 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { updateLeadStatusAction } from "@/app/actions/leads"
+import { GuestMessagesSection } from "@/components/leads/guest-messages-section"
+import type { GuestMessagesLoadResult } from "@/lib/guest-messages/types"
 import { LEAD_STATUSES, LEAD_TABS, type Lead, type LeadStatus, type LeadsLoadResult } from "@/lib/leads/types"
 import {
   SORT_LABELS, countLeads, isFollowUpDue, visibleLeads,
@@ -86,13 +88,16 @@ function PriorityBadge({ lead }: { lead: Lead }) {
 
 type Patch = { basis: string; status: LeadStatus; statusText: string; statusUpdated: string; nextFollowUp: string; nextFollowUpMs: number | null }
 
-export function LeadsClient({ data }: { data: LeadsLoadResult }) {
+// guestMessages: the Week 7 Guest Messages section, shown below the leads (its own data; never mixed into leads).
+export function LeadsClient({ data, guestMessages }: { data: LeadsLoadResult; guestMessages?: GuestMessagesLoadResult }) {
   const router = useRouter()
   const [refreshing, startRefresh] = useTransition()
   const refresh = () => startRefresh(() => router.refresh())
+  const guestSection = guestMessages ? <GuestMessagesSection data={guestMessages} /> : null
 
   if (!data.ok) {
     return (
+      <>
       <div className="flex flex-col flex-1 w-full gap-5 pb-4">
         <PageHeader onRefresh={refresh} refreshing={refreshing} />
         <div className="rounded-2xl border bg-card shadow-sm p-8 sm:p-12 flex flex-col items-center text-center max-w-2xl mx-auto w-full">
@@ -120,10 +125,17 @@ export function LeadsClient({ data }: { data: LeadsLoadResult }) {
           )}
         </div>
       </div>
+      {guestSection}
+      </>
     )
   }
 
-  return <LeadsBoard data={data} refresh={refresh} refreshing={refreshing} />
+  return (
+    <>
+      <LeadsBoard data={data} refresh={refresh} refreshing={refreshing} />
+      {guestSection}
+    </>
+  )
 }
 
 function PageHeader({ onRefresh, refreshing, subtitle }: { onRefresh: () => void; refreshing: boolean; subtitle?: string }) {
