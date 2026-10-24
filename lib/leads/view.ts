@@ -35,8 +35,9 @@ function digits(s: string): string {
   return s.replace(/\D/g, "")
 }
 
-// What the Guest column shows: the OS guest profile (linked), else the Sheet's "Guest Name" (the verified booking's
-// name, written for Guest Escalation leads), else nothing (the page then says "No guest profile"). Never invented.
+// What the Guest column shows: the OS guest profile (linked), else the Sheet's "Guest Name" (the name the guest typed to
+// the WhatsApp assistant, or the verified booking's name for Guest Escalation leads), else nothing (the page then says
+// "No guest profile"). Never invented.
 export type GuestDisplay = { kind: "profile"; id: string; name: string } | { kind: "sheet"; name: string } | { kind: "none" }
 
 export function guestDisplay(lead: Lead): GuestDisplay {

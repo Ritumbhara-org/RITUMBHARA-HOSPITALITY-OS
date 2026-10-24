@@ -122,6 +122,14 @@ test("WhatsApp link only opens a chat with the text typed in (wa.me); nothing is
   assert.equal(whatsAppDraftLink("+91 98765 43210", "Hi Asha,\nsee you"), "https://wa.me/919876543210?text=Hi%20Asha%2C%0Asee%20you")
   assert.equal(whatsAppDraftLink("", "x"), null)
   assert.equal(whatsAppDraftLink("+919876543210", ""), "https://wa.me/919876543210")
+  // The Sheet stores phones as text ("'+91..."); international numbers with or without "+" work.
+  assert.equal(whatsAppDraftLink("'+918712308682", "Hi"), "https://wa.me/918712308682?text=Hi")
+  assert.equal(whatsAppDraftLink("918712308682", "Hi"), "https://wa.me/918712308682?text=Hi")
+  assert.equal(whatsAppDraftLink("+44 (20) 7946-0958", ""), "https://wa.me/442079460958")
+  // No country code, letters, too short/long or a leading 0: no link (never a chat with the wrong number).
+  for (const bad of ["9876543210", "+91 98765 4321O", "+1234567", "+0919876543210", "0091 98765 43210", "+9198765432101234", "call me"]) {
+    assert.equal(whatsAppDraftLink(bad, "Hi"), null, bad)
+  }
 })
 
 // ---------- page loader ----------

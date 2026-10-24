@@ -14,7 +14,7 @@ import { createGoogleSheetsApi } from "../lib/leads/google-sheets"
 import { listLeads } from "../lib/leads/service"
 import type { Lead, LeadsLoadResult } from "../lib/leads/types"
 import { guestDisplay, matchesSearch } from "../lib/leads/view"
-import { FakeGoogleSheets, HANDOFF_HEADERS, handoffRow, sampleSheet } from "./helpers/fake-google-sheets"
+import { FakeGoogleSheets, HANDOFF_HEADERS, QUALIFIED_HEADERS, handoffRow, sampleSheet } from "./helpers/fake-google-sheets"
 
 const root = path.resolve(__dirname, "..")
 const mod = (p: string) => pathToFileURL(path.join(root, p)).href
@@ -119,4 +119,52 @@ test("search finds a lead by guest name or booking code", async () => {
 test("the existing Handoffs fixture is unchanged (production layout today)", () => {
   assert.equal(handoffRow({}).length, HANDOFF_HEADERS.length)
   assert.ok(!HANDOFF_HEADERS.includes("Guest Name"))
+})
+
+// The Handoffs tab after the Apps Script's moveHandoffGuestColumns(): Guest Name and Booking Code next to the ID.
+const MOVED_HANDOFF_HEADERS = ["Received (IST)", "Handoff ID", "Guest Name", "Booking Code", "Status", "Reason", "Phone",
+  "Destination", "Property", "Check-in", "Check-out", ...NEW_HANDOFF_HEADERS.filter((h) => !["Received (IST)", "Handoff ID",
+    "Guest Name", "Booking Code", "Status", "Reason", "Phone", "Destination", "Property", "Check-in", "Check-out"].includes(h))]
+
+test("after the column move every field still maps by header; a status change writes the moved Status column", async () => {
+  assert.equal(MOVED_HANDOFF_HEADERS.length, NEW_HANDOFF_HEADERS.length)
+  assert.equal(new Set(MOVED_HANDOFF_HEADERS).size, MOVED_HANDOFF_HEADERS.length, "no duplicate columns")
+  const values: Record<string, string | number> = {
+    "Received (IST)": "2026-10-19 20:13:55", "Handoff ID": "H-FFF6E04826", "Guest Name": "Aani", "Booking Code": "RIAA005",
+    Status: "New", Reason: "BOOKING_CHANGE", Phone: "'+918712308682", Destination: "sariska", Property: "Villa 65 Sariska",
+    "Check-in": "2026-10-18", "Check-out": "2026-10-20", Source: "guest-escalation", "Next Follow-up": "2026-10-20 20:13:55",
+  }
+  const sheet = new FakeGoogleSheets().addTab("Handoffs", [
+    MOVED_HANDOFF_HEADERS,
+    MOVED_HANDOFF_HEADERS.map((h) => (values[h] === undefined ? "" : values[h])),
+    MOVED_HANDOFF_HEADERS.map((h) => ({ "Handoff ID": "H-1D83E0A88A", Status: "New", Phone: "'+918712308682", Source: "whatsapp-bot" } as Record<string, string>)[h] || ""),
+  ])
+  const { leads } = await load(sheet)
+  const l = leads.find((x) => x.id === "H-FFF6E04826")!
+  assert.deepEqual(
+    [l.guestName, l.bookingCode, l.statusText, l.reason, l.phone, l.destination, l.property, l.checkIn, l.checkOut, l.source],
+    ["Aani", "RIAA005", "New", "BOOKING_CHANGE", "+918712308682", "sariska", "Villa 65 Sariska", "2026-10-18", "2026-10-20", "guest-escalation"])
+  assert.deepEqual(guestDisplay(l), { kind: "sheet", name: "Aani" })
+  const older = leads.find((x) => x.id === "H-1D83E0A88A")!
+  assert.deepEqual([older.guestName, older.bookingCode, older.source], ["", "", "whatsapp-bot"])
+  assert.match(text(await render([l])), /Aani \+918712308682/)
+
+  // The OS writes Status where the Status header now is (column E), never into Guest Name / Booking Code (C / D).
+  const { updateLeadStatus } = await import("../lib/leads/service")
+  const api = createGoogleSheetsApi({ spreadsheetId: sheet.spreadsheetId, tokenSource: sheet.tokenSource(), fetchImpl: sheet.fetch })
+  await updateLeadStatus(api, { kind: "handoff", id: "H-FFF6E04826", status: "Contacted", expectedStatus: "New" }, new Date(NOW))
+  assert.equal(sheet.cell("Handoffs", "E2")?.formatted, "Contacted")
+  assert.equal(sheet.cell("Handoffs", "C2")?.formatted, "Aani")
+  assert.equal(sheet.cell("Handoffs", "D2")?.formatted, "RIAA005")
+})
+
+test("Qualified Leads with the new Guest Name column (name typed by the guest to the WhatsApp assistant) shows it", async () => {
+  const headers = [...QUALIFIED_HEADERS, "Status Updated (IST)", "Next Follow-up", "Score", "Priority", "Guest Name"]
+  const sheet = new FakeGoogleSheets().addTab("Qualified Leads", [
+    headers,
+    headers.map((h) => ({ "Received (IST)": "2026-10-24 11:00:00", "Lead ID": "L-00000000F1", Status: "New", Phone: "'+919000000001", Destination: "Jaipur", "Guest Name": "Asha Verma" } as Record<string, string>)[h] || ""),
+  ])
+  const [l] = (await load(sheet)).leads
+  assert.equal(l.guestName, "Asha Verma")
+  assert.match(text(await render([l])), /Asha Verma \+919000000001/)
 })
