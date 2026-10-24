@@ -55,7 +55,7 @@ function text(html: string): string {
   return html.replace(/<[^>]+>/g, " ").replace(/&#x27;|&apos;/g, "'").replace(/&quot;/g, "\"").replace(/&amp;/g, "&").replace(/\s+/g, " ")
 }
 
-test("READY due today is highlighted with every field, the full message, Copy, Open in WhatsApp and Mark as sent", async () => {
+test("READY due today is highlighted with every field, the full message, Copy, Take me to WhatsApp and Mark as sent", async () => {
   const raw = await renderSection(guestData(true))
   const html = text(raw)
   assert.match(html, /Guest Messages/)
@@ -67,7 +67,8 @@ test("READY due today is highlighted with every field, the full message, Copy, O
   }
   assert.match(html, /This is Ritumbhara\. We're looking forward to hosting you at Studio 925\./)
   assert.match(html, /Copy message/)
-  assert.match(html, /Open in WhatsApp/)
+  assert.match(html, /Take me to WhatsApp/)
+  assert.doesNotMatch(html, /Open in WhatsApp/)
   assert.match(raw, /href="https:\/\/wa\.me\/919876543210\?text=Hi%20Asha%2C/)
   assert.match(raw, /aria-label="Mark GM-0000000000A1 as sent"/)
   assert.match(html, /Needs action 1/)
@@ -107,4 +108,39 @@ test("Leads page: the leads are unchanged and Guest Messages is a separate secti
   const notConnected = text(renderToString(createElement(LeadsClient, { data: { ok: false, code: "not_configured", missing: ["LEADS_SHEET_ID"], fetchedAt: NOW }, guestMessages: { ok: false, code: "not_configured", missing: ["LEADS_SHEET_ID"], fetchedAt: NOW } })))
   assert.match(notConnected, /Leads are not connected yet/)
   assert.match(notConnected, /Guest Messages/)
+})
+
+test("Take me to WhatsApp: the right guest's chat with the full READY message typed in; nothing sent, nothing marked", async () => {
+  const raw = await renderSection(guestData(true))
+  const buttons = raw.match(/<a [^>]*aria-label="Take me to WhatsApp[^"]*"[^>]*>/g) || []
+  assert.equal(buttons.length, 1, "one button, on the READY message only")
+  const href = (/href="([^"]+)"/.exec(buttons[0]) || [])[1].replace(/&#x27;/g, "'").replace(/&amp;/g, "&") // HTML attribute decoding
+  const url = new URL(href)
+  assert.equal(url.origin + url.pathname, "https://wa.me/919876543210", "the guest's own number (from the Sheet's '+91...)")
+  assert.equal(url.searchParams.get("text"), MESSAGE, "the exact recommended message, line breaks included")
+  assert.match(buttons[0], /target="_blank"/)
+  assert.match(buttons[0], /rel="noopener noreferrer"/)
+  // A plain link: no form, no action call. Mark as sent stays its own button and the message stays READY.
+  assert.doesNotMatch(buttons[0], /onclick|formaction/i)
+  assert.match(raw, /aria-label="Mark GM-0000000000A1 as sent"/)
+  assert.match(text(raw), /Status: READY/)
+})
+
+test("Take me to WhatsApp is not offered for missed, upcoming or done messages, nor without a usable number", async () => {
+  const data = guestData(true)
+  const all = text(await renderSection(data)) // default view: needs action only
+  assert.equal((all.match(/Take me to WhatsApp/g) || []).length, 1)
+  // Expired (Send By passed) and upcoming messages are not sendable: no button, whatever the filter.
+  const missed = data.messages.find((m) => m.id === "GM-0000000000D4")!
+  const upcoming = data.messages.find((m) => m.id === "GM-0000000000B2")!
+  for (const m of [missed, upcoming]) {
+    const only = { ...data, messages: [m] }
+    assert.doesNotMatch(await renderSection(only), /Take me to WhatsApp/, m.id)
+  }
+  // READY but the number has no country code: no link to a wrong chat, a clear hint instead; Copy still there.
+  const ready = data.messages.find((m) => m.id === "GM-0000000000A1")!
+  const local = text(await renderSection({ ...data, messages: [{ ...ready, guestPhone: "9876543210" }] }))
+  assert.doesNotMatch(local, /Take me to WhatsApp/)
+  assert.match(local, /No WhatsApp number with a country code: copy the message and send it yourself\./)
+  assert.match(local, /Copy message/)
 })

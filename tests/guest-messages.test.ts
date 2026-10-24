@@ -122,6 +122,14 @@ test("WhatsApp link only opens a chat with the text typed in (wa.me); nothing is
   assert.equal(whatsAppDraftLink("+91 98765 43210", "Hi Asha,\nsee you"), "https://wa.me/919876543210?text=Hi%20Asha%2C%0Asee%20you")
   assert.equal(whatsAppDraftLink("", "x"), null)
   assert.equal(whatsAppDraftLink("+919876543210", ""), "https://wa.me/919876543210")
+  // The Sheet stores phones as text ("'+91..."); international numbers with or without "+" work.
+  assert.equal(whatsAppDraftLink("'+918712308682", "Hi"), "https://wa.me/918712308682?text=Hi")
+  assert.equal(whatsAppDraftLink("918712308682", "Hi"), "https://wa.me/918712308682?text=Hi")
+  assert.equal(whatsAppDraftLink("+44 (20) 7946-0958", ""), "https://wa.me/442079460958")
+  // No country code, letters, too short/long or a leading 0: no link (never a chat with the wrong number).
+  for (const bad of ["9876543210", "+91 98765 4321O", "+1234567", "+0919876543210", "0091 98765 43210", "+9198765432101234", "call me"]) {
+    assert.equal(whatsAppDraftLink(bad, "Hi"), null, bad)
+  }
 })
 
 // ---------- page loader ----------
@@ -255,4 +263,17 @@ test("action: not configured is explained (names only); configured marks SENT th
   assert.equal(f.calls.length, 1)
   assert.equal(f.calls[0].url, EXEC_URL, "only the Apps Script is called: no WhatsApp, no Intellistay")
   assert.deepEqual(revalidated, ["/leads"])
+})
+
+test("Guest Name: read from the moved, renamed 'Guest Name' column (verified booking name); the old 'Guest' header still works", async () => {
+  // After the Apps Script's moveGuestNameColumns(): Created | Message ID | Guest Name | ... (no "Guest" column).
+  const moved = ["Created (IST)", "Message ID", "Guest Name", ...GM_HEADERS.filter((h) => !["Created (IST)", "Message ID", "Guest"].includes(h))]
+  assert.equal(moved.length, GM_HEADERS.length)
+  const values: Record<string, Raw> = { "Created (IST)": "2026-10-16 09:00:00", "Message ID": "GM-0000000000A1", "Guest Name": "Asha", Status: "READY", Type: "PRE_ARRIVAL", "Scheduled Date": "2026-10-18", "Send By": "2026-10-19", "Booking Code": "RIAA004", "Guest WhatsApp": "'+919876543210", Message: MESSAGE }
+  const sheet = sampleSheet().addTab("Guest Messages", [moved, moved.map((h) => (values[h] === undefined ? "" : values[h]))])
+  const [m] = (await listGuestMessages(apiFor(sheet))).messages
+  assert.deepEqual([m.id, m.guest, m.status, m.bookingCode, m.guestPhone, m.message], ["GM-0000000000A1", "Asha", "READY", "RIAA004", "+919876543210", MESSAGE])
+  // Today's tab (header "Guest"):
+  const [old] = (await listGuestMessages(apiFor(sheetWithMessages()))).messages
+  assert.equal(old.guest, "Asha")
 })

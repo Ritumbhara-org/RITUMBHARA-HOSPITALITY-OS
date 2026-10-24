@@ -48,7 +48,7 @@ export interface Lead {
   status: LeadStatus | null // null when the cell holds something other than the four statuses
   statusText: string // the cell as it is in the Sheet
   phone: string
-  guestName: string // "Guest Name": the verified booking's guest name (Guest Escalation leads); "" when unknown
+  guestName: string // "Guest Name": the name the guest typed to the WhatsApp assistant, or the verified booking's guest name (Guest Escalation leads); "" when unknown
   bookingCode: string // "Booking Code": the guest's booking (Guest Escalation leads); "" otherwise
   destination: string
   property: string

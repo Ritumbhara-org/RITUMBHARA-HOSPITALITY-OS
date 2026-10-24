@@ -71,9 +71,14 @@ export function countGuestMessages(messages: GuestMessage[], today: string): Rec
   return counts
 }
 
-// WhatsApp link that opens a chat with the message typed in. A person still has to press send: nothing is sent here.
+// WhatsApp link that opens the chat with this guest's number with the message typed in. A person still has to press
+// send: nothing is sent here. Only a full international number (country code included, e.g. "+91 98765 43210" or the
+// Sheet's "'+919876543210") gets a link; anything else (a local number, letters, too short) gets none rather than a
+// chat with the wrong person.
 export function whatsAppDraftLink(phone: string, message: string): string | null {
-  const digits = phone.replace(/\D/g, "")
-  if (digits.length < 8) return null
+  const compact = (phone || "").trim().replace(/^'/, "").replace(/[\s().-]/g, "")
+  const plus = compact.startsWith("+")
+  const digits = plus ? compact.slice(1) : compact
+  if (!(plus ? /^[1-9]\d{7,14}$/ : /^[1-9]\d{10,14}$/).test(digits)) return null
   return "https://wa.me/" + digits + (message ? "?text=" + encodeURIComponent(message) : "")
 }

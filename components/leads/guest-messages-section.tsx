@@ -249,10 +249,12 @@ function GuestMessageItem({ m, phase, canMarkSent, saving, sheetHref, onMarkSent
             <button type="button" onClick={copy} className="inline-flex items-center gap-1.5 rounded-xl border border-border/60 bg-background px-3 py-2 text-xs font-semibold shadow-sm hover:bg-muted">
               <Copy className="h-3.5 w-3.5" /> Copy message
             </button>
-            {wa && (
-              <a href={wa} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-300 bg-background px-3 py-2 text-xs font-semibold text-emerald-700 shadow-sm hover:bg-emerald-50 dark:border-emerald-500/30 dark:text-emerald-400 dark:hover:bg-emerald-500/10" title="Opens WhatsApp with the message typed in. You still press send.">
-                <MessageCircle className="h-3.5 w-3.5" /> Open in WhatsApp
+            {wa ? (
+              <a href={wa} target="_blank" rel="noopener noreferrer" aria-label={`Take me to WhatsApp: chat with ${m.guestPhone} with the message typed in`} className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-300 bg-background px-3 py-2 text-xs font-semibold text-emerald-700 shadow-sm hover:bg-emerald-50 dark:border-emerald-500/30 dark:text-emerald-400 dark:hover:bg-emerald-500/10" title="Opens WhatsApp for this guest with the message typed in. Nothing is sent until you press Send in WhatsApp.">
+                <MessageCircle className="h-3.5 w-3.5" /> Take me to WhatsApp
               </a>
+            ) : (
+              <span className="text-[11px] text-amber-700 dark:text-amber-400">No WhatsApp number with a country code: copy the message and send it yourself.</span>
             )}
             {canMarkSent ? (
               <button type="button" onClick={onMarkSent} disabled={saving} aria-label={`Mark ${m.id} as sent`} className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 disabled:opacity-60">
