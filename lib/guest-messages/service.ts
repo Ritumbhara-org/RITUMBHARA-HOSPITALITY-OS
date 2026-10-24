@@ -80,7 +80,8 @@ export function parseGuestMessageRows(formatted: Grid, unformatted: Grid): Guest
       type: text("Type"),
       bookingId: text("Booking ID"),
       bookingCode: text("Booking Code"),
-      guest: text("Guest"),
+      // "Guest Name" (the verified booking's guest name); tabs not yet updated by the Apps Script still call it "Guest".
+      guest: index.has("Guest Name") ? text("Guest Name") : text("Guest"),
       guestPhone: text("Guest WhatsApp"),
       property: text("Property"),
       checkIn: day("Check-in"),

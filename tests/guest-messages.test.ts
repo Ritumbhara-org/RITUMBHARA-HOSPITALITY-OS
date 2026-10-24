@@ -264,3 +264,16 @@ test("action: not configured is explained (names only); configured marks SENT th
   assert.equal(f.calls[0].url, EXEC_URL, "only the Apps Script is called: no WhatsApp, no Intellistay")
   assert.deepEqual(revalidated, ["/leads"])
 })
+
+test("Guest Name: read from the moved, renamed 'Guest Name' column (verified booking name); the old 'Guest' header still works", async () => {
+  // After the Apps Script's moveGuestNameColumns(): Created | Message ID | Guest Name | ... (no "Guest" column).
+  const moved = ["Created (IST)", "Message ID", "Guest Name", ...GM_HEADERS.filter((h) => !["Created (IST)", "Message ID", "Guest"].includes(h))]
+  assert.equal(moved.length, GM_HEADERS.length)
+  const values: Record<string, Raw> = { "Created (IST)": "2026-10-16 09:00:00", "Message ID": "GM-0000000000A1", "Guest Name": "Asha", Status: "READY", Type: "PRE_ARRIVAL", "Scheduled Date": "2026-10-18", "Send By": "2026-10-19", "Booking Code": "RIAA004", "Guest WhatsApp": "'+919876543210", Message: MESSAGE }
+  const sheet = sampleSheet().addTab("Guest Messages", [moved, moved.map((h) => (values[h] === undefined ? "" : values[h]))])
+  const [m] = (await listGuestMessages(apiFor(sheet))).messages
+  assert.deepEqual([m.id, m.guest, m.status, m.bookingCode, m.guestPhone, m.message], ["GM-0000000000A1", "Asha", "READY", "RIAA004", "+919876543210", MESSAGE])
+  // Today's tab (header "Guest"):
+  const [old] = (await listGuestMessages(apiFor(sheetWithMessages()))).messages
+  assert.equal(old.guest, "Asha")
+})

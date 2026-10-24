@@ -159,7 +159,7 @@ test("after the column move every field still maps by header; a status change wr
 })
 
 test("Qualified Leads with the new Guest Name column (name typed by the guest to the WhatsApp assistant) shows it", async () => {
-  const headers = [...QUALIFIED_HEADERS, "Status Updated (IST)", "Next Follow-up", "Score", "Priority", "Guest Name"]
+  const headers = [...QUALIFIED_HEADERS, "Guest Name"]
   const sheet = new FakeGoogleSheets().addTab("Qualified Leads", [
     headers,
     headers.map((h) => ({ "Received (IST)": "2026-10-24 11:00:00", "Lead ID": "L-00000000F1", Status: "New", Phone: "'+919000000001", Destination: "Jaipur", "Guest Name": "Asha Verma" } as Record<string, string>)[h] || ""),
@@ -167,4 +167,20 @@ test("Qualified Leads with the new Guest Name column (name typed by the guest to
   const [l] = (await load(sheet)).leads
   assert.equal(l.guestName, "Asha Verma")
   assert.match(text(await render([l])), /Asha Verma \+919000000001/)
+})
+
+test("Qualified Leads with Guest Name moved next to the Lead ID: fields map by header; status writes the moved Status column", async () => {
+  const base = [...QUALIFIED_HEADERS]
+  const moved = ["Received (IST)", "Lead ID", "Guest Name", "Status", "Phone", ...base.filter((h) => !["Received (IST)", "Lead ID", "Status", "Phone"].includes(h))]
+  assert.equal(new Set(moved).size, moved.length)
+  const values: Record<string, string> = { "Received (IST)": "2026-10-24 11:00:00", "Lead ID": "L-00000000F2", "Guest Name": "Asha Verma", Status: "New", Phone: "'+919000000001", Destination: "Jaipur", "Check-in": "2026-12-10" }
+  const sheet = new FakeGoogleSheets().addTab("Qualified Leads", [moved, moved.map((h) => values[h] || "")])
+  const [l] = (await load(sheet)).leads
+  assert.deepEqual([l.id, l.guestName, l.statusText, l.phone, l.destination, l.checkIn], ["L-00000000F2", "Asha Verma", "New", "+919000000001", "Jaipur", "2026-12-10"])
+  assert.match(text(await render([l])), /Asha Verma \+919000000001/)
+  const { updateLeadStatus } = await import("../lib/leads/service")
+  const api = createGoogleSheetsApi({ spreadsheetId: sheet.spreadsheetId, tokenSource: sheet.tokenSource(), fetchImpl: sheet.fetch })
+  await updateLeadStatus(api, { kind: "qualified", id: "L-00000000F2", status: "Contacted", expectedStatus: "New" }, new Date(NOW))
+  assert.equal(sheet.cell("Qualified Leads", "D2")?.formatted, "Contacted")
+  assert.equal(sheet.cell("Qualified Leads", "C2")?.formatted, "Asha Verma")
 })
