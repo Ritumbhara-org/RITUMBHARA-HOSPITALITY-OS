@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#5c0a20" />
+<title>Offline · Ritumbhara OS</title>
+<style>
+  :root { color-scheme: light dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: linear-gradient(160deg, #4a0518, #5c0a20 55%, #3a0312); color: #fff; text-align: center;
+  }
+  .card { max-width: 340px; }
+  img { width: 72px; height: 72px; border-radius: 18px; box-shadow: 0 8px 24px rgba(0,0,0,.3); }
+  h1 { font-size: 20px; margin: 20px 0 8px; }
+  p { font-size: 14px; line-height: 1.5; color: rgba(255,255,255,.75); margin: 0 0 24px; }
+  button {
+    font: inherit; font-weight: 600; font-size: 14px; border: 0; border-radius: 12px; padding: 12px 22px;
+    background: #fff; color: #5c0a20; cursor: pointer;
+  }
+</style>
+</head>
+<body>
+  <div class="card">
+    <img src="/icons/icon-192.png" alt="" />
+    <h1>You're offline</h1>
+    <p>Ritumbhara OS needs an internet connection. Check your Wi-Fi or mobile data and try again.</p>
+    <button onclick="location.reload()">Try again</button>
+  </div>
+</body>
+</html>
