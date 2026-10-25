@@ -100,6 +100,7 @@ model Property {
   knowledgeBase    LocationKnowledge?
   agentActionLogs  AgentActionLog[]
   inboxConversations InboxConversation[]
+  longStayBookings LongStayBooking[]
 }
 
 model Unit {
@@ -126,6 +127,7 @@ model Unit {
   reservations      Reservation[]
   tickets           Ticket[]
   housekeepingTasks HousekeepingTask[]
+  longStayBookings  LongStayBooking[]
 
   @@index([propertyId])
   @@index([status])
@@ -457,4 +459,116 @@ model AgentActionLog {
   @@index([agentName])
   @@index([actionType])
   @@index([propertyId])
+}
+
+// ---------- Long Stays: monthly / extended bookings made directly by the team ----------
+
+enum LongStayStatus {
+  UPCOMING
+  CHECKED_IN
+  CHECKED_OUT
+  CANCELLED
+}
+
+enum LongStayInclusion {
+  UNIT_ONLY
+  UNIT_ELECTRICITY
+  UNIT_ELECTRICITY_MAINTENANCE
+  ALL_INCLUSIVE
+}
+
+enum LongStayRateType {
+  PER_NIGHT
+  PER_MONTH
+}
+
+enum LongStayAgreementStatus {
+  SENT
+  VIEWED
+  SIGNED
+  VOIDED
+}
+
+model LongStayBooking {
+  id                String             @id @default(cuid())
+  status            LongStayStatus     @default(UPCOMING)
+  guestName         String
+  contactNumber     String
+  altContactNumber  String?
+  email             String?
+  occupants         Int                @default(1)
+  emergencyContact  String?
+  idType            String
+  idNumber          String
+  propertyId        String
+  unitId            String?
+  propertyType      String
+  checkIn           DateTime           @db.Date
+  checkOut          DateTime           @db.Date
+  nights            Int
+  inclusion         LongStayInclusion
+  rateType          LongStayRateType   @default(PER_MONTH)
+  rate              Float              @default(0)
+  totalAmount       Float              @default(0)
+  advancePaid       Float              @default(0)
+  paymentMode       String?
+  securityDeposit   Float              @default(0)
+  depositMode       String?
+  depositTerms      String             @db.Text
+  termsAccepted     Boolean            @default(false)
+  depositDeduction  Float              @default(0)
+  deductionReason   String?
+  depositRefundedOn DateTime?          @db.Date
+  idDocuments       String[]           @default([])
+  checkInMedia      String[]           @default([])
+  checkOutMedia     String[]           @default([])
+  notes             String?            @db.Text
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  property   Property            @relation(fields: [propertyId], references: [id])
+  unit       Unit?               @relation(fields: [unitId], references: [id], onDelete: SetNull)
+  agreements LongStayAgreement[]
+
+  @@index([propertyId])
+  @@index([unitId])
+  @@index([status])
+  @@index([checkIn])
+}
+
+// One e-sign request for a booking. Only a hash of the link token and of the OTP is stored.
+model LongStayAgreement {
+  id              String                  @id @default(cuid())
+  bookingId       String
+  status          LongStayAgreementStatus @default(SENT)
+  tokenHash       String                  @unique
+  snapshot        Json
+  snapshotHash    String
+  sentVia         String                  @default("LINK")
+  sentAt          DateTime                @default(now())
+  expiresAt       DateTime
+  viewedAt        DateTime?
+  otpHash         String?
+  otpExpiresAt    DateTime?
+  otpAttempts     Int                     @default(0)
+  otpSendCount    Int                     @default(0)
+  otpLastSentAt   DateTime?
+  lockedAt        DateTime?
+  phoneVerified   String?
+  phoneVerifiedAt DateTime?
+  signedAt        DateTime?
+  signerName      String?
+  signaturePath   String?
+  signerIp        String?
+  signerUserAgent String?
+  pdfPath         String?
+  voidedAt        DateTime?
+  voidReason      String?
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+
+  booking LongStayBooking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([bookingId])
+  @@index([status])
 }

@@ -17,7 +17,8 @@ import {
   ShieldCheck,
   Package,
   LineChart,
-  Target
+  Target,
+  CalendarRange
 } from 'lucide-react'
 
 const navigation = [
@@ -26,6 +27,7 @@ const navigation = [
   { name: 'Analytics', href: '/analytics', icon: LineChart },
   { name: 'Locations', href: '/locations', icon: MapPin },
   { name: 'Reservations', href: '/reservations', icon: CalendarCheck },
+  { name: 'Long Stays', href: '/long-stay', icon: CalendarRange },
   { name: 'Guests', href: '/guests', icon: Users },
   { name: 'Units', href: '/units', icon: BedDouble },
   { name: 'Operations', href: '/operations', icon: Wrench },
