@@ -175,7 +175,7 @@ test("proxy: cron paths need the secret, are not public, and an admin session do
 function routeFiles(dir: string): string[] {
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
     const p = path.join(dir, e.name)
-    return e.isDirectory() ? routeFiles(p) : e.name === "route.ts" ? [path.relative(root, p)] : []
+    return e.isDirectory() ? routeFiles(p) : e.name === "route.ts" ? [path.relative(root, p).replace(/\\/g, "/")] : []
   })
 }
 
@@ -189,17 +189,17 @@ const INTENTIONALLY_PUBLIC: Record<string, string> = {
 
 // Machine-only routes that check their own secret first (no admin session). See tests/inbox-auth.test.ts.
 const SELF_AUTHENTICATED_MACHINE: Record<string, RegExp> = {
-  "app/api/inbox/inbound-email/route.ts": /^\s*if \(!process\.env\.INBOX_WEBHOOK_SECRET\) \{[\s\S]{0,160}status: 503[\s\S]{0,40}\}\s*\n\s*if \(!authorized\(request\)\) \{[\s\S]{0,120}status: 401/,
+  "app/api/inbox/inbound-email/route.ts": /^\s*if \(!process\.env\.INBOX_WEBHOOK_SECRET\) \{[\s\S]{0,160}status: 503[\s\S]{0,40}\}\s*\r?\n\s*if \(!authorized\(request\)\) \{[\s\S]{0,120}status: 401/,
 }
 
 test("every API route is admin-only, cron-only, machine-only with its own secret, or on the intentional public list", () => {
   const unclassified: string[] = []
   for (const f of routeFiles(path.join(root, "app/api"))) {
     const src = fs.readFileSync(path.join(root, f), "utf8")
-    const handlers = Array.from(src.matchAll(/^export async function (GET|POST|PUT|PATCH|DELETE)\(([^)]*)\)[^{]*\{\n([\s\S]{0,400})/gm))
+    const handlers = Array.from(src.matchAll(/^export async function (GET|POST|PUT|PATCH|DELETE)\(([^)]*)\)[^{]*\{\r?\n([\s\S]{0,400})/gm))
     if (f.startsWith("app/api/cron/")) {
       assert.ok(handlers.length > 0, f)
-      for (const h of handlers) assert.match(h[3], /^\s*\/\/[^\n]*\n(\s*\/\/[^\n]*\n)*\s*const denied = cronGuard\(\w+\);\s*\n\s*if \(denied\) return denied;/, f + " " + h[1] + " must call cronGuard first")
+      for (const h of handlers) assert.match(h[3], /^\s*\/\/[^\r\n]*\r?\n(\s*\/\/[^\r\n]*\r?\n)*\s*const denied = cronGuard\(\w+\);\s*\r?\n\s*if \(denied\) return denied;/, f + " " + h[1] + " must call cronGuard first")
       continue
     }
     if (INTENTIONALLY_PUBLIC[f]) continue
@@ -208,7 +208,7 @@ test("every API route is admin-only, cron-only, machine-only with its own secret
       for (const h of handlers) assert.match(h[3], SELF_AUTHENTICATED_MACHINE[f], f + " " + h[1] + " must check its secret first")
       continue
     }
-    if (handlers.length && handlers.every((h) => /^\s*const denied = await adminApiGuard\(\)\s*\n\s*if \(denied\) return denied/.test(h[3]))) continue
+    if (handlers.length && handlers.every((h) => /^\s*const denied = await adminApiGuard\(\)\s*\r?\n\s*if \(denied\) return denied/.test(h[3]))) continue
     unclassified.push(f)
   }
   assert.deepEqual(unclassified, [])

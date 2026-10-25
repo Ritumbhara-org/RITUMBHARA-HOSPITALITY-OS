@@ -1,7 +1,6 @@
 import { NextResponse, after } from "next/server";
 import { syncBookings } from "@/lib/intellistay/sync";
 import { processAutoCheckinCheckout } from "@/lib/reservations/auto-status";
-import { processTeamReminders } from "@/lib/operations/reminders";
 import { cronGuard } from "@/lib/auth/cron";
 
 export const dynamic = 'force-dynamic';
@@ -26,9 +25,6 @@ export async function GET(request: Request) {
         
         console.log("Triggering auto check-in/out logic...");
         await processAutoCheckinCheckout();
-        
-        console.log("Triggering ticket/task reminders...");
-        await processTeamReminders();
       } catch (e) {
         console.error("Background task error:", e);
       }
