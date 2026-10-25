@@ -1,9 +1,13 @@
 -- Long Stays tables. Same result as `npx prisma db push` for this change.
--- Safe to run once in the Supabase/Postgres SQL editor: it only ADDS four enums and two tables.
--- Existing tables are not changed (Property/Unit get back-relations in Prisma only, no columns).
--- Wrapped in a transaction, so nothing is applied if any statement fails.
+-- Safe to run in Supabase/Postgres SQL editor: cleans up any partial types and creates fresh tables.
 
-BEGIN;
+-- Drop any partially created tables or types first
+DROP TABLE IF EXISTS "LongStayAgreement" CASCADE;
+DROP TABLE IF EXISTS "LongStayBooking" CASCADE;
+DROP TYPE IF EXISTS "LongStayStatus" CASCADE;
+DROP TYPE IF EXISTS "LongStayInclusion" CASCADE;
+DROP TYPE IF EXISTS "LongStayRateType" CASCADE;
+DROP TYPE IF EXISTS "LongStayAgreementStatus" CASCADE;
 
 CREATE TYPE "LongStayStatus" AS ENUM ('UPCOMING', 'CHECKED_IN', 'CHECKED_OUT', 'CANCELLED');
 CREATE TYPE "LongStayInclusion" AS ENUM ('UNIT_ONLY', 'UNIT_ELECTRICITY', 'UNIT_ELECTRICITY_MAINTENANCE', 'ALL_INCLUSIVE');
@@ -93,4 +97,3 @@ ALTER TABLE "LongStayBooking" ADD CONSTRAINT "LongStayBooking_propertyId_fkey" F
 ALTER TABLE "LongStayBooking" ADD CONSTRAINT "LongStayBooking_unitId_fkey" FOREIGN KEY ("unitId") REFERENCES "Unit"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 ALTER TABLE "LongStayAgreement" ADD CONSTRAINT "LongStayAgreement_bookingId_fkey" FOREIGN KEY ("bookingId") REFERENCES "LongStayBooking"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
-COMMIT;
