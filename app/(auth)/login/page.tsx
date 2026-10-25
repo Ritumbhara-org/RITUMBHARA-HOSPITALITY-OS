@@ -2,8 +2,11 @@ import { redirect } from "next/navigation"
 import { LoginForm } from "@/components/auth/login-form"
 import { getAdminSession } from "@/lib/auth/guard"
 import { safeNextPath } from "@/lib/auth/session"
+import type { Metadata } from "next"
+import { MANIFEST_PATH } from "@/lib/pwa/manifest"
 
 export const dynamic = "force-dynamic"
+export const metadata: Metadata = { manifest: MANIFEST_PATH }
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string | string[] }> }) {
   const params = await searchParams
