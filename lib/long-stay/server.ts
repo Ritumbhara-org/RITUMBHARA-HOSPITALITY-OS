@@ -98,7 +98,7 @@ export async function sendLongStayWhatsApp(msg: WhatsAppSend): Promise<{ ok: boo
   const accountSid = process.env.TWILIO_ACCOUNT_SID
   const authToken = process.env.TWILIO_AUTH_TOKEN
   const fromNumber = process.env.TWILIO_WHATSAPP_NUMBER
-  const contentSid = process.env[TEMPLATE_ENV[msg.kind]]
+  const contentSid = process.env[TEMPLATE_ENV[msg.kind]] || (msg.kind === "OTP" ? "HX8c5e5c076a4376aaf54525c658bdf46b" : undefined)
   const to = normalizePhoneNumber(msg.to)
   let status = "PENDING"
   let error: string | undefined
@@ -123,7 +123,23 @@ export async function sendLongStayWhatsApp(msg: WhatsAppSend): Promise<{ ok: boo
       } else {
         params.body = msg.body
       }
-      await client.messages.create(params as never)
+
+      try {
+        await client.messages.create(params as never)
+      } catch (sendErr) {
+        // If template send failed (e.g. Meta approval pending or unapproved content SID),
+        // gracefully fall back to plain-text body so guest still receives OTP without delay
+        if (params.contentSid && msg.body) {
+          console.warn("[Long Stay WhatsApp Notice] Template send failed, falling back to plain-text OTP delivery.")
+          delete params.contentSid
+          delete params.contentVariables
+          params.body = msg.body
+          await client.messages.create(params as never)
+        } else {
+          throw sendErr
+        }
+      }
+
       status = "DELIVERED"
     }
   } catch (err) {
