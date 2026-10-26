@@ -5,10 +5,11 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { createTicket } from "./operations";
 
+// propertyId "ALL" returns the stock of every location.
 export async function getInventoryItems(propertyId: string) {
   await requireAdmin()
   return prisma.inventoryItem.findMany({
-    where: { propertyId },
+    where: propertyId === "ALL" ? {} : { propertyId },
     orderBy: { category: 'asc' }
   });
 }

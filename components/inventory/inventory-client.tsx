@@ -35,6 +35,9 @@ export function InventoryClient({ initialItems, activePropertyId, properties, re
     item.category.toLowerCase().includes(search.toLowerCase())
   )
 
+  const showingAll = activePropertyId === "ALL"
+  const locationName = (id: string) => properties.find(p => p.id === id)?.name ?? ""
+
   const lowStockCount = items.filter(i => i.quantity < i.minThreshold).length
   const healthyCount = items.length - lowStockCount
 
@@ -72,7 +75,8 @@ export function InventoryClient({ initialItems, activePropertyId, properties, re
     const formData = new FormData(e.currentTarget)
     try {
       const newItem = await addInventoryItem({
-        propertyId: activePropertyId,
+        // With all locations showing, the form asks which location the item belongs to.
+        propertyId: showingAll ? (formData.get("propertyId") as string) : activePropertyId,
         name: formData.get("name") as string,
         category: formData.get("category") as string,
         quantity: parseInt(formData.get("quantity") as string),
@@ -104,10 +108,11 @@ export function InventoryClient({ initialItems, activePropertyId, properties, re
             <Select value={activePropertyId} onValueChange={handlePropertyChange}>
               <SelectTrigger className="w-auto min-w-0 max-w-full sm:min-w-[240px] h-9 border-none bg-transparent hover:bg-muted/50 focus:ring-0 px-2 -ml-2 rounded-lg font-bold text-lg">
                 <SelectValue placeholder="Select property...">
-                  {properties.find(p => p.id === activePropertyId)?.name}
+                  {showingAll ? "All locations" : locationName(activePropertyId)}
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="ALL" className="font-medium">All locations</SelectItem>
                 {properties.map(p => (
                   <SelectItem key={p.id} value={p.id} className="font-medium">
                     {p.name}
@@ -167,6 +172,17 @@ export function InventoryClient({ initialItems, activePropertyId, properties, re
                 Add New Inventory Item
               </h3>
               <form onSubmit={handleAddItem} className="grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-2 lg:grid-cols-5">
+                {showingAll && (
+                  <div className="col-span-2 md:col-span-2 lg:col-span-5 space-y-2">
+                    <label className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">Location</label>
+                    <select required name="propertyId" defaultValue="" className="flex h-11 w-full rounded-xl border border-input bg-background/50 px-3 py-2 text-sm transition-all focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary/50 lg:max-w-sm">
+                      <option value="" disabled>Select a location…</option>
+                      {properties.map(p => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 <div className="col-span-2 md:col-span-1 space-y-2">
                   <label className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">Item Name</label>
                   <input required name="name" className="flex h-11 w-full rounded-xl border border-input bg-background/50 px-3 py-2 text-sm transition-all focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary/50" placeholder="e.g. Toilet Paper" />
@@ -244,6 +260,7 @@ export function InventoryClient({ initialItems, activePropertyId, properties, re
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-semibold">{item.name}</p>
                     <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                      {showingAll && `${locationName(item.propertyId)} · `}
                       {item.category.replace('_', ' ')} · min {item.minThreshold}
                       {(item as { defaultDeduction?: number }).defaultDeduction ? ` · −${(item as { defaultDeduction?: number }).defaultDeduction}/clean` : ''}
                     </p>
@@ -316,7 +333,10 @@ export function InventoryClient({ initialItems, activePropertyId, properties, re
                           <div className={`h-8 w-8 rounded-lg flex items-center justify-center border ${isLowStock ? 'bg-red-50 border-red-100 text-red-500' : 'bg-primary/5 border-primary/10 text-primary'}`}>
                             <Package className="w-4 h-4" />
                           </div>
-                          <span className="font-semibold text-base">{item.name}</span>
+                          <div>
+                            <span className="font-semibold text-base">{item.name}</span>
+                            {showingAll && <p className="text-xs text-muted-foreground">{locationName(item.propertyId)}</p>}
+                          </div>
                         </div>
                       </td>
                       <td className="p-6 align-middle">
