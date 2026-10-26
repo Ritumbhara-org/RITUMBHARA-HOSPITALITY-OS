@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import twilio from "twilio";
 import { normalizePhoneNumber } from "@/lib/utils/phone";
+import { resolveWhatsAppProvider } from "@/lib/whatsapp/meta/config";
+import { sendWhatsAppMessageViaMeta } from "@/lib/whatsapp/meta/outbound";
 
 export async function sendWhatsAppMessage(
   toPhone: string,
@@ -11,6 +13,13 @@ export async function sendWhatsAppMessage(
   relatedEntityId?: string,
   templateVariables?: Record<string, string>
 ) {
+  // Meta WhatsApp runs alongside Twilio. Only when the provider resolves to "meta" (a message that arrived on the
+  // Meta number, or WHATSAPP_PROVIDER=meta after an approved cutover) does this hand off; otherwise the Twilio code
+  // below runs exactly as before.
+  if (resolveWhatsAppProvider() === "meta") {
+    return sendWhatsAppMessageViaMeta(toPhone, messageType, content, templateName, relatedEntityType, relatedEntityId, templateVariables);
+  }
+
   const accountSid = process.env.TWILIO_ACCOUNT_SID;
   const authToken = process.env.TWILIO_AUTH_TOKEN;
   const fromNumber = process.env.TWILIO_WHATSAPP_NUMBER;

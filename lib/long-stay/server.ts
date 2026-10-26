@@ -4,6 +4,7 @@ import { createHash, createHmac, randomBytes, randomInt, timingSafeEqual } from 
 import twilio from "twilio"
 import { prisma } from "@/lib/prisma"
 import { normalizePhoneNumber } from "@/lib/utils/phone"
+import { resolveWhatsAppProvider } from "@/lib/whatsapp/meta/config"
 import { canonicalJson, type AgreementSnapshot } from "./agreement"
 
 if (typeof window !== "undefined") {
@@ -95,6 +96,11 @@ export interface WhatsAppSend {
 }
 
 export async function sendLongStayWhatsApp(msg: WhatsAppSend): Promise<{ ok: boolean; error?: string }> {
+  // Meta WhatsApp runs alongside Twilio: hand off only when the provider resolves to "meta"; otherwise unchanged.
+  if (resolveWhatsAppProvider() === "meta") {
+    const { sendLongStayWhatsAppViaMeta } = await import("@/lib/whatsapp/meta/outbound")
+    return sendLongStayWhatsAppViaMeta({ ...msg, to: normalizePhoneNumber(msg.to) })
+  }
   const accountSid = process.env.TWILIO_ACCOUNT_SID
   const authToken = process.env.TWILIO_AUTH_TOKEN
   const fromNumber = process.env.TWILIO_WHATSAPP_NUMBER
