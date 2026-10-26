@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { X, Loader2 } from "lucide-react";
 import { createLocation, updateLocation } from "@/app/actions/locations";
+import { useTr } from "@/components/i18n/language-provider"
 
 interface LocationModalProps {
   isOpen: boolean;
@@ -11,6 +12,7 @@ interface LocationModalProps {
 }
 
 export function LocationModal({ isOpen, onClose, location }: LocationModalProps) {
+  const tr = useTr()
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
@@ -38,7 +40,7 @@ export function LocationModal({ isOpen, onClose, location }: LocationModalProps)
     setIsLoading(false);
 
     if (!res.success) {
-      setError(res.error || "Failed to save location");
+      setError(res.error || tr("Failed to save location"));
     } else {
       onClose();
     }
@@ -52,7 +54,7 @@ export function LocationModal({ isOpen, onClose, location }: LocationModalProps)
       >
         <div className="flex justify-between items-center px-5 py-4 sm:px-8 sm:py-6 border-b border-gray-100 bg-white/50">
           <h2 className="text-xl font-bold text-gray-900 tracking-tight">
-            {location ? "Edit Location" : "Add New Location"}
+            {location ? tr("Edit Location") : tr("Add New Location")}
           </h2>
           <button 
             onClick={onClose}
@@ -76,7 +78,7 @@ export function LocationModal({ isOpen, onClose, location }: LocationModalProps)
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
               <div className="sm:col-span-2">
                 <label htmlFor="name" className="block text-sm font-semibold text-gray-700 mb-2">
-                  Property Name *
+                  {tr("Property Name *")}
                 </label>
                 <input
                   type="text"
@@ -84,14 +86,14 @@ export function LocationModal({ isOpen, onClose, location }: LocationModalProps)
                   id="name"
                   required
                   defaultValue={location?.name}
-                  placeholder="e.g. Ritumbhara Jaipur"
+                  placeholder={tr("e.g. Ritumbhara Jaipur")}
                   className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 transition-all outline-none text-gray-900 placeholder:text-gray-400 font-medium"
                 />
               </div>
 
               <div className="sm:col-span-2">
                 <label htmlFor="city" className="block text-sm font-semibold text-gray-700 mb-2">
-                  City *
+                  {tr("City *")}
                 </label>
                 <input
                   type="text"
@@ -99,14 +101,14 @@ export function LocationModal({ isOpen, onClose, location }: LocationModalProps)
                   id="city"
                   required
                   defaultValue={location?.city}
-                  placeholder="e.g. Jaipur"
+                  placeholder={tr("e.g. Jaipur")}
                   className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 transition-all outline-none text-gray-900 placeholder:text-gray-400"
                 />
               </div>
 
               <div className="sm:col-span-2">
                 <label htmlFor="address" className="block text-sm font-semibold text-gray-700 mb-2">
-                  Full Address
+                  {tr("Full Address")}
                 </label>
                 <textarea
                   name="address"
@@ -119,7 +121,7 @@ export function LocationModal({ isOpen, onClose, location }: LocationModalProps)
 
               <div>
                 <label htmlFor="state" className="block text-sm font-semibold text-gray-700 mb-2">
-                  State
+                  {tr("State")}
                 </label>
                 <input
                   type="text"
@@ -132,7 +134,7 @@ export function LocationModal({ isOpen, onClose, location }: LocationModalProps)
 
               <div>
                 <label htmlFor="country" className="block text-sm font-semibold text-gray-700 mb-2">
-                  Country
+                  {tr("Country")}
                 </label>
                 <input
                   type="text"
@@ -145,7 +147,7 @@ export function LocationModal({ isOpen, onClose, location }: LocationModalProps)
               
               <div>
                 <label htmlFor="phone" className="block text-sm font-semibold text-gray-700 mb-2">
-                  Contact Phone
+                  {tr("Contact Phone")}
                 </label>
                 <input
                   type="text"
@@ -158,7 +160,7 @@ export function LocationModal({ isOpen, onClose, location }: LocationModalProps)
 
               <div>
                 <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-2">
-                  Contact Email
+                  {tr("Contact Email")}
                 </label>
                 <input
                   type="email"
@@ -171,42 +173,42 @@ export function LocationModal({ isOpen, onClose, location }: LocationModalProps)
 
               <div className="sm:col-span-2">
                 <label htmlFor="googleMapsUrl" className="block text-sm font-semibold text-gray-700 mb-2">
-                  Google Maps URL
+                  {tr("Google Maps URL")}
                 </label>
                 <input
                   type="url"
                   name="googleMapsUrl"
                   id="googleMapsUrl"
                   defaultValue={location?.googleMapsUrl}
-                  placeholder="https://maps.app.goo.gl/..."
+                  placeholder={tr("https://maps.app.goo.gl/...")}
                   className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 transition-all outline-none text-gray-900 placeholder:text-gray-400"
                 />
               </div>
 
               <div>
                 <label htmlFor="wifiNetwork" className="block text-sm font-semibold text-gray-700 mb-2">
-                  WiFi Network Name
+                  {tr("WiFi Network Name")}
                 </label>
                 <input
                   type="text"
                   name="wifiNetwork"
                   id="wifiNetwork"
                   defaultValue={location?.wifiNetwork}
-                  placeholder="e.g. Ritumbhara_Guest"
+                  placeholder={tr("e.g. Ritumbhara_Guest")}
                   className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 transition-all outline-none text-gray-900 placeholder:text-gray-400"
                 />
               </div>
 
               <div>
                 <label htmlFor="wifiPassword" className="block text-sm font-semibold text-gray-700 mb-2">
-                  WiFi Password
+                  {tr("WiFi Password")}
                 </label>
                 <input
                   type="text"
                   name="wifiPassword"
                   id="wifiPassword"
                   defaultValue={location?.wifiPassword}
-                  placeholder="e.g. Password123"
+                  placeholder={tr("e.g. Password123")}
                   className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 transition-all outline-none text-gray-900 placeholder:text-gray-400"
                 />
               </div>
@@ -221,7 +223,7 @@ export function LocationModal({ isOpen, onClose, location }: LocationModalProps)
             className="px-6 py-2.5 text-sm font-semibold text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-colors active:scale-95"
             disabled={isLoading}
           >
-            Cancel
+            {tr("Cancel")}
           </button>
           <button
             type="submit"
@@ -230,7 +232,7 @@ export function LocationModal({ isOpen, onClose, location }: LocationModalProps)
             className="inline-flex items-center justify-center gap-2 px-6 py-2.5 text-sm font-semibold text-white bg-gray-900 rounded-xl hover:bg-gray-800 transition-all active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed shadow-sm hover:shadow"
           >
             {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-            {location ? "Save Changes" : "Create Location"}
+            {location ? tr("Save Changes") : tr("Create Location")}
           </button>
         </div>
       </div>

@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { TeamMember, Property } from "@prisma/client";
 import { X, Loader2 } from "lucide-react";
 import { createTeamMember, updateTeamMember } from "@/app/actions/team";
+import { useTr } from "@/components/i18n/language-provider"
 
 interface TeamModalProps {
   isOpen: boolean;
@@ -13,6 +14,7 @@ interface TeamModalProps {
 }
 
 export function TeamModal({ isOpen, onClose, member, properties }: TeamModalProps) {
+  const tr = useTr()
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
@@ -43,7 +45,7 @@ export function TeamModal({ isOpen, onClose, member, properties }: TeamModalProp
     setIsLoading(false);
 
     if (!res.success) {
-      setError(res.error || "Failed to save team member");
+      setError(res.error || tr("Failed to save team member"));
     } else {
       onClose();
     }
@@ -57,7 +59,7 @@ export function TeamModal({ isOpen, onClose, member, properties }: TeamModalProp
       >
         <div className="flex justify-between items-center px-5 py-4 sm:px-8 sm:py-6 border-b border-gray-100 bg-white/50">
           <h2 className="text-xl font-bold text-gray-900 tracking-tight">
-            {member ? "Edit Team Member" : "Add Team Member"}
+            {member ? tr("Edit Team Member") : tr("Add Team Member")}
           </h2>
           <button 
             onClick={onClose}
@@ -81,7 +83,7 @@ export function TeamModal({ isOpen, onClose, member, properties }: TeamModalProp
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
               <div className="sm:col-span-2">
                 <label htmlFor="name" className="block text-sm font-semibold text-gray-700 mb-2">
-                  Full Name
+                  {tr("Full Name")}
                 </label>
                 <input
                   type="text"
@@ -89,14 +91,14 @@ export function TeamModal({ isOpen, onClose, member, properties }: TeamModalProp
                   id="name"
                   required
                   defaultValue={member?.name}
-                  placeholder="e.g. John Doe"
+                  placeholder={tr("e.g. John Doe")}
                   className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 transition-all outline-none text-gray-900 placeholder:text-gray-400 font-medium"
                 />
               </div>
 
               <div>
                 <label htmlFor="phone" className="block text-sm font-semibold text-gray-700 mb-2">
-                  Phone Number
+                  {tr("Phone Number")}
                 </label>
                 <input
                   type="tel"
@@ -111,7 +113,7 @@ export function TeamModal({ isOpen, onClose, member, properties }: TeamModalProp
 
               <div>
                 <label htmlFor="whatsappNumber" className="block text-sm font-semibold text-gray-700 mb-2">
-                  WhatsApp Number
+                  {tr("WhatsApp Number")}
                 </label>
                 <input
                   type="tel"
@@ -126,7 +128,7 @@ export function TeamModal({ isOpen, onClose, member, properties }: TeamModalProp
 
               <div className="sm:col-span-2">
                 <label htmlFor="propertyId" className="block text-sm font-semibold text-gray-700 mb-2">
-                  Assigned Location / Property
+                  {tr("Assigned Location / Property")}
                 </label>
                 <select
                   name="propertyId"
@@ -135,7 +137,7 @@ export function TeamModal({ isOpen, onClose, member, properties }: TeamModalProp
                   defaultValue={member?.propertyId || ""}
                   className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 transition-all outline-none text-gray-900 appearance-none"
                 >
-                  <option value="" disabled>Select a location...</option>
+                  <option value="" disabled>{tr("Select a location...")}</option>
                   {properties.map(p => (
                     <option key={p.id} value={p.id}>{p.name}</option>
                   ))}
@@ -144,7 +146,7 @@ export function TeamModal({ isOpen, onClose, member, properties }: TeamModalProp
 
               <div>
                 <label htmlFor="department" className="block text-sm font-semibold text-gray-700 mb-2">
-                  Department
+                  {tr("Department")}
                 </label>
                 <select
                   name="department"
@@ -153,18 +155,18 @@ export function TeamModal({ isOpen, onClose, member, properties }: TeamModalProp
                   defaultValue={member?.department || "HOUSEKEEPING"}
                   className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 transition-all outline-none text-gray-900 appearance-none"
                 >
-                  <option value="HOUSEKEEPING">Housekeeping</option>
-                  <option value="MAINTENANCE">Maintenance</option>
-                  <option value="FRONT_DESK">Front Desk</option>
-                  <option value="MANAGEMENT">Management</option>
-                  <option value="IT">IT Support</option>
-                  <option value="INVENTORY">Inventory</option>
+                  <option value="HOUSEKEEPING">{tr("Housekeeping")}</option>
+                  <option value="MAINTENANCE">{tr("Maintenance")}</option>
+                  <option value="FRONT_DESK">{tr("Front Desk")}</option>
+                  <option value="MANAGEMENT">{tr("Management")}</option>
+                  <option value="IT">{tr("IT Support")}</option>
+                  <option value="INVENTORY">{tr("Inventory")}</option>
                 </select>
               </div>
 
               <div>
                 <label htmlFor="role" className="block text-sm font-semibold text-gray-700 mb-2">
-                  Role
+                  {tr("Role")}
                 </label>
                 <select
                   name="role"
@@ -173,16 +175,16 @@ export function TeamModal({ isOpen, onClose, member, properties }: TeamModalProp
                   defaultValue={member?.role || "STAFF"}
                   className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 transition-all outline-none text-gray-900 appearance-none"
                 >
-                  <option value="STAFF">Staff</option>
-                  <option value="SUPERVISOR">Supervisor</option>
-                  <option value="MANAGER">Manager</option>
-                  <option value="ADMIN">Admin</option>
+                  <option value="STAFF">{tr("Staff")}</option>
+                  <option value="SUPERVISOR">{tr("Supervisor")}</option>
+                  <option value="MANAGER">{tr("Manager")}</option>
+                  <option value="ADMIN">{tr("Admin")}</option>
                 </select>
               </div>
 
               <div className="sm:col-span-2">
                 <label htmlFor="isActive" className="block text-sm font-semibold text-gray-700 mb-2">
-                  Status
+                  {tr("Status")}
                 </label>
                 <select
                   name="isActive"
@@ -191,8 +193,8 @@ export function TeamModal({ isOpen, onClose, member, properties }: TeamModalProp
                   defaultValue={member ? (member.isActive ? "true" : "false") : "true"}
                   className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 transition-all outline-none text-gray-900 appearance-none"
                 >
-                  <option value="true">Active (Receives Tickets)</option>
-                  <option value="false">Inactive (Off Duty)</option>
+                  <option value="true">{tr("Active (Receives Tickets)")}</option>
+                  <option value="false">{tr("Inactive (Off Duty)")}</option>
                 </select>
               </div>
             </div>
@@ -206,7 +208,7 @@ export function TeamModal({ isOpen, onClose, member, properties }: TeamModalProp
             className="px-6 py-2.5 text-sm font-semibold text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-colors active:scale-95"
             disabled={isLoading}
           >
-            Cancel
+            {tr("Cancel")}
           </button>
           <button
             type="submit"
@@ -215,7 +217,7 @@ export function TeamModal({ isOpen, onClose, member, properties }: TeamModalProp
             className="inline-flex items-center justify-center gap-2 px-6 py-2.5 text-sm font-semibold text-white bg-gray-900 rounded-xl hover:bg-gray-800 transition-all active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed shadow-sm hover:shadow"
           >
             {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-            {member ? "Save Changes" : "Add Member"}
+            {member ? tr("Save Changes") : tr("Add Member")}
           </button>
         </div>
       </div>

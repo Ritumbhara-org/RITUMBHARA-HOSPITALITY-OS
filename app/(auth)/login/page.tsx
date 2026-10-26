@@ -4,6 +4,8 @@ import { getAdminSession } from "@/lib/auth/guard"
 import { safeNextPath } from "@/lib/auth/session"
 import type { Metadata } from "next"
 import { MANIFEST_PATH } from "@/lib/pwa/manifest"
+import { LanguageProvider } from "@/components/i18n/language-provider"
+import { getLang } from "@/lib/i18n/server"
 
 export const dynamic = "force-dynamic"
 export const metadata: Metadata = { manifest: MANIFEST_PATH }
@@ -13,5 +15,9 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   const next = safeNextPath(Array.isArray(params.next) ? params.next[0] : params.next)
   // Already signed in: go straight to the OS.
   if (await getAdminSession()) redirect(next)
-  return <LoginForm next={next} />
+  return (
+    <LanguageProvider initialLang={await getLang()}>
+      <LoginForm next={next} />
+    </LanguageProvider>
+  )
 }

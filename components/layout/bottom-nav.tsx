@@ -4,14 +4,16 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { MoreHorizontal } from "lucide-react"
 import { bottomTabs as tabs, isActivePath } from "./nav-items"
+import { useTr } from "@/components/i18n/language-provider"
 
 // Phone-only tab bar. Thumb-reachable, sits above the home indicator on notched phones.
 export function BottomNav({ onMore }: { onMore: () => void }) {
+  const tr = useTr()
   const pathname = usePathname()
   const onTab = tabs.some((t) => isActivePath(pathname, t.href))
   return (
     <nav
-      aria-label="Quick"
+      aria-label={tr("Quick")}
       className="relative z-40 shrink-0 border-t border-border/60 bg-background/95 backdrop-blur-xl pb-[env(safe-area-inset-bottom)] sm:hidden"
     >
       <div className="grid h-16 grid-cols-5">
@@ -29,7 +31,7 @@ export function BottomNav({ onMore }: { onMore: () => void }) {
               <span className={`flex h-7 w-12 items-center justify-center rounded-full transition-colors ${active ? "bg-primary/10" : ""}`}>
                 <tab.icon className="h-[20px] w-[20px]" aria-hidden />
               </span>
-              {tab.name}
+              {tr(tab.name)}
             </Link>
           )
         })}
@@ -43,7 +45,7 @@ export function BottomNav({ onMore }: { onMore: () => void }) {
           <span className={`flex h-7 w-12 items-center justify-center rounded-full ${onTab ? "" : "bg-primary/10"}`}>
             <MoreHorizontal className="h-[20px] w-[20px]" aria-hidden />
           </span>
-          More
+          {tr("More")}
         </button>
       </div>
     </nav>

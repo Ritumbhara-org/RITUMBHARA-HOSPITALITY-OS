@@ -7,8 +7,10 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import { useTr } from "@/components/i18n/language-provider"
 
 export function SeoClient({ properties }: { properties: any[] }) {
+  const tr = useTr()
   const [isLoading, setIsLoading] = useState(false)
   const [result, setResult] = useState<any | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -30,7 +32,7 @@ export function SeoClient({ properties }: { properties: any[] }) {
       location: formData.get("location"),
       city: formData.get("city"),
       state: formData.get("state"),
-      country: formData.get("country") || "India",
+      country: formData.get("country") || tr("India"),
       amenities,
       description: formData.get("description"),
       propertyType: formData.get("propertyType"),
@@ -45,7 +47,7 @@ export function SeoClient({ properties }: { properties: any[] }) {
         body: JSON.stringify(payload)
       })
       const data = await res.json()
-      if (!res.ok || !data.success) throw new Error(data.error || "Failed to generate SEO package")
+      if (!res.ok || !data.success) throw new Error(data.error || tr("Failed to generate SEO package"))
       setResult(data.data)
     } catch (err: any) {
       setError(err.message)
@@ -69,10 +71,10 @@ export function SeoClient({ properties }: { properties: any[] }) {
           <div className="rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 p-2 shadow-lg shadow-violet-500/20">
             <Sparkles className="h-5 w-5 text-white" />
           </div>
-          SEO Automation
+          {tr("SEO Automation")}
         </h1>
         <p className="text-muted-foreground text-sm max-w-2xl sm:ml-[44px]">
-          Generate comprehensive Meta tags, FAQs, H1/H2 structures, and JSON-LD Schema markup for your properties.
+          {tr("Generate comprehensive Meta tags, FAQs, H1/H2 structures, and JSON-LD Schema markup for your properties.")}
         </p>
       </div>
 
@@ -80,70 +82,70 @@ export function SeoClient({ properties }: { properties: any[] }) {
         <div className="lg:col-span-4 flex flex-col lg:h-full bg-card border border-border/60 rounded-2xl shadow-sm overflow-hidden shrink-0">
           <div className="p-4 border-b border-border/40 font-semibold bg-muted/20 shrink-0 text-sm flex items-center gap-2">
             <div className="h-1.5 w-1.5 rounded-full bg-violet-500" />
-            Property Details
+            {tr("Property Details")}
           </div>
           <div className="p-4 lg:overflow-y-auto lg:flex-1">
             <form id="seo-form" onSubmit={handleSubmit} className="flex flex-col gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="propertyName">Property Name *</Label>
-                <Input id="propertyName" name="propertyName" placeholder="e.g. Ritumbhara Megacity" required className="rounded-xl" />
+                <Label htmlFor="propertyName">{tr("Property Name *")}</Label>
+                <Input id="propertyName" name="propertyName" placeholder={tr("e.g. Ritumbhara Megacity")} required className="rounded-xl" />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="propertyType">Property Type *</Label>
+                <Label htmlFor="propertyType">{tr("Property Type *")}</Label>
                 <Select name="propertyType" defaultValue="hotel">
                   <SelectTrigger className="rounded-xl">
-                    <SelectValue placeholder="Select type" />
+                    <SelectValue placeholder={tr("Select type")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="hotel">Hotel</SelectItem>
-                    <SelectItem value="resort">Resort</SelectItem>
-                    <SelectItem value="villa">Villa</SelectItem>
-                    <SelectItem value="boutique hotel">Boutique Hotel</SelectItem>
-                    <SelectItem value="serviced apartment">Serviced Apartment</SelectItem>
-                    <SelectItem value="guesthouse">Guesthouse</SelectItem>
+                    <SelectItem value="hotel">{tr("Hotel")}</SelectItem>
+                    <SelectItem value="resort">{tr("Resort")}</SelectItem>
+                    <SelectItem value="villa">{tr("Villa")}</SelectItem>
+                    <SelectItem value="boutique hotel">{tr("Boutique Hotel")}</SelectItem>
+                    <SelectItem value="serviced apartment">{tr("Serviced Apartment")}</SelectItem>
+                    <SelectItem value="guesthouse">{tr("Guesthouse")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="starRating">Star Rating</Label>
+                  <Label htmlFor="starRating">{tr("Star Rating")}</Label>
                   <Input id="starRating" name="starRating" type="number" min="1" max="5" placeholder="e.g. 5" className="rounded-xl" />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="priceRange">Price Range</Label>
+                  <Label htmlFor="priceRange">{tr("Price Range")}</Label>
                   <Input id="priceRange" name="priceRange" placeholder="e.g. ₹2000 - ₹8000" className="rounded-xl" />
                 </div>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="location">Street / Area Location *</Label>
-                <Input id="location" name="location" placeholder="e.g. Patia, Near KIIT" required className="rounded-xl" />
+                <Label htmlFor="location">{tr("Street / Area Location *")}</Label>
+                <Input id="location" name="location" placeholder={tr("e.g. Patia, Near KIIT")} required className="rounded-xl" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="city">City *</Label>
-                  <Input id="city" name="city" placeholder="e.g. Bhubaneswar" required className="rounded-xl" />
+                  <Label htmlFor="city">{tr("City *")}</Label>
+                  <Input id="city" name="city" placeholder={tr("e.g. Bhubaneswar")} required className="rounded-xl" />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="state">State</Label>
-                  <Input id="state" name="state" placeholder="e.g. Odisha" className="rounded-xl" />
+                  <Label htmlFor="state">{tr("State")}</Label>
+                  <Input id="state" name="state" placeholder={tr("e.g. Odisha")} className="rounded-xl" />
                 </div>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="amenities">Amenities (Comma separated) *</Label>
+                <Label htmlFor="amenities">{tr("Amenities (Comma separated) *")}</Label>
                 <Textarea 
                   id="amenities" 
                   name="amenities" 
-                  placeholder="Free WiFi, Swimming Pool, Spa, Free Parking" 
+                  placeholder={tr("Free WiFi, Swimming Pool, Spa, Free Parking")} 
                   className="min-h-[60px] rounded-xl"
                   required 
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="description">Short Description *</Label>
+                <Label htmlFor="description">{tr("Short Description *")}</Label>
                 <Textarea 
                   id="description" 
                   name="description" 
-                  placeholder="A brief description of what makes this property special..." 
+                  placeholder={tr("A brief description of what makes this property special...")} 
                   className="min-h-[100px] rounded-xl"
                   required 
                 />
@@ -155,11 +157,11 @@ export function SeoClient({ properties }: { properties: any[] }) {
               >
                 {isLoading ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin" /> Generating Package...
+                    <Loader2 className="h-4 w-4 animate-spin" /> {tr("Generating Package...")}
                   </>
                 ) : (
                   <>
-                    <Sparkles className="h-4 w-4" /> Generate SEO Package
+                    <Sparkles className="h-4 w-4" /> {tr("Generate SEO Package")}
                   </>
                 )}
               </button>
@@ -170,13 +172,13 @@ export function SeoClient({ properties }: { properties: any[] }) {
         <div className="lg:col-span-8 flex flex-col lg:h-full bg-muted/20 border border-border/60 rounded-2xl overflow-hidden shrink-0">
           <div className="p-4 border-b border-border/40 font-semibold bg-card shrink-0 text-sm flex items-center gap-2">
             <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-            SEO Outputs
+            {tr("SEO Outputs")}
           </div>
           <div className="p-4 lg:overflow-y-auto lg:flex-1">
             {!result && !isLoading && !error && (
               <div className="h-full flex flex-col items-center justify-center text-muted-foreground">
                 <Sparkles className="h-12 w-12 mb-4 opacity-20" />
-                <p className="text-sm font-medium">Fill out the property details and generate to see results.</p>
+                <p className="text-sm font-medium">{tr("Fill out the property details and generate to see results.")}</p>
               </div>
             )}
 
@@ -190,7 +192,7 @@ export function SeoClient({ properties }: { properties: any[] }) {
             {isLoading && (
               <div className="h-full flex flex-col items-center justify-center text-muted-foreground">
                 <Loader2 className="h-8 w-8 animate-spin mb-4 text-violet-500" />
-                <p className="text-sm font-medium">Analyzing and generating SEO structures...</p>
+                <p className="text-sm font-medium">{tr("Analyzing and generating SEO structures...")}</p>
               </div>
             )}
 
@@ -203,10 +205,10 @@ export function SeoClient({ properties }: { properties: any[] }) {
                 <div className="flex flex-col gap-3">
                   <h3 className="font-semibold text-sm flex items-center gap-2">
                     <div className="h-1.5 w-1.5 rounded-full bg-violet-500" />
-                    Meta Tags
+                    {tr("Meta Tags")}
                   </h3>
                   <div className="relative group rounded-xl border border-border/60 bg-card p-4 shadow-sm">
-                    <p className="text-[10px] font-bold text-muted-foreground mb-1.5 uppercase tracking-wider">Meta Title ({result.metaTitle.length} chars)</p>
+                    <p className="text-[10px] font-bold text-muted-foreground mb-1.5 uppercase tracking-wider">Meta Title ({result.metaTitle.length} {tr("chars)")}</p>
                     <p className="text-sm font-medium text-foreground pr-8">{result.metaTitle}</p>
                     <button 
                       onClick={() => copyToClipboard(result.metaTitle, 'metaTitle')}
@@ -216,7 +218,7 @@ export function SeoClient({ properties }: { properties: any[] }) {
                     </button>
                   </div>
                   <div className="relative group rounded-xl border border-border/60 bg-card p-4 shadow-sm">
-                    <p className="text-[10px] font-bold text-muted-foreground mb-1.5 uppercase tracking-wider">Meta Description ({result.metaDescription.length} chars)</p>
+                    <p className="text-[10px] font-bold text-muted-foreground mb-1.5 uppercase tracking-wider">Meta Description ({result.metaDescription.length} {tr("chars)")}</p>
                     <p className="text-sm text-muted-foreground pr-8 leading-relaxed">{result.metaDescription}</p>
                     <button 
                       onClick={() => copyToClipboard(result.metaDescription, 'metaDesc')}
@@ -230,10 +232,10 @@ export function SeoClient({ properties }: { properties: any[] }) {
                 <div className="flex flex-col gap-3">
                   <h3 className="font-semibold text-sm flex items-center gap-2">
                     <div className="h-1.5 w-1.5 rounded-full bg-blue-500" />
-                    Headings & Content
+                    {tr("Headings & Content")}
                   </h3>
                   <div className="relative group rounded-xl border border-border/60 bg-card p-4 shadow-sm">
-                    <p className="text-[10px] font-bold text-muted-foreground mb-1.5 uppercase tracking-wider">H1 Heading</p>
+                    <p className="text-[10px] font-bold text-muted-foreground mb-1.5 uppercase tracking-wider">{tr("H1 Heading")}</p>
                     <p className="text-xl font-bold text-foreground pr-8">{result.h1}</p>
                     <button 
                       onClick={() => copyToClipboard(result.h1, 'h1')}
@@ -243,7 +245,7 @@ export function SeoClient({ properties }: { properties: any[] }) {
                     </button>
                   </div>
                   <div className="relative group rounded-xl border border-border/60 bg-card p-4 shadow-sm">
-                    <p className="text-[10px] font-bold text-muted-foreground mb-2 uppercase tracking-wider">H2 Headings</p>
+                    <p className="text-[10px] font-bold text-muted-foreground mb-2 uppercase tracking-wider">{tr("H2 Headings")}</p>
                     <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1.5">
                       {result.h2s.map((h2: string, i: number) => (
                         <li key={i} className="leading-relaxed">{h2}</li>
@@ -261,7 +263,7 @@ export function SeoClient({ properties }: { properties: any[] }) {
                 <div className="flex flex-col gap-3">
                   <h3 className="font-semibold text-sm flex items-center gap-2">
                     <div className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-                    Image ALT Text Suggestions
+                    {tr("Image ALT Text Suggestions")}
                   </h3>
                   <div className="relative group rounded-xl border border-border/60 bg-card p-4 shadow-sm">
                     <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1.5">
@@ -281,7 +283,7 @@ export function SeoClient({ properties }: { properties: any[] }) {
                 <div className="flex flex-col gap-3">
                   <h3 className="font-semibold text-sm flex items-center gap-2">
                     <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                    Frequently Asked Questions
+                    {tr("Frequently Asked Questions")}
                   </h3>
                   <div className="relative group rounded-xl border border-border/60 bg-card p-4 shadow-sm flex flex-col gap-4">
                     {result.faqs.map((faq: any, i: number) => (
@@ -296,7 +298,7 @@ export function SeoClient({ properties }: { properties: any[] }) {
                 <div className="flex flex-col gap-3">
                   <h3 className="font-semibold text-sm flex items-center gap-2">
                     <div className="h-1.5 w-1.5 rounded-full bg-rose-500" />
-                    JSON-LD Schema Markup
+                    {tr("JSON-LD Schema Markup")}
                   </h3>
                   <div className="relative group rounded-xl border border-border/60 bg-[#0d1117] p-4 shadow-sm overflow-hidden">
                     <pre className="text-xs text-emerald-400 font-mono overflow-x-auto pb-2 leading-relaxed">

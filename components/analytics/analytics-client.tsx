@@ -15,6 +15,7 @@ import {
   BarChart2
 } from "lucide-react";
 import { toast } from "sonner";
+import { useTr } from "@/components/i18n/language-provider"
 
 interface AnalyticsData {
   revenue: {
@@ -39,6 +40,7 @@ interface AnalyticsData {
 }
 
 export function AnalyticsClient() {
+  const tr = useTr()
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [timeframe, setTimeframe] = useState("This Month");
@@ -52,21 +54,21 @@ export function AnalyticsClient() {
           const json = await res.json();
           setData(json);
         } else {
-          toast.error("Failed to load analytics");
+          toast.error(tr("Failed to load analytics"));
         }
       } catch (err) {
-        toast.error("Failed to load analytics");
+        toast.error(tr("Failed to load analytics"));
       } finally {
         setIsLoading(false);
       }
     };
     fetchData();
-  }, [timeframe]);
+  }, [timeframe, tr]);
 
   if (isLoading || !data) {
     return (
       <div className="space-y-5 sm:space-y-8 pb-4 sm:p-8">
-        <h1 className="text-xl sm:text-3xl font-bold tracking-tight text-gray-900">Analytics & Performance</h1>
+        <h1 className="text-xl sm:text-3xl font-bold tracking-tight text-gray-900">{tr("Analytics & Performance")}</h1>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-3 sm:gap-6">
           {[1, 2, 3, 4].map((i) => (
             <div key={i} className="h-32 w-full rounded-2xl bg-gray-200 animate-pulse" />
@@ -85,8 +87,8 @@ export function AnalyticsClient() {
     <div className="space-y-6 sm:space-y-10 pb-4 sm:p-8 animate-in fade-in duration-500">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <h1 className="text-xl sm:text-3xl font-bold tracking-tight text-gray-900">Analytics & Performance</h1>
-          <p className="text-sm sm:text-base text-gray-500 mt-1">Management overview for revenue, operations, and guests.</p>
+          <h1 className="text-xl sm:text-3xl font-bold tracking-tight text-gray-900">{tr("Analytics & Performance")}</h1>
+          <p className="text-sm sm:text-base text-gray-500 mt-1">{tr("Management overview for revenue, operations, and guests.")}</p>
         </div>
         <div className="flex gap-2 w-full sm:w-auto">
           <select 
@@ -94,9 +96,9 @@ export function AnalyticsClient() {
             onChange={(e) => setTimeframe(e.target.value)}
             className="w-full sm:w-auto h-11 sm:h-auto bg-white border border-gray-200 text-sm rounded-xl sm:rounded-lg px-3 py-2 text-gray-700 outline-none focus:ring-2 focus:ring-rose-500/20"
           >
-            <option value="This Month">This Month</option>
-            <option value="Last Month">Last Month</option>
-            <option value="Year to Date">Year to Date</option>
+            <option value="This Month">{tr("This Month")}</option>
+            <option value="Last Month">{tr("Last Month")}</option>
+            <option value="Year to Date">{tr("Year to Date")}</option>
           </select>
         </div>
       </div>
@@ -105,7 +107,7 @@ export function AnalyticsClient() {
       <section>
         <div className="flex items-center gap-2 mb-4">
           <TrendingUp className="w-5 h-5 text-rose-600" />
-          <h2 className="text-lg font-bold text-gray-900">Revenue & Occupancy</h2>
+          <h2 className="text-lg font-bold text-gray-900">{tr("Revenue & Occupancy")}</h2>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-6">
@@ -113,7 +115,7 @@ export function AnalyticsClient() {
             <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
               <DollarSign className="w-24 h-24" />
             </div>
-            <p className="text-sm font-medium text-gray-500 mb-1 uppercase tracking-wider">Total Revenue</p>
+            <p className="text-sm font-medium text-gray-500 mb-1 uppercase tracking-wider">{tr("Total Revenue")}</p>
             <p className="text-3xl sm:text-4xl font-bold text-gray-900">{formatCurrency(revenue.total)}</p>
             <div className="mt-4 inline-flex items-center gap-1 text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">
               <TrendingUp className="w-3 h-3" /> +12.5% vs last month
@@ -124,7 +126,7 @@ export function AnalyticsClient() {
             <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
               <Building className="w-24 h-24" />
             </div>
-            <p className="text-sm font-medium text-gray-500 mb-1 uppercase tracking-wider">Occupancy Rate</p>
+            <p className="text-sm font-medium text-gray-500 mb-1 uppercase tracking-wider">{tr("Occupancy Rate")}</p>
             <p className="text-3xl sm:text-4xl font-bold text-gray-900">{revenue.occupancyRate.toFixed(1)}%</p>
             <div className="mt-4 w-full bg-gray-100 rounded-full h-2 overflow-hidden">
               <div 
@@ -138,9 +140,9 @@ export function AnalyticsClient() {
             <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
               <BarChart2 className="w-24 h-24" />
             </div>
-            <p className="text-sm font-medium text-gray-500 mb-1 uppercase tracking-wider">ADR</p>
+            <p className="text-sm font-medium text-gray-500 mb-1 uppercase tracking-wider">{tr("ADR")}</p>
             <p className="text-3xl sm:text-4xl font-bold text-gray-900">{formatCurrency(revenue.adr)}</p>
-            <p className="text-sm text-gray-400 mt-4">Average Daily Rate</p>
+            <p className="text-sm text-gray-400 mt-4">{tr("Average Daily Rate")}</p>
           </div>
         </div>
 
@@ -148,7 +150,7 @@ export function AnalyticsClient() {
         {revenue.bookingSources.length > 0 && (
           <div className="mt-6 bg-white p-5 sm:p-6 rounded-2xl sm:rounded-3xl border border-gray-100 shadow-sm">
             <h3 className="text-sm font-bold text-gray-900 mb-4 uppercase tracking-wider flex items-center gap-2">
-              <PieChart className="w-4 h-4 text-gray-400" /> Booking Sources
+              <PieChart className="w-4 h-4 text-gray-400" /> {tr("Booking Sources")}
             </h3>
             <div className="space-y-4">
               {revenue.bookingSources.map((source, idx) => {
@@ -176,7 +178,7 @@ export function AnalyticsClient() {
       <section>
         <div className="flex items-center gap-2 mb-4">
           <Wrench className="w-5 h-5 text-[#5c0a20]" />
-          <h2 className="text-lg font-bold text-gray-900">Operations</h2>
+          <h2 className="text-lg font-bold text-gray-900">{tr("Operations")}</h2>
         </div>
         
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
@@ -185,7 +187,7 @@ export function AnalyticsClient() {
               <AlertTriangle className="w-4 h-4 sm:w-6 sm:h-6" />
             </div>
             <div>
-              <p className="text-xs sm:text-sm text-gray-500 font-medium">Open Tickets</p>
+              <p className="text-xs sm:text-sm text-gray-500 font-medium">{tr("Open Tickets")}</p>
               <p className="text-2xl font-bold text-gray-900">{operations.openTickets}</p>
             </div>
           </div>
@@ -195,7 +197,7 @@ export function AnalyticsClient() {
               <CheckCircle className="w-4 h-4 sm:w-6 sm:h-6" />
             </div>
             <div>
-              <p className="text-xs sm:text-sm text-gray-500 font-medium">Completed</p>
+              <p className="text-xs sm:text-sm text-gray-500 font-medium">{tr("Completed")}</p>
               <p className="text-2xl font-bold text-gray-900">{operations.completedTickets}</p>
             </div>
           </div>
@@ -205,7 +207,7 @@ export function AnalyticsClient() {
               <Clock className="w-4 h-4 sm:w-6 sm:h-6" />
             </div>
             <div>
-              <p className="text-xs sm:text-sm text-gray-500 font-medium">Overdue (SLA)</p>
+              <p className="text-xs sm:text-sm text-gray-500 font-medium">{tr("Overdue (SLA)")}</p>
               <p className="text-2xl font-bold text-gray-900">{operations.overdueTickets}</p>
             </div>
           </div>
@@ -215,8 +217,8 @@ export function AnalyticsClient() {
               <Wrench className="w-4 h-4 sm:w-6 sm:h-6" />
             </div>
             <div>
-              <p className="text-xs sm:text-sm text-gray-500 font-medium">Avg Maintenance</p>
-              <p className="text-2xl font-bold text-gray-900">{operations.avgMaintenanceTime.toFixed(1)} <span className="text-sm text-gray-400 font-normal">hrs</span></p>
+              <p className="text-xs sm:text-sm text-gray-500 font-medium">{tr("Avg Maintenance")}</p>
+              <p className="text-2xl font-bold text-gray-900">{operations.avgMaintenanceTime.toFixed(1)} <span className="text-sm text-gray-400 font-normal">{tr("hrs")}</span></p>
             </div>
           </div>
         </div>
@@ -226,22 +228,22 @@ export function AnalyticsClient() {
       <section>
         <div className="flex items-center gap-2 mb-4">
           <Users className="w-5 h-5 text-purple-600" />
-          <h2 className="text-lg font-bold text-gray-900">Guest Insights</h2>
+          <h2 className="text-lg font-bold text-gray-900">{tr("Guest Insights")}</h2>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-6">
           <div className="bg-gradient-to-br from-[#4a0518] to-[#3a0312] p-5 sm:p-6 rounded-2xl sm:rounded-3xl text-white shadow-lg relative overflow-hidden">
             <div className="relative z-10">
-              <p className="text-rose-200 text-sm font-medium uppercase tracking-wider mb-2">Guest Loyalty</p>
+              <p className="text-rose-200 text-sm font-medium uppercase tracking-wider mb-2">{tr("Guest Loyalty")}</p>
               <div className="flex items-end gap-3 sm:gap-6">
                 <div>
                   <p className="text-3xl font-bold">{guests.repeatGuests}</p>
-                  <p className="text-sm text-rose-100/80">Repeat</p>
+                  <p className="text-sm text-rose-100/80">{tr("Repeat")}</p>
                 </div>
                 <div className="h-10 w-px bg-white/20"></div>
                 <div>
                   <p className="text-3xl font-bold">{guests.newGuests}</p>
-                  <p className="text-sm text-rose-100/80">New Guests</p>
+                  <p className="text-sm text-rose-100/80">{tr("New Guests")}</p>
                 </div>
               </div>
             </div>
@@ -250,18 +252,18 @@ export function AnalyticsClient() {
 
           <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-5 sm:p-6 rounded-2xl sm:rounded-3xl text-white shadow-lg relative overflow-hidden">
             <div className="relative z-10">
-              <p className="text-indigo-200 text-sm font-medium uppercase tracking-wider mb-2">Memberships</p>
+              <p className="text-indigo-200 text-sm font-medium uppercase tracking-wider mb-2">{tr("Memberships")}</p>
               <p className="text-4xl font-bold mb-1">{guests.members}</p>
-              <p className="text-sm text-indigo-100/80">Active enrolled members</p>
+              <p className="text-sm text-indigo-100/80">{tr("Active enrolled members")}</p>
             </div>
             <div className="absolute -bottom-4 -right-4 w-32 h-32 border-[20px] border-white opacity-5 rounded-full" />
           </div>
 
           <div className="bg-gradient-to-br from-emerald-500 to-teal-600 p-5 sm:p-6 rounded-2xl sm:rounded-3xl text-white shadow-lg relative overflow-hidden">
             <div className="relative z-10">
-              <p className="text-emerald-200 text-sm font-medium uppercase tracking-wider mb-2">WhatsApp</p>
+              <p className="text-emerald-200 text-sm font-medium uppercase tracking-wider mb-2">{tr("WhatsApp")}</p>
               <p className="text-4xl font-bold mb-1">{guests.whatsappEngagement}</p>
-              <p className="text-sm text-emerald-100/80">Total engagements</p>
+              <p className="text-sm text-emerald-100/80">{tr("Total engagements")}</p>
             </div>
             <MessageSquare className="absolute -bottom-2 -right-2 w-28 h-28 text-white opacity-10" />
           </div>

@@ -10,6 +10,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { sendBroadcast, sendManualMessage, sendTemplateMessage, generateDraftResponse } from "@/app/actions/whatsapp"
 import { TWILIO_TEMPLATES, TwilioTemplate } from "./templates-config"
 import { toast } from "sonner"
+import { useTr } from "@/components/i18n/language-provider"
 
 interface WhatsAppClientProps {
   initialThreads: any[]
@@ -19,6 +20,7 @@ interface WhatsAppClientProps {
 }
 
 export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, activePropertyId }: WhatsAppClientProps) {
+  const tr = useTr()
   const router = useRouter()
   const searchParams = useSearchParams()
   const [activeTab, setActiveTab] = useState<"inbox" | "broadcasts" | "settings">("inbox")
@@ -74,7 +76,7 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
 
   const handleSendBroadcast = async () => {
     if (!campaignName || !broadcastMessage) {
-      toast.error("Please fill in all fields.");
+      toast.error(tr("Please fill in all fields."));
       return;
     }
     
@@ -82,16 +84,16 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
     try {
       const result = await sendBroadcast(campaignName, audience, broadcastMessage, activePropertyId);
       if (result.success) {
-        toast.success(`Sent successfully to ${result.count} contacts!`);
+        toast.success(tr("Sent successfully to {n} contacts!", { n: result.count ?? 0 }));
         setIsBroadcastModalOpen(false);
         setCampaignName("");
         setBroadcastMessage("");
         router.refresh();
       } else {
-        toast.error(result.error || "Failed to send broadcast.");
+        toast.error(result.error || tr("Failed to send broadcast."));
       }
     } catch (e: any) {
-      toast.error(e.message || "An error occurred.");
+      toast.error(e.message || tr("An error occurred."));
     } finally {
       setIsSending(false);
     }
@@ -106,20 +108,20 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
       setReplyText("");
       router.refresh();
     } else {
-      toast.error((result as any).error || "Failed to send message");
+      toast.error((result as any).error || tr("Failed to send message"));
     }
   }
 
   const handleGenerateDraft = async () => {
     if (!activeThread) return;
     setIsDrafting(true);
-    toast.info("Generating reply...");
+    toast.info(tr("Generating reply..."));
     const result = await generateDraftResponse(activeThread.phone);
     setIsDrafting(false);
     if (result.success) {
       setReplyText(result.draft || "");
     } else {
-      toast.error((result as any).error || "Failed to generate draft");
+      toast.error((result as any).error || tr("Failed to generate draft"));
     }
   }
 
@@ -129,12 +131,12 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
     const result = await sendTemplateMessage(activeThread.phone, selectedTemplate.id, templateVars);
     setIsSendingReply(false);
     if (result.success) {
-      toast.success("Template sent!");
+      toast.success(tr("Template sent!"));
       setSelectedTemplate(null);
       setTemplateVars({});
       router.refresh();
     } else {
-      toast.error((result as any).error || "Failed to send template");
+      toast.error((result as any).error || tr("Failed to send template"));
     }
   }
 
@@ -143,8 +145,8 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
       <div className={`${mobileChatOpen ? "hidden md:flex" : "flex"} mb-3 sm:mb-6 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between`}>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
           <div className="min-w-0">
-            <h1 className="text-xl sm:text-3xl font-bold tracking-tight">WhatsApp Control Center</h1>
-            <p className="hidden sm:block text-muted-foreground mt-1">Manage guest communications, broadcasts, and AI settings.</p>
+            <h1 className="text-xl sm:text-3xl font-bold tracking-tight">{tr("WhatsApp Control Center")}</h1>
+            <p className="hidden sm:block text-muted-foreground mt-1">{tr("Manage guest communications, broadcasts, and AI settings.")}</p>
           </div>
           
           {/* Property Selector */}
@@ -152,10 +154,10 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
             <select 
               value={activePropertyId} 
               onChange={(e) => handlePropertyChange(e.target.value)}
-              aria-label="Location"
+              aria-label={tr("Location")}
               className="w-full bg-transparent font-medium border-none outline-none focus:ring-0 cursor-pointer text-sm"
             >
-              <option value="ALL">All Locations</option>
+              <option value="ALL">{tr("All Locations")}</option>
               {properties.map(p => (
                 <option key={p.id} value={p.id}>{p.name}</option>
               ))}
@@ -183,7 +185,7 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
                 />
               )}
               <tab.icon className="h-4 w-4 relative z-10" />
-              <span className="relative z-10">{tab.label}</span>
+              <span className="relative z-10">{tr(tab.label)}</span>
             </button>
           ))}
         </div>
@@ -206,7 +208,7 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
                     <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <input 
                       type="text" 
-                      placeholder="Search messages..." 
+                      placeholder={tr("Search messages...")} 
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
                       className="w-full rounded-xl border-none bg-background pl-9 pr-4 py-2 text-sm shadow-sm ring-1 ring-inset ring-border focus:ring-2 focus:ring-primary"
@@ -217,7 +219,7 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
                   {filteredThreads.length === 0 && (
                     <div className="px-4 py-12 text-center text-sm text-muted-foreground">
                       <MessageSquare className="mx-auto mb-2 h-6 w-6 opacity-40" />
-                      No WhatsApp conversations for this location yet.
+                      {tr("No WhatsApp conversations for this location yet.")}
                     </div>
                   )}
                   {filteredThreads.map(thread => (
@@ -241,7 +243,7 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
                           </span>
                         </div>
                         <p className="text-xs text-muted-foreground truncate flex items-center gap-1.5">
-                          {thread.teamMember ? 'Team Member' : 'Guest'}
+                          {thread.teamMember ? tr("Team Member") : tr("Guest")}
                           {activePropertyId === "ALL" && thread.propertyId && (
                             <>
                               <span>•</span>
@@ -261,7 +263,7 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
                   <>
                     {/* Chat Header */}
                     <div className="h-14 sm:h-16 border-b flex items-center gap-2 px-2 sm:px-6 justify-between bg-card">
-                      <button onClick={() => setMobileChatOpen(false)} className="rounded-lg p-2 hover:bg-muted md:hidden" aria-label="Back to chats">
+                      <button onClick={() => setMobileChatOpen(false)} className="rounded-lg p-2 hover:bg-muted md:hidden" aria-label={tr("Back to chats")}>
                         <ArrowLeft className="h-5 w-5" />
                       </button>
                       <div className="flex min-w-0 flex-1 items-center gap-3">
@@ -278,7 +280,7 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
                       <div className="flex items-center gap-2">
                         <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-600">
                           <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                          AI Active
+                          {tr("AI Active")}
                         </span>
                       </div>
                     </div>
@@ -288,7 +290,7 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
                       {(!activeThread.teamMember && isOutsideWindow) && (
                         <div className="bg-orange-50 border border-orange-200 text-orange-800 rounded-xl p-3 flex items-center justify-center gap-2 text-sm text-center mb-4 sm:mx-8">
                           <AlertCircle className="h-4 w-4" />
-                          24-hour window expired. You can only send pre-approved templates until the guest replies.
+                          {tr("24-hour window expired. You can only send pre-approved templates until the guest replies.")}
                         </div>
                       )}
                       
@@ -303,7 +305,7 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
                             }`}>
                               {msg.templateName && (
                                 <div className="flex items-center gap-1.5 mb-1 opacity-70 text-[10px] uppercase font-bold tracking-wider">
-                                  <Bot className="h-3 w-3" /> Automated Template
+                                  <Bot className="h-3 w-3" /> {tr("Automated Template")}
                                 </div>
                               )}
                               <p className="text-sm whitespace-pre-wrap break-words">{msg.content || (msg.mediaUrl ? '[Media File Attached]' : '')}</p>
@@ -334,7 +336,7 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
                           >
                             <option value="">📎 Select a Template to Send</option>
                             {TWILIO_TEMPLATES.filter(t => t.audience === 'GUEST').map(t => (
-                              <option key={t.id} value={t.id}>{t.label}</option>
+                              <option key={t.id} value={t.id}>{tr(t.label)}</option>
                             ))}
                           </select>
                           
@@ -345,7 +347,7 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
                               className="flex shrink-0 items-center gap-1.5 text-xs font-medium bg-indigo-50 text-indigo-600 hover:bg-indigo-100 px-3 py-2 sm:py-1.5 rounded-full transition-colors"
                             >
                               <Sparkles className="h-3 w-3" />
-                              {isDrafting ? "Drafting..." : <><span className="sm:hidden">AI draft</span><span className="hidden sm:inline">Draft AI Reply</span></>}
+                              {isDrafting ? tr("Drafting...") : <><span className="sm:hidden">{tr("AI draft")}</span><span className="hidden sm:inline">{tr("Draft AI Reply")}</span></>}
                             </button>
                           )}
                         </div>
@@ -359,7 +361,7 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
                             className="absolute bottom-full left-2 right-2 sm:left-4 sm:right-4 mb-2 bg-background border shadow-2xl rounded-xl p-4 sm:p-5 z-20 max-h-[60dvh] overflow-y-auto"
                           >
                             <div className="flex justify-between items-center mb-3">
-                              <h3 className="font-semibold text-sm text-foreground">Send Template: <span className="text-primary">{selectedTemplate.label}</span></h3>
+                              <h3 className="font-semibold text-sm text-foreground">{tr("Send Template:")} <span className="text-primary">{tr(selectedTemplate.label)}</span></h3>
                               <button onClick={() => setSelectedTemplate(null)} className="text-muted-foreground hover:bg-muted p-1 rounded-md transition-colors"><X className="h-4 w-4" /></button>
                             </div>
                             <div className="bg-muted/20 p-4 rounded-lg text-[13px] leading-relaxed border border-border/50 text-foreground mb-4 max-h-[250px] overflow-y-auto shadow-inner custom-scrollbar">
@@ -388,7 +390,7 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
                                 return (
                                   <input 
                                     key={i}
-                                    placeholder={p.label}
+                                    placeholder={tr(p.label)}
                                     value={templateVars[p.key] || ""}
                                     onChange={(e) => setTemplateVars({...templateVars, [p.key]: e.target.value})}
                                     className="mx-1 px-1 py-0.5 rounded border border-primary/30 bg-primary/5 text-primary outline-none focus:ring-1 focus:ring-primary w-24 text-center inline-block"
@@ -398,7 +400,7 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
                             </div>
                             <div className="flex justify-end">
                               <button onClick={handleSendTemplate} disabled={isSendingReply} className="bg-primary text-primary-foreground px-4 py-1.5 rounded-md text-sm font-medium hover:bg-primary/90">
-                                {isSendingReply ? "Sending..." : "Send Template"}
+                                {isSendingReply ? tr("Sending...") : tr("Send Template")}
                               </button>
                             </div>
                           </motion.div>
@@ -409,7 +411,7 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
                         <input 
                           type="text" 
                           disabled={isOutsideWindow}
-                          placeholder={isOutsideWindow ? (activeThread.teamMember ? "24h window closed. Staff must reply first." : "24h window closed. Use a template.") : "Type a manual reply to take over from AI..."}
+                          placeholder={isOutsideWindow ? (activeThread.teamMember ? "24h window closed. Staff must reply first." : "24h window closed. Use a template.") : tr("Type a manual reply to take over from AI...")}
                           className="min-w-0 flex-1 rounded-full border border-border bg-background px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50 disabled:cursor-not-allowed"
                           value={replyText}
                           onChange={(e) => setReplyText(e.target.value)}
@@ -422,7 +424,7 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
                         <button 
                           disabled={isOutsideWindow || !replyText || isSendingReply}
                           onClick={handleSendManual}
-                          aria-label="Send"
+                          aria-label={tr("Send")}
                           className="h-11 w-11 sm:h-10 sm:w-10 shrink-0 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <Send className="h-4 w-4 ml-0.5" />
@@ -433,7 +435,7 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
                 ) : (
                   <div className="h-full flex flex-col items-center justify-center p-6 text-center text-muted-foreground">
                     <MessageSquare className="h-12 w-12 opacity-20 mb-4" />
-                    <p className="max-w-xs text-sm">No active WhatsApp conversations found for this location.</p>
+                    <p className="max-w-xs text-sm">{tr("No active WhatsApp conversations found for this location.")}</p>
                   </div>
                 )}
               </div>
@@ -450,16 +452,16 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
             >
               <div className="max-w-3xl mx-auto space-y-8">
                 <div>
-                  <h2 className="text-xl font-bold flex items-center gap-2 mb-2"><Bot className="h-6 w-6 text-primary" /> AI Assistant Persona</h2>
-                  <p className="text-muted-foreground text-sm">Configure how the AI interacts with guests on WhatsApp.</p>
+                  <h2 className="text-xl font-bold flex items-center gap-2 mb-2"><Bot className="h-6 w-6 text-primary" /> {tr("AI Assistant Persona")}</h2>
+                  <p className="text-muted-foreground text-sm">{tr("Configure how the AI interacts with guests on WhatsApp.")}</p>
                 </div>
                 
                 <div className="space-y-6">
                   <div className="rounded-2xl border bg-card p-4 sm:p-6 shadow-sm">
                     <div className="flex items-center justify-between gap-4 mb-4">
                       <div>
-                        <h3 className="font-semibold">AI Assistant Status</h3>
-                        <p className="text-sm text-muted-foreground">Enable or disable automated AI replies for guests.</p>
+                        <h3 className="font-semibold">{tr("AI Assistant Status")}</h3>
+                        <p className="text-sm text-muted-foreground">{tr("Enable or disable automated AI replies for guests.")}</p>
                       </div>
                       <div className="h-6 w-11 shrink-0 rounded-full bg-emerald-500 relative cursor-pointer shadow-inner">
                         <div className="absolute right-1 top-1 h-4 w-4 rounded-full bg-white shadow-sm" />
@@ -468,8 +470,8 @@ export function WhatsAppClient({ initialThreads, initialBroadcasts, properties, 
                   </div>
 
                   <div className="rounded-2xl border bg-card p-4 sm:p-6 shadow-sm">
-                    <h3 className="font-semibold mb-2">System Prompt</h3>
-                    <p className="text-sm text-muted-foreground mb-4">The core instructions that dictate the AI's behavior and tone.</p>
+                    <h3 className="font-semibold mb-2">{tr("System Prompt")}</h3>
+                    <p className="text-sm text-muted-foreground mb-4">{tr("The core instructions that dictate the AI's behavior and tone.")}</p>
                     <textarea 
                       className="w-full h-40 p-4 rounded-xl border bg-background text-sm font-mono focus:ring-2 focus:ring-primary/20 outline-none"
                       defaultValue={`You are a helpful, polite, and professional AI assistant for Ritumbhara Hospitality. 
@@ -479,7 +481,7 @@ If they complain, apologize profusely and escalate the issue immediately.`}
                     />
                     <div className="mt-4 flex justify-end">
                       <button className="px-4 py-2 bg-primary text-primary-foreground rounded-xl text-sm font-semibold hover:bg-primary/90 transition-colors shadow-sm">
-                        Save Changes
+                        {tr("Save Changes")}
                       </button>
                     </div>
                   </div>
@@ -499,22 +501,22 @@ If they complain, apologize profusely and escalate the issue immediately.`}
               <div className="max-w-4xl mx-auto w-full flex-1 flex flex-col">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 sm:mb-8">
                   <div>
-                    <h2 className="text-xl font-bold flex items-center gap-2 mb-1"><Users className="h-6 w-6 text-primary" /> Campaigns & Broadcasts</h2>
-                    <p className="text-muted-foreground text-sm">Send bulk updates or promotional offers to your guests.</p>
+                    <h2 className="text-xl font-bold flex items-center gap-2 mb-1"><Users className="h-6 w-6 text-primary" /> {tr("Campaigns & Broadcasts")}</h2>
+                    <p className="text-muted-foreground text-sm">{tr("Send bulk updates or promotional offers to your guests.")}</p>
                   </div>
                   <button 
                     onClick={() => setIsBroadcastModalOpen(true)}
                     className="px-4 py-2 bg-primary text-primary-foreground rounded-xl text-sm font-semibold flex items-center gap-2 hover:bg-primary/90 transition-colors shadow-sm"
                   >
-                    <PlusCircle className="h-4 w-4" /> New Broadcast
+                    <PlusCircle className="h-4 w-4" /> {tr("New Broadcast")}
                   </button>
                 </div>
                 
                 <div className="flex-1 rounded-2xl border bg-card overflow-hidden shadow-sm flex flex-col">
                   <div className="hidden sm:grid p-4 border-b bg-muted/30 grid-cols-4 font-semibold text-sm text-muted-foreground">
-                    <div className="col-span-2">Campaign Name</div>
-                    <div>Sent / Delivered</div>
-                    <div>Date</div>
+                    <div className="col-span-2">{tr("Campaign Name")}</div>
+                    <div>{tr("Sent / Delivered")}</div>
+                    <div>{tr("Date")}</div>
                   </div>
                   
                   {initialBroadcasts.length > 0 ? (
@@ -534,8 +536,8 @@ If they complain, apologize profusely and escalate the issue immediately.`}
                   ) : (
                     <div className="divide-y p-8 flex flex-col items-center justify-center text-center text-muted-foreground flex-1">
                       <Clock className="h-12 w-12 opacity-20 mb-4" />
-                      <h3 className="text-lg font-medium text-foreground">No Broadcasts Yet</h3>
-                      <p className="max-w-sm mt-2 text-sm">You haven't sent any mass WhatsApp broadcasts. Click "New Broadcast" to get started.</p>
+                      <h3 className="text-lg font-medium text-foreground">{tr("No Broadcasts Yet")}</h3>
+                      <p className="max-w-sm mt-2 text-sm">{tr("You haven't sent any mass WhatsApp broadcasts. Click \"New Broadcast\" to get started.")}</p>
                     </div>
                   )}
                 </div>
@@ -556,42 +558,42 @@ If they complain, apologize profusely and escalate the issue immediately.`}
               className="bg-card w-full max-w-lg rounded-t-2xl sm:rounded-2xl shadow-xl overflow-hidden flex flex-col max-h-[92dvh] sm:max-h-[90vh]"
             >
               <div className="p-6 border-b">
-                <h3 className="text-xl font-bold">New Broadcast Campaign</h3>
-                <p className="text-sm text-muted-foreground">Send a mass message to a selected segment.</p>
+                <h3 className="text-xl font-bold">{tr("New Broadcast Campaign")}</h3>
+                <p className="text-sm text-muted-foreground">{tr("Send a mass message to a selected segment.")}</p>
               </div>
               <div className="p-6 space-y-4 flex-1 overflow-y-auto">
                 <div>
-                  <label className="block text-sm font-semibold mb-1">Campaign Name</label>
+                  <label className="block text-sm font-semibold mb-1">{tr("Campaign Name")}</label>
                   <input 
                     type="text" 
-                    placeholder="e.g. Pool Maintenance Notice"
+                    placeholder={tr("e.g. Pool Maintenance Notice")}
                     value={campaignName}
                     onChange={(e) => setCampaignName(e.target.value)}
                     className="w-full rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-primary outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold mb-1">Target Audience</label>
+                  <label className="block text-sm font-semibold mb-1">{tr("Target Audience")}</label>
                   <select 
                     value={audience}
                     onChange={(e) => setAudience(e.target.value)}
                     className="w-full rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-primary outline-none"
                   >
-                    <option value="ALL_ACTIVE_GUESTS">Current Checked-in Guests</option>
-                    <option value="ALL_PAST_GUESTS">Past Guests (Marketing)</option>
-                    <option value="ALL_TEAM">All Team Members (Alerts)</option>
+                    <option value="ALL_ACTIVE_GUESTS">{tr("Current Checked-in Guests")}</option>
+                    <option value="ALL_PAST_GUESTS">{tr("Past Guests (Marketing)")}</option>
+                    <option value="ALL_TEAM">{tr("All Team Members (Alerts)")}</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold mb-1">Message</label>
+                  <label className="block text-sm font-semibold mb-1">{tr("Message")}</label>
                   <textarea 
-                    placeholder="Type your message here..."
+                    placeholder={tr("Type your message here...")}
                     rows={4}
                     value={broadcastMessage}
                     onChange={(e) => setBroadcastMessage(e.target.value)}
                     className="w-full rounded-xl border p-3 text-sm focus:ring-2 focus:ring-primary outline-none resize-none"
                   />
-                  <p className="text-[10px] text-muted-foreground mt-1">Note: Twilio Sandbox only supports standard text to whitelisted numbers unless using pre-registered templates.</p>
+                  <p className="text-[10px] text-muted-foreground mt-1">{tr("Note: Twilio Sandbox only supports standard text to whitelisted numbers unless using pre-registered templates.")}</p>
                 </div>
               </div>
               <div className="p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:pb-4 border-t bg-muted/20 flex justify-end gap-2">
@@ -600,14 +602,14 @@ If they complain, apologize profusely and escalate the issue immediately.`}
                   className="px-4 py-2 text-sm font-medium hover:bg-muted rounded-xl"
                   disabled={isSending}
                 >
-                  Cancel
+                  {tr("Cancel")}
                 </button>
                 <button 
                   onClick={handleSendBroadcast}
                   disabled={isSending}
                   className="px-6 py-2 bg-primary text-primary-foreground text-sm font-bold rounded-xl hover:bg-primary/90 disabled:opacity-50"
                 >
-                  {isSending ? 'Sending...' : 'Send Broadcast'}
+                  {isSending ? tr("Sending...") : tr("Send Broadcast")}
                 </button>
               </div>
             </motion.div>

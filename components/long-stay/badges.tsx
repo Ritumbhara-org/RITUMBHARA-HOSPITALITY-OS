@@ -1,6 +1,7 @@
 import { CheckCircle2, Clock, Eye, FileSignature, Send, XCircle } from "lucide-react"
 import { BADGE_LABEL, type AgreementBadge } from "@/lib/long-stay/agreement"
 import { statusLabel } from "@/lib/long-stay/shared"
+import { useTr } from "@/components/i18n/language-provider"
 
 const pill = "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ring-inset"
 
@@ -29,10 +30,11 @@ const AGREEMENT_STYLE: Record<AgreementBadge, string> = {
 }
 
 export function AgreementBadgePill({ badge }: { badge: AgreementBadge }) {
+  const tr = useTr()
   const Icon = badge === "SIGNED" ? CheckCircle2 : badge === "VIEWED" ? Eye : badge === "SENT" ? Send : badge === "VOIDED" ? XCircle : FileSignature
   return (
-    <span className={`${pill} ${AGREEMENT_STYLE[badge]}`} title="E-sign agreement">
-      <Icon className="h-3 w-3" /> {BADGE_LABEL[badge]}
+    <span className={`${pill} ${AGREEMENT_STYLE[badge]}`} title={tr("E-sign agreement")}>
+      <Icon className="h-3 w-3" /> {tr(BADGE_LABEL[badge])}
     </span>
   )
 }

@@ -3,6 +3,8 @@ import type { Metadata } from "next"
 import { AppShell } from "@/components/layout/app-shell"
 import { InstallAppBanner } from "@/components/pwa/install-app-banner"
 import { MANIFEST_PATH } from "@/lib/pwa/manifest"
+import { LanguageProvider } from "@/components/i18n/language-provider"
+import { getLang } from "@/lib/i18n/server"
 
 export const dynamic = 'force-dynamic'
 export const metadata: Metadata = { manifest: MANIFEST_PATH }
@@ -13,5 +15,10 @@ export default async function DashboardLayout({
 }) {
   // Every OS page is admin-only. Each page and server action also checks on its own.
   await requireAdminPage()
-  return <AppShell banner={<InstallAppBanner />}>{children}</AppShell>
+  const lang = await getLang()
+  return (
+    <LanguageProvider initialLang={lang}>
+      <AppShell banner={<InstallAppBanner />}>{children}</AppShell>
+    </LanguageProvider>
+  )
 }

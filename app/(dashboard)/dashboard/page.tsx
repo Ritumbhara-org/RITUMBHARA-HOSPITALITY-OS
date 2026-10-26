@@ -1,11 +1,13 @@
 import { prisma } from "@/lib/prisma"
 import { DashboardClient } from "@/components/dashboard/dashboard-client"
 import { requireAdminPage } from "@/lib/auth/guard"
+import { getTranslator } from "@/lib/i18n/server"
 
 export const dynamic = 'force-dynamic'
 
 export default async function DashboardPage() {
   await requireAdminPage("/dashboard")
+  const tr = await getTranslator()
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   const tomorrow = new Date(today)
@@ -97,14 +99,14 @@ export default async function DashboardPage() {
     : 0
 
   const arrivalsTrend = todayArrivals.length >= yesterdayArrivalsCount
-    ? `+${todayArrivals.length - yesterdayArrivalsCount} from yesterday`
-    : `${todayArrivals.length - yesterdayArrivalsCount} from yesterday`
+    ? tr("{n} from yesterday", { n: `+${todayArrivals.length - yesterdayArrivalsCount}` })
+    : tr("{n} from yesterday", { n: todayArrivals.length - yesterdayArrivalsCount })
 
   const dashboardData = {
     todayArrivals: todayArrivals.length.toString(),
     arrivalsTrend,
     availableUnits: availableUnitsCount.toString(),
-    unitsTrend: `${dirtyUnitsCount} dirty, ${totalUnits - availableUnitsCount - dirtyUnitsCount} occupied`,
+    unitsTrend: tr("{dirty} dirty, {occupied} occupied", { dirty: dirtyUnitsCount, occupied: totalUnits - availableUnitsCount - dirtyUnitsCount }),
     activeGuests: activeGuestsCount.toString(),
     occupancyRate: `${occupancyRate}%`,
     arrivals: todayArrivals,

@@ -4,9 +4,11 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { navigation, isActivePath } from "./nav-items"
+import { useTr } from "@/components/i18n/language-provider"
 
 // onNavigate lets the phone drawer close itself when a link is tapped.
 export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
+  const tr = useTr()
   const pathname = usePathname()
 
   return (
@@ -15,11 +17,11 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
         <div className="flex flex-col items-start gap-1.5">
           <img src="/logo.svg" alt="Ritumbhara Logo" className="h-9 w-auto object-contain drop-shadow-md" />
           <h1 className="text-sm font-bold tracking-tight text-white/90 pl-1 mt-1">
-            HOSPITALITY OS
+            {tr("HOSPITALITY OS")}
           </h1>
         </div>
       </div>
-      <nav className="flex-1 space-y-0.5 px-3" aria-label="Main">
+      <nav className="flex-1 space-y-0.5 px-3" aria-label={tr("Main")}>
         {navigation.map((item, index) => {
           const isActive = isActivePath(pathname, item.href)
           return (
@@ -56,15 +58,15 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
                 animate={{ opacity: 1 }}
                 transition={{ delay: index * 0.04 + 0.08, duration: 0.25 }}
               >
-                {item.name}
+                {tr(item.name)}
               </motion.span>
             </Link>
           )
         })}
       </nav>
       <div className="mx-3 mb-4 rounded-xl bg-gradient-to-br from-rose-500/10 to-red-500/10 border border-rose-500/10 p-4">
-        <p className="text-[11px] font-medium text-rose-100">Need help?</p>
-        <p className="text-[10px] text-rose-200/60 mt-1">Contact support for assistance with your account.</p>
+        <p className="text-[11px] font-medium text-rose-100">{tr("Need help?")}</p>
+        <p className="text-[10px] text-rose-200/60 mt-1">{tr("Contact support for assistance with your account.")}</p>
         <a href="mailto:studios.jaipur@gmail.com" className="text-[10px] font-medium text-white/80 hover:text-white mt-2 inline-block transition-colors">studios.jaipur@gmail.com</a>
       </div>
     </div>

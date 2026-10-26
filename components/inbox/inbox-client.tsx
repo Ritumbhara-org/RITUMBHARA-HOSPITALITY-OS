@@ -35,6 +35,7 @@ import {
 import { CHANNELS, CHANNEL_ORDER, type InboxChannelId } from "@/lib/inbox/channels"
 import { QUICK_REPLIES, fillQuickReply } from "@/lib/inbox/quick-replies"
 import type { InboxConversationSummary, InboxThread } from "@/lib/inbox/types"
+import { useTr } from "@/components/i18n/language-provider"
 
 type View = "OPEN" | "MINE" | "UNASSIGNED" | "CLOSED"
 
@@ -77,6 +78,7 @@ export function InboxClient({
   currentUser,
   setupError,
 }: InboxClientProps) {
+  const tr = useTr()
   const router = useRouter()
   const searchParams = useSearchParams()
   const [isRefreshing, startRefresh] = useTransition()
@@ -153,11 +155,11 @@ export function InboxClient({
       // Ignore results for a conversation the user has already moved away from.
       if (selectedKeyRef.current === key) setThread(t)
     } catch {
-      if (!quiet) toast.error("Couldn't load this conversation.")
+      if (!quiet) toast.error(tr("Couldn't load this conversation."))
     } finally {
       if (!quiet) setThreadLoading(false)
     }
-  }, [])
+  }, [tr])
 
   const openConversation = useCallback(
     async (key: string) => {
@@ -211,7 +213,7 @@ export function InboxClient({
       return
     }
     setReply("")
-    toast.success(`Sent on ${CHANNELS[selected.channel].label}`)
+    toast.success(tr("Sent on {channel}", { channel: CHANNELS[selected.channel].label }))
     await loadThread(selected.key, true)
     startRefresh(() => router.refresh())
   }
@@ -231,7 +233,7 @@ export function InboxClient({
     setOverrides((o) => ({ ...o, [selected.key]: { ...o[selected.key], assignee: member } }))
     const result = await assignInboxConversation(selected.key, member?.id ?? null)
     if (!result.success) toast.error(result.error)
-    else toast.success(member ? `Assigned to ${member.name}` : "Unassigned")
+    else toast.success(member ? tr("Assigned to {name}", { name: member.name }) : tr("Unassigned"))
   }
 
   const handleStatus = async (status: "OPEN" | "CLOSED") => {
@@ -239,7 +241,7 @@ export function InboxClient({
     setOverrides((o) => ({ ...o, [selected.key]: { ...o[selected.key], status, unread: false } }))
     const result = await setInboxConversationStatus(selected.key, status)
     if (!result.success) toast.error(result.error)
-    else toast.success(status === "CLOSED" ? "Marked as done" : "Re-opened")
+    else toast.success(status === "CLOSED" ? tr("Marked as done") : tr("Re-opened"))
   }
 
   const handleLinkSearch = async (q: string) => {
@@ -251,7 +253,7 @@ export function InboxClient({
     if (!selected) return
     const result = await linkInboxReservation(selected.key, reservationId)
     if (!result.success) return toast.error(result.error)
-    toast.success(reservationId ? "Booking linked" : "Booking unlinked")
+    toast.success(reservationId ? tr("Booking linked") : tr("Booking unlinked"))
     setLinking(false)
     setLinkQuery("")
     setLinkResults([])
@@ -281,7 +283,7 @@ export function InboxClient({
       <div className="flex h-full items-center justify-center p-6">
         <div className="max-w-md rounded-2xl border bg-card p-6 text-center shadow-sm">
           <InboxIcon className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
-          <h1 className="text-lg font-semibold">Inbox needs one setup step</h1>
+          <h1 className="text-lg font-semibold">{tr("Inbox needs one setup step")}</h1>
           <p className="mt-2 text-sm text-muted-foreground">{setupError}</p>
         </div>
       </div>
@@ -296,19 +298,19 @@ export function InboxClient({
       {/* Header (hidden on phones while a conversation is open, so the chat gets the room) */}
       <div className={`${selected ? "hidden md:flex" : "flex"} mb-3 sm:mb-4 flex-wrap items-center justify-between gap-3`}>
         <div className="min-w-0">
-          <h1 className="text-xl font-bold tracking-tight sm:text-3xl">Inbox</h1>
-          <p className="mt-1 hidden text-sm text-muted-foreground sm:block">Every guest message from WhatsApp, Airbnb, Booking.com, Agoda and email, in one place.</p>
+          <h1 className="text-xl font-bold tracking-tight sm:text-3xl">{tr("Inbox")}</h1>
+          <p className="mt-1 hidden text-sm text-muted-foreground sm:block">{tr("Every guest message from WhatsApp, Airbnb, Booking.com, Agoda and email, in one place.")}</p>
         </div>
         <div className="flex w-full items-center gap-2 sm:w-auto">
-          {isRefreshing && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" aria-label="Refreshing" />}
+          {isRefreshing && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" aria-label={tr("Refreshing")} />}
           <div className="flex h-11 min-w-0 flex-1 items-center rounded-xl border bg-card px-3 sm:h-10 sm:flex-none sm:bg-muted/20">
             <select
               value={activePropertyId}
               onChange={(e) => handlePropertyChange(e.target.value)}
               className="w-full cursor-pointer border-none bg-transparent text-sm font-medium outline-none focus:ring-0"
-              aria-label="Location"
+              aria-label={tr("Location")}
             >
-              <option value="ALL">All locations</option>
+              <option value="ALL">{tr("All locations")}</option>
               {properties.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name}
@@ -329,7 +331,7 @@ export function InboxClient({
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <input
                 type="text"
-                placeholder="Search guest, unit or message"
+                placeholder={tr("Search guest, unit or message")}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full rounded-xl border-none bg-background py-2.5 sm:py-2 pl-9 pr-3 text-sm shadow-sm ring-1 ring-inset ring-border focus:ring-2 focus:ring-primary"
@@ -352,7 +354,7 @@ export function InboxClient({
                     view === id ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  {label}
+                  {tr(label)}
                   <span className="ml-1 text-[10px] opacity-60">{counts[id]}</span>
                 </button>
               ))}
@@ -365,7 +367,7 @@ export function InboxClient({
                   channel === "ALL" ? "border-primary/40 bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted"
                 }`}
               >
-                All
+                {tr("All")}
               </button>
               {CHANNEL_ORDER.map((ch) => (
                 <button
@@ -437,7 +439,7 @@ export function InboxClient({
           {!selected ? (
             <div className="flex flex-1 flex-col items-center justify-center p-6 text-center text-muted-foreground">
               <InboxIcon className="mb-3 h-10 w-10 opacity-40" />
-              <p className="text-sm">Pick a conversation to read and reply.</p>
+              <p className="text-sm">{tr("Pick a conversation to read and reply.")}</p>
             </div>
           ) : (
             <>
@@ -448,7 +450,7 @@ export function InboxClient({
                     setThread(null)
                   }}
                   className="rounded-lg p-2 hover:bg-muted md:hidden"
-                  aria-label="Back to conversations"
+                  aria-label={tr("Back to conversations")}
                 >
                   <ArrowLeft className="h-5 w-5" />
                 </button>
@@ -466,9 +468,9 @@ export function InboxClient({
                   value={selected.assignee?.id ?? ""}
                   onChange={(e) => handleAssign(e.target.value)}
                   className="h-9 max-w-[6.5rem] shrink-0 cursor-pointer rounded-lg border bg-background px-2 text-xs sm:h-8 sm:max-w-[9rem]"
-                  aria-label="Assign to"
+                  aria-label={tr("Assign to")}
                 >
-                  <option value="">Unassigned</option>
+                  <option value="">{tr("Unassigned")}</option>
                   {team.map((t) => (
                     <option key={t.id} value={t.id}>
                       {t.name}
@@ -478,18 +480,18 @@ export function InboxClient({
                 {selected.status === "OPEN" ? (
                   <button
                     onClick={() => handleStatus("CLOSED")}
-                    aria-label="Mark done"
+                    aria-label={tr("Mark done")}
                     className="flex h-9 shrink-0 sm:h-8 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-medium hover:bg-muted"
                   >
-                    <Check className="h-4 w-4 sm:h-3.5 sm:w-3.5" /> <span className="hidden sm:inline">Done</span>
+                    <Check className="h-4 w-4 sm:h-3.5 sm:w-3.5" /> <span className="hidden sm:inline">{tr("Done")}</span>
                   </button>
                 ) : (
                   <button
                     onClick={() => handleStatus("OPEN")}
-                    aria-label="Re-open"
+                    aria-label={tr("Re-open")}
                     className="flex h-9 shrink-0 sm:h-8 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-medium hover:bg-muted"
                   >
-                    <RotateCcw className="h-4 w-4 sm:h-3.5 sm:w-3.5" /> <span className="hidden sm:inline">Re-open</span>
+                    <RotateCcw className="h-4 w-4 sm:h-3.5 sm:w-3.5" /> <span className="hidden sm:inline">{tr("Re-open")}</span>
                   </button>
                 )}
               </header>
@@ -498,7 +500,7 @@ export function InboxClient({
                 <div className="flex items-center gap-2 border-b bg-muted/20 px-3 py-2 text-xs text-muted-foreground xl:hidden">
                   <BedDouble className="h-3.5 w-3.5 shrink-0" />
                   <span className="truncate">
-                    <span className="font-medium text-foreground">{res.unitName ?? "Unit"}</span>
+                    <span className="font-medium text-foreground">{res.unitName ?? tr("Unit")}</span>
                     {" · "}
                     {format(new Date(res.checkIn), "d MMM")} – {format(new Date(res.checkOut), "d MMM")}
                     {" · "}₹{res.totalAmount.toLocaleString("en-IN")}
@@ -548,7 +550,7 @@ export function InboxClient({
                             rel="noreferrer"
                             className="flex shrink-0 items-center gap-1 font-semibold underline-offset-2 hover:underline"
                           >
-                            Open {CHANNELS[selected.channel].label} <ExternalLink className="h-3 w-3" />
+                            {tr("Open {channel}", { channel: CHANNELS[selected.channel].label })} <ExternalLink className="h-3 w-3" />
                           </a>
                         )}
                       </div>
@@ -563,7 +565,7 @@ export function InboxClient({
                               onClick={() => insertQuickReply(q.text)}
                               className="block w-full rounded-lg px-3 py-2 text-left hover:bg-muted"
                             >
-                              <span className="block text-xs font-semibold">{q.label}</span>
+                              <span className="block text-xs font-semibold">{tr(q.label)}</span>
                               <span className="line-clamp-1 text-[11px] text-muted-foreground">{q.text}</span>
                             </button>
                           ))}
@@ -578,7 +580,7 @@ export function InboxClient({
                         rows={2}
                         placeholder={
                           active?.canReply
-                            ? `Reply on ${CHANNELS[selected.channel].label}… (Ctrl/Cmd + Enter to send)`
+                            ? tr("Reply on {channel}… (Ctrl/Cmd + Enter to send)", { channel: CHANNELS[selected.channel].label })
                             : "Draft here, then copy it into the extranet"
                         }
                         className="w-full resize-none rounded-xl border bg-background px-3 py-2.5 text-sm sm:min-h-[5.5rem] focus:outline-none focus:ring-2 focus:ring-primary"
@@ -590,7 +592,7 @@ export function InboxClient({
                         onClick={() => setShowQuick((s) => !s)}
                         className="flex h-9 sm:h-8 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-medium hover:bg-muted"
                       >
-                        <MessageSquareText className="h-3.5 w-3.5" /> <span className="sm:hidden">Quick</span><span className="hidden sm:inline">Quick replies</span>
+                        <MessageSquareText className="h-3.5 w-3.5" /> <span className="sm:hidden">{tr("Quick")}</span><span className="hidden sm:inline">{tr("Quick replies")}</span>
                       </button>
                       <button
                         onClick={handleDraft}
@@ -602,10 +604,10 @@ export function InboxClient({
                       </button>
                       {!active?.canReply && reply.trim() && (
                         <button
-                          onClick={() => navigator.clipboard.writeText(reply).then(() => toast.success("Copied"))}
+                          onClick={() => navigator.clipboard.writeText(reply).then(() => toast.success(tr("Copied")))}
                           className="flex h-9 sm:h-8 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-medium hover:bg-muted"
                         >
-                          Copy text
+                          {tr("Copy text")}
                         </button>
                       )}
                       <button
@@ -622,13 +624,13 @@ export function InboxClient({
 
                 {/* Booking panel */}
                 <aside className="hidden w-72 shrink-0 overflow-y-auto border-l p-4 xl:block">
-                  <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Booking</h3>
+                  <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{tr("Booking")}</h3>
                   {res ? (
                     <div className="space-y-3 text-sm">
                       <div className="flex items-start gap-2">
                         <BedDouble className="mt-0.5 h-4 w-4 text-muted-foreground" />
                         <div>
-                          <p className="font-medium">{res.unitName ?? "Unit"}</p>
+                          <p className="font-medium">{res.unitName ?? tr("Unit")}</p>
                           <p className="text-xs text-muted-foreground">{res.propertyName}</p>
                         </div>
                       </div>
@@ -640,34 +642,34 @@ export function InboxClient({
                           </p>
                           <p className="text-xs text-muted-foreground">
                             {new Date(res.checkIn) > new Date()
-                              ? `Arrives in ${formatDistanceToNowStrict(new Date(res.checkIn))}`
+                              ? tr("Arrives in {time}", { time: formatDistanceToNowStrict(new Date(res.checkIn)) })
                               : new Date(res.checkOut) > new Date()
-                                ? "In house"
+                                ? tr("In house")
                                 : "Stay completed"}
                           </p>
                         </div>
                       </div>
                       <div className="grid grid-cols-2 gap-2 rounded-xl bg-muted/40 p-3 text-xs">
                         <div>
-                          <p className="text-muted-foreground">Status</p>
+                          <p className="text-muted-foreground">{tr("Status")}</p>
                           <p className="font-medium">{res.status.replace(/_/g, " ").toLowerCase()}</p>
                         </div>
                         <div>
-                          <p className="text-muted-foreground">Source</p>
+                          <p className="text-muted-foreground">{tr("Source")}</p>
                           <p className="font-medium">{res.source}</p>
                         </div>
                         <div className="col-span-2">
-                          <p className="text-muted-foreground">Amount</p>
+                          <p className="text-muted-foreground">{tr("Amount")}</p>
                           <p className="font-medium">₹{res.totalAmount.toLocaleString("en-IN")}</p>
                         </div>
                       </div>
                       {res.notes && <p className="whitespace-pre-wrap rounded-xl border p-3 text-xs text-muted-foreground">{res.notes}</p>}
                       <a href="/reservations" className="block text-xs font-medium text-primary hover:underline">
-                        Open in reservations
+                        {tr("Open in reservations")}
                       </a>
                     </div>
                   ) : (
-                    <p className="text-sm text-muted-foreground">No booking linked yet.</p>
+                    <p className="text-sm text-muted-foreground">{tr("No booking linked yet.")}</p>
                   )}
 
                   {selected.channel !== "WHATSAPP" && (
@@ -677,7 +679,7 @@ export function InboxClient({
                           onClick={() => setLinking(true)}
                           className="flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
                         >
-                          <Link2 className="h-3.5 w-3.5" /> {res ? "Change booking" : "Link a booking"}
+                          <Link2 className="h-3.5 w-3.5" /> {res ? tr("Change booking") : tr("Link a booking")}
                         </button>
                       ) : (
                         <div className="space-y-2">
@@ -686,10 +688,10 @@ export function InboxClient({
                               autoFocus
                               value={linkQuery}
                               onChange={(e) => handleLinkSearch(e.target.value)}
-                              placeholder="Guest name or booking ID"
+                              placeholder={tr("Guest name or booking ID")}
                               className="w-full rounded-lg border bg-background px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary"
                             />
-                            <button onClick={() => setLinking(false)} className="rounded-md p-1 hover:bg-muted" aria-label="Cancel">
+                            <button onClick={() => setLinking(false)} className="rounded-md p-1 hover:bg-muted" aria-label={tr("Cancel")}>
                               <X className="h-3.5 w-3.5" />
                             </button>
                           </div>
@@ -707,7 +709,7 @@ export function InboxClient({
                           ))}
                           {res && (
                             <button onClick={() => handleLink(null)} className="text-xs text-muted-foreground hover:underline">
-                              Unlink current booking
+                              {tr("Unlink current booking")}
                             </button>
                           )}
                         </div>
@@ -715,7 +717,7 @@ export function InboxClient({
                     </div>
                   )}
 
-                  <h3 className="mb-2 mt-6 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Guest</h3>
+                  <h3 className="mb-2 mt-6 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{tr("Guest")}</h3>
                   <div className="flex items-center gap-2 text-sm">
                     <UserRound className="h-4 w-4 text-muted-foreground" />
                     <span className="truncate">{selected.guestName}</span>

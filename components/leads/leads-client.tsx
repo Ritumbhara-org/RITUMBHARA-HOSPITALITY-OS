@@ -19,6 +19,7 @@ import {
   SORT_LABELS, countLeads, guestDisplay, isFollowUpDue, visibleLeads,
   type KindFilter, type LeadSort, type StatusFilter,
 } from "@/lib/leads/view"
+import { useTr } from "@/components/i18n/language-provider"
 
 // ---------- presentation helpers ----------
 
@@ -63,12 +64,13 @@ function kindLabel(lead: Lead): string {
 }
 
 function StatusBadge({ lead }: { lead: Lead }) {
+  const tr = useTr()
   if (lead.status) {
     return <span className={`${pill} ${STATUS_STYLES[lead.status]}`}><span className={`h-1.5 w-1.5 rounded-full ${STATUS_DOT[lead.status]}`} />{lead.status}</span>
   }
   return (
-    <span className={`${pill} bg-rose-50 text-rose-700 ring-rose-600/15 dark:bg-rose-500/10 dark:text-rose-400`} title="This value is not one of New, Contacted, Booked or Lost">
-      <AlertTriangle className="h-3 w-3" />{lead.statusText || "No status"}
+    <span className={`${pill} bg-rose-50 text-rose-700 ring-rose-600/15 dark:bg-rose-500/10 dark:text-rose-400`} title={tr("This value is not one of New, Contacted, Booked or Lost")}>
+      <AlertTriangle className="h-3 w-3" />{lead.statusText || tr("No status")}
     </span>
   )
 }
@@ -90,6 +92,7 @@ type Patch = { basis: string; status: LeadStatus; statusText: string; statusUpda
 
 // guestMessages: the Week 7 Guest Messages section, shown below the leads (its own data; never mixed into leads).
 export function LeadsClient({ data, guestMessages }: { data: LeadsLoadResult; guestMessages?: GuestMessagesLoadResult }) {
+  const tr = useTr()
   const router = useRouter()
   const [refreshing, startRefresh] = useTransition()
   const refresh = () => startRefresh(() => router.refresh())
@@ -106,9 +109,9 @@ export function LeadsClient({ data, guestMessages }: { data: LeadsLoadResult; gu
           </div>
           {data.code === "not_configured" ? (
             <>
-              <h2 className="text-lg font-semibold">Leads are not connected yet</h2>
+              <h2 className="text-lg font-semibold">{tr("Leads are not connected yet")}</h2>
               <p className="text-sm text-muted-foreground mt-2">
-                This page reads the website&apos;s leads Google Sheet. An admin needs to add these server settings and share the Sheet with the service account (Editor):
+                {tr("This page reads the website's leads Google Sheet. An admin needs to add these server settings and share the Sheet with the service account (Editor):")}
               </p>
               <ul className="mt-4 flex flex-wrap justify-center gap-2">
                 {data.missing.map((m) => <li key={m}><code className="rounded-lg bg-muted px-2 py-1 text-xs font-semibold">{m}</code></li>)}
@@ -116,10 +119,10 @@ export function LeadsClient({ data, guestMessages }: { data: LeadsLoadResult; gu
             </>
           ) : (
             <>
-              <h2 className="text-lg font-semibold">Leads could not be loaded</h2>
+              <h2 className="text-lg font-semibold">{tr("Leads could not be loaded")}</h2>
               <p className="text-sm text-muted-foreground mt-2">{data.message}</p>
               <button onClick={refresh} disabled={refreshing} className="mt-5 inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm shadow-primary/20 transition-all hover:bg-primary/90 disabled:opacity-50">
-                <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} /> Try again
+                <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} /> {tr("Try again")}
               </button>
             </>
           )}
@@ -139,11 +142,12 @@ export function LeadsClient({ data, guestMessages }: { data: LeadsLoadResult; gu
 }
 
 function PageHeader({ onRefresh, refreshing, subtitle }: { onRefresh: () => void; refreshing: boolean; subtitle?: string }) {
+  const tr = useTr()
   return (
     <div className="flex flex-wrap items-center justify-between gap-4 shrink-0">
       <div>
-        <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Leads</h1>
-        <p className="text-sm text-muted-foreground mt-1">{subtitle || "Every website and WhatsApp lead in one place. Update a status here and it is saved to the leads Sheet."}</p>
+        <h1 className="text-xl sm:text-2xl font-bold tracking-tight">{tr("Leads")}</h1>
+        <p className="text-sm text-muted-foreground mt-1">{subtitle || tr("Every website and WhatsApp lead in one place. Update a status here and it is saved to the leads Sheet.")}</p>
       </div>
       <button
         onClick={onRefresh}
@@ -151,13 +155,14 @@ function PageHeader({ onRefresh, refreshing, subtitle }: { onRefresh: () => void
         className="inline-flex items-center justify-center gap-2 rounded-xl border border-border/60 bg-background px-4 py-2.5 text-sm font-semibold shadow-sm transition-all hover:bg-muted disabled:opacity-60"
       >
         <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
-        {refreshing ? "Refreshing…" : "Refresh"}
+        {refreshing ? tr("Refreshing…") : tr("Refresh")}
       </button>
     </div>
   )
 }
 
 function LeadsBoard({ data, refresh, refreshing }: { data: Extract<LeadsLoadResult, { ok: true }>; refresh: () => void; refreshing: boolean }) {
+  const tr = useTr()
   const [query, setQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL")
   const [kindFilter, setKindFilter] = useState<KindFilter>("ALL")
@@ -200,7 +205,7 @@ function LeadsBoard({ data, refresh, refreshing }: { data: Extract<LeadsLoadResu
       if (opts.undo) toast.success(`${lead.id} set back to ${status}`)
       else {
         toast.success(`${lead.id} marked ${status}`, {
-          description: status === "Booked" || status === "Lost" ? "Follow-ups for this lead have stopped." : result.nextFollowUp ? `Next follow-up: ${result.nextFollowUp} IST` : undefined,
+          description: status === "Booked" || status === "Lost" ? tr("Follow-ups for this lead have stopped.") : result.nextFollowUp ? `Next follow-up: ${result.nextFollowUp} IST` : undefined,
           action: previous ? { label: "Undo", onClick: () => { void changeStatus({ ...lead, status, statusText: status }, previous, { undo: true }) } } : undefined,
         })
       }
@@ -208,7 +213,7 @@ function LeadsBoard({ data, refresh, refreshing }: { data: Extract<LeadsLoadResu
     } else if (result.code === "unauthorized") {
       window.location.assign("/login?next=" + encodeURIComponent("/leads"))
     } else {
-      toast.error("Status not changed", { description: result.error })
+      toast.error(tr("Status not changed"), { description: result.error })
       if (result.code === "conflict" || result.code === "not_found") refresh()
     }
   }
@@ -239,7 +244,7 @@ function LeadsBoard({ data, refresh, refreshing }: { data: Extract<LeadsLoadResu
           const active = statusFilter === t.filter
           return (
             <motion.button
-              key={t.label}
+              key={tr(t.label)}
               type="button"
               onClick={() => setStatusFilter(active ? "ALL" : t.filter)}
               aria-pressed={active}
@@ -249,7 +254,7 @@ function LeadsBoard({ data, refresh, refreshing }: { data: Extract<LeadsLoadResu
               className={`group text-left rounded-2xl border bg-card min-w-0 p-3 sm:p-4 shadow-sm transition-all duration-300 hover:shadow-md ${active ? "border-primary/40 ring-2 ring-primary/15" : "hover:border-border/80"}`}
             >
               <div className="flex items-start justify-between gap-2 mb-1.5 sm:mb-3">
-                <p className="text-xs sm:text-sm leading-snug font-medium text-muted-foreground">{t.label}</p>
+                <p className="text-xs sm:text-sm leading-snug font-medium text-muted-foreground">{tr(t.label)}</p>
                 <div className={`hidden sm:block shrink-0 rounded-xl p-2 ${t.color} transition-transform duration-300 group-hover:scale-110`}><t.icon className="h-4 w-4" /></div>
               </div>
               <h2 className="text-2xl sm:text-3xl font-bold tracking-tight tabular-nums">{t.value}</h2>
@@ -269,49 +274,49 @@ function LeadsBoard({ data, refresh, refreshing }: { data: Extract<LeadsLoadResu
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
               type="search"
-              placeholder="Search ID, phone, destination, property, notes…"
+              placeholder={tr("Search ID, phone, destination, property, notes…")}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              aria-label="Search leads"
+              aria-label={tr("Search leads")}
               className="w-full rounded-xl border border-border/60 bg-background py-2.5 pl-9 pr-4 text-sm shadow-sm transition-all placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary/40"
             />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 w-full lg:w-auto">
             <Select value={statusFilter} onValueChange={(v) => setStatusFilter((v as StatusFilter) || "ALL")}>
-              <SelectTrigger className="w-full lg:w-[200px] bg-background rounded-xl" aria-label="Filter by status">
-                <div className="flex items-center gap-2 truncate"><Filter className="h-4 w-4 shrink-0" /><span className="truncate">{STATUS_FILTER_LABELS[statusFilter]}</span></div>
+              <SelectTrigger className="w-full lg:w-[200px] bg-background rounded-xl" aria-label={tr("Filter by status")}>
+                <div className="flex items-center gap-2 truncate"><Filter className="h-4 w-4 shrink-0" /><span className="truncate">{tr(STATUS_FILTER_LABELS[statusFilter])}</span></div>
               </SelectTrigger>
               <SelectContent>
-                {statusOptions.map((f) => <SelectItem key={f} value={f}>{STATUS_FILTER_LABELS[f]}</SelectItem>)}
+                {statusOptions.map((f) => <SelectItem key={f} value={f}>{tr(STATUS_FILTER_LABELS[f])}</SelectItem>)}
               </SelectContent>
             </Select>
             <Select value={kindFilter} onValueChange={(v) => setKindFilter((v as KindFilter) || "ALL")}>
-              <SelectTrigger className="w-full lg:w-[160px] bg-background rounded-xl" aria-label="Filter by lead type">
-                <span className="truncate">{KIND_LABELS[kindFilter]}</span>
+              <SelectTrigger className="w-full lg:w-[160px] bg-background rounded-xl" aria-label={tr("Filter by lead type")}>
+                <span className="truncate">{tr(KIND_LABELS[kindFilter])}</span>
               </SelectTrigger>
               <SelectContent>
-                {(Object.keys(KIND_LABELS) as KindFilter[]).map((k) => <SelectItem key={k} value={k}>{KIND_LABELS[k]}</SelectItem>)}
+                {(Object.keys(KIND_LABELS) as KindFilter[]).map((k) => <SelectItem key={k} value={k}>{tr(KIND_LABELS[k])}</SelectItem>)}
               </SelectContent>
             </Select>
             <Select value={sort} onValueChange={(v) => setSort((v as LeadSort) || "newest")}>
-              <SelectTrigger className="w-full lg:w-[190px] bg-background rounded-xl" aria-label="Sort leads">
-                <span className="truncate">{SORT_LABELS[sort]}</span>
+              <SelectTrigger className="w-full lg:w-[190px] bg-background rounded-xl" aria-label={tr("Sort leads")}>
+                <span className="truncate">{tr(SORT_LABELS[sort])}</span>
               </SelectTrigger>
               <SelectContent>
-                {(Object.keys(SORT_LABELS) as LeadSort[]).map((s) => <SelectItem key={s} value={s}>{SORT_LABELS[s]}</SelectItem>)}
+                {(Object.keys(SORT_LABELS) as LeadSort[]).map((s) => <SelectItem key={s} value={s}>{tr(SORT_LABELS[s])}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
         </div>
 
         <div className="px-4 py-2 border-b border-border/40 text-xs text-muted-foreground flex flex-wrap items-center justify-between gap-2">
-          <span>Showing {shown.length} of {counts.total} leads</span>
+          <span>{tr("Showing {shown} of {total} leads", { shown: shown.length, total: counts.total })}</span>
           <span className="flex items-center gap-3">
             {filtersActive && (
-              <button onClick={() => { setQuery(""); setStatusFilter("ALL"); setKindFilter("ALL") }} className="font-semibold text-primary hover:underline">Clear filters</button>
+              <button onClick={() => { setQuery(""); setStatusFilter("ALL"); setKindFilter("ALL") }} className="font-semibold text-primary hover:underline">{tr("Clear filters")}</button>
             )}
             <a href={data.sheetUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-semibold hover:text-foreground">
-              Open leads Sheet <ExternalLink className="h-3 w-3" />
+              {tr("Open leads Sheet")} <ExternalLink className="h-3 w-3" />
             </a>
           </span>
         </div>
@@ -321,13 +326,13 @@ function LeadsBoard({ data, refresh, refreshing }: { data: Extract<LeadsLoadResu
             <Inbox className="h-10 w-10 mb-3 opacity-30" />
             {counts.total === 0 ? (
               <>
-                <p className="text-sm font-medium">No leads yet.</p>
-                <p className="text-xs mt-1">New website and WhatsApp leads will appear here as soon as they reach the leads Sheet.</p>
+                <p className="text-sm font-medium">{tr("No leads yet.")}</p>
+                <p className="text-xs mt-1">{tr("New website and WhatsApp leads will appear here as soon as they reach the leads Sheet.")}</p>
               </>
             ) : (
               <>
-                <p className="text-sm font-medium">No leads match these filters.</p>
-                <button onClick={() => { setQuery(""); setStatusFilter("ALL"); setKindFilter("ALL") }} className="mt-3 text-xs font-semibold text-primary hover:underline">Show all leads</button>
+                <p className="text-sm font-medium">{tr("No leads match these filters.")}</p>
+                <button onClick={() => { setQuery(""); setStatusFilter("ALL"); setKindFilter("ALL") }} className="mt-3 text-xs font-semibold text-primary hover:underline">{tr("Show all leads")}</button>
               </>
             )}
           </div>
@@ -359,14 +364,14 @@ function LeadsBoard({ data, refresh, refreshing }: { data: Extract<LeadsLoadResu
               <table className="w-full text-sm text-left">
                 <thead className="text-[11px] uppercase bg-muted/30 text-muted-foreground sticky top-0 z-10 border-b border-border/40">
                   <tr>
-                    <th className="px-4 py-3.5 font-semibold">Lead</th>
-                    <th className="px-4 py-3.5 font-semibold">Guest</th>
-                    <th className="px-4 py-3.5 font-semibold">Stay</th>
-                    <th className="px-4 py-3.5 font-semibold">Source</th>
-                    <th className="px-4 py-3.5 font-semibold">Priority</th>
-                    <th className="px-4 py-3.5 font-semibold">Next follow-up</th>
-                    <th className="px-4 py-3.5 font-semibold">Status</th>
-                    <th className="px-4 py-3.5 font-semibold text-right"><span className="sr-only">Actions</span></th>
+                    <th className="px-4 py-3.5 font-semibold">{tr("Lead")}</th>
+                    <th className="px-4 py-3.5 font-semibold">{tr("Guest")}</th>
+                    <th className="px-4 py-3.5 font-semibold">{tr("Stay")}</th>
+                    <th className="px-4 py-3.5 font-semibold">{tr("Source")}</th>
+                    <th className="px-4 py-3.5 font-semibold">{tr("Priority")}</th>
+                    <th className="px-4 py-3.5 font-semibold">{tr("Next follow-up")}</th>
+                    <th className="px-4 py-3.5 font-semibold">{tr("Status")}</th>
+                    <th className="px-4 py-3.5 font-semibold text-right"><span className="sr-only">{tr("Actions")}</span></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/40">
@@ -411,6 +416,7 @@ function LeadIdCell({ lead }: { lead: Lead }) {
 }
 
 function GuestCell({ lead }: { lead: Lead }) {
+  const tr = useTr()
   const wa = whatsappLink(lead.phone)
   const shown = guestDisplay(lead)
   return (
@@ -420,11 +426,11 @@ function GuestCell({ lead }: { lead: Lead }) {
       ) : shown.kind === "sheet" ? (
         <span className="font-semibold text-foreground">{shown.name}</span>
       ) : (
-        <span className="text-xs text-muted-foreground italic">No guest profile</span>
+        <span className="text-xs text-muted-foreground italic">{tr("No guest profile")}</span>
       )}
       <div className="text-sm font-medium mt-0.5">
         {wa ? (
-          <a href={wa} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 hover:text-emerald-600 dark:hover:text-emerald-400" title="Open WhatsApp chat">
+          <a href={wa} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 hover:text-emerald-600 dark:hover:text-emerald-400" title={tr("Open WhatsApp chat")}>
             {lead.phone}<MessageCircle className="h-3 w-3" />
           </a>
         ) : (lead.phone || "—")}
@@ -449,20 +455,22 @@ function StayCell({ lead }: { lead: Lead }) {
 }
 
 function FollowUpCell({ lead, nowMs, compact }: { lead: Lead; nowMs: number; compact?: boolean }) {
+  const tr = useTr()
   if (!lead.status || lead.status === "Booked" || lead.status === "Lost") {
     return compact ? null : <span className="text-xs text-muted-foreground">—</span>
   }
-  if (!lead.nextFollowUp && lead.nextFollowUpMs === null) return compact ? null : <span className="text-xs text-muted-foreground">Not set</span>
+  if (!lead.nextFollowUp && lead.nextFollowUpMs === null) return compact ? null : <span className="text-xs text-muted-foreground">{tr("Not set")}</span>
   const due = isFollowUpDue(lead, nowMs)
   return (
     <span className={`inline-flex items-center gap-1 text-xs font-medium ${due ? "text-orange-600 dark:text-orange-400" : "text-muted-foreground"}`}>
       {due && <BellRing className="h-3 w-3" />}
-      {compact && !due ? "Follow up " : ""}{due ? "Due " : ""}{when(lead.nextFollowUpMs, lead.nextFollowUp)}
+      {compact && !due ? tr("Follow up ") : ""}{due ? tr("Due ") : ""}{when(lead.nextFollowUpMs, lead.nextFollowUp)}
     </span>
   )
 }
 
 function StatusControl({ lead, saving, onChange }: { lead: Lead; saving?: LeadStatus; onChange: (s: LeadStatus) => void }) {
+  const tr = useTr()
   const value = saving || lead.status || ""
   return (
     <div className="flex flex-col gap-1">
@@ -470,7 +478,7 @@ function StatusControl({ lead, saving, onChange }: { lead: Lead; saving?: LeadSt
         <SelectTrigger className="w-full md:w-[150px] bg-background rounded-xl" aria-label={`Status for ${lead.id}`}>
           <span className="flex items-center gap-2">
             {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : lead.status ? <span className={`h-2 w-2 rounded-full ${STATUS_DOT[lead.status]}`} /> : <AlertTriangle className="h-3.5 w-3.5 text-rose-500" />}
-            <span className="truncate">{saving ? `Saving ${saving}…` : lead.status || "Set status"}</span>
+            <span className="truncate">{saving ? `Saving ${saving}…` : lead.status || tr("Set status")}</span>
           </span>
         </SelectTrigger>
         <SelectContent>
@@ -487,6 +495,7 @@ function StatusControl({ lead, saving, onChange }: { lead: Lead; saving?: LeadSt
 }
 
 function LeadActions({ lead, sheetHref }: { lead: Lead; sheetHref: string }) {
+  const tr = useTr()
   const router = useRouter()
   const wa = whatsappLink(lead.phone)
   return (
@@ -497,22 +506,22 @@ function LeadActions({ lead, sheetHref }: { lead: Lead; sheetHref: string }) {
       <DropdownMenuContent align="end" className="w-52">
         {wa && (
           <DropdownMenuItem onClick={() => window.open(wa, "_blank", "noopener,noreferrer")}>
-            <MessageCircle className="h-4 w-4" /> Open WhatsApp chat
+            <MessageCircle className="h-4 w-4" /> {tr("Open WhatsApp chat")}
           </DropdownMenuItem>
         )}
         {lead.guest && (
           <DropdownMenuItem onClick={() => router.push(`/guests/${lead.guest!.id}`)}>
-            <UserRound className="h-4 w-4" /> View guest profile
+            <UserRound className="h-4 w-4" /> {tr("View guest profile")}
           </DropdownMenuItem>
         )}
         {lead.guest && (
           <DropdownMenuItem onClick={() => router.push(`/reservations?newBooking=true&guestId=${lead.guest!.id}`)}>
-            <CalendarDays className="h-4 w-4" /> New reservation
+            <CalendarDays className="h-4 w-4" /> {tr("New reservation")}
           </DropdownMenuItem>
         )}
         {(wa || lead.guest) && <DropdownMenuSeparator />}
         <DropdownMenuItem onClick={() => window.open(sheetHref, "_blank", "noopener,noreferrer")}>
-          <ExternalLink className="h-4 w-4" /> Open row in Sheet
+          <ExternalLink className="h-4 w-4" /> {tr("Open row in Sheet")}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
