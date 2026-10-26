@@ -128,6 +128,8 @@
     @apply font-sans scroll-smooth;
   }
   body {
+    /* Latin text uses Plus Jakarta Sans; Hindi (Devanagari) letters fall through to Noto Sans Devanagari. */
+    font-family: var(--font-latin), var(--font-devanagari), ui-sans-serif, system-ui, sans-serif;
     -webkit-tap-highlight-color: transparent;
     overscroll-behavior-y: none;
   }

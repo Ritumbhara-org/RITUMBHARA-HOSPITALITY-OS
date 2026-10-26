@@ -4,13 +4,17 @@ import { useActionState } from "react"
 import { motion } from "framer-motion"
 import { Mail, Lock, ArrowRight, AlertCircle } from "lucide-react"
 import { loginAction, type LoginState } from "@/app/actions/auth"
+import { useTr } from "@/components/i18n/language-provider"
+import { LanguageToggle } from "@/components/i18n/language-toggle"
 
 // The sign-in form. Credentials are checked only on the server (app/actions/auth.ts); nothing secret is in here.
 export function LoginForm({ next }: { next: string }) {
+  const tr = useTr()
   const [state, formAction, isLoading] = useActionState<LoginState, FormData>(loginAction, { error: null })
 
   return (
-    <div className="flex min-h-[100dvh] w-full bg-[#0a0a0a] text-white selection:bg-violet-500/30">
+    <div className="relative flex min-h-[100dvh] w-full bg-[#0a0a0a] text-white selection:bg-violet-500/30">
+      <LanguageToggle className="absolute right-4 top-[calc(1rem+env(safe-area-inset-top))] z-20 border-white/10 bg-white/10 [&_[aria-checked=true]]:bg-white [&_[aria-checked=true]]:text-black [&_[aria-checked=false]]:text-white/70" />
 
       {/* Left side - Brand */}
       <div className="relative hidden w-1/2 flex-col bg-gradient-to-br from-[#0f0d1a] via-[#13112a] to-[#0d0b1e] p-12 lg:flex">
@@ -21,7 +25,7 @@ export function LoginForm({ next }: { next: string }) {
           <div className="relative flex h-10 w-10 items-center justify-center rounded-xl overflow-hidden shadow-lg shadow-violet-500/25">
             <img src="/logo.jpg" alt="Ritumbhara Logo" className="w-full h-full object-cover" />
           </div>
-          <span className="text-xl font-bold tracking-tight">Hospitality OS</span>
+          <span className="text-xl font-bold tracking-tight">{tr("Hospitality OS")}</span>
         </div>
 
         <div className="relative z-10 mt-auto">
@@ -30,7 +34,7 @@ export function LoginForm({ next }: { next: string }) {
               &ldquo;The most powerful operating system for modern hospitality management.&rdquo;
             </p>
             <footer className="text-sm font-medium text-slate-400 uppercase tracking-wider">
-              Powered by Ritumbhara
+              {tr("Powered by Ritumbhara")}
             </footer>
           </blockquote>
         </div>
@@ -49,13 +53,13 @@ export function LoginForm({ next }: { next: string }) {
             <div className="relative flex h-10 w-10 items-center justify-center rounded-xl overflow-hidden shadow-lg shadow-violet-500/25">
               <img src="/logo.jpg" alt="Ritumbhara Logo" className="w-full h-full object-cover" />
             </div>
-            <span className="text-xl font-bold tracking-tight">Hospitality OS</span>
+            <span className="text-xl font-bold tracking-tight">{tr("Hospitality OS")}</span>
           </div>
 
           <div className="space-y-2 text-center lg:text-left">
-            <h1 className="text-3xl font-bold tracking-tight">Welcome back</h1>
+            <h1 className="text-3xl font-bold tracking-tight">{tr("Welcome back")}</h1>
             <p className="text-sm text-slate-400">
-              Enter your credentials to access your dashboard
+              {tr("Enter your credentials to access your dashboard")}
             </p>
           </div>
 
@@ -75,8 +79,8 @@ export function LoginForm({ next }: { next: string }) {
                   name="username"
                   defaultValue={state.username || ""}
                   autoComplete="username"
-                  aria-label="Username"
-                  placeholder="Username"
+                  aria-label={tr("Username")}
+                  placeholder={tr("Username")}
                   autoCapitalize="none"
                   spellCheck={false}
                   className="w-full rounded-xl border border-white/10 bg-white/5 py-3 pl-11 pr-4 text-sm text-white placeholder:text-slate-500 focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500 transition-all"
@@ -89,7 +93,7 @@ export function LoginForm({ next }: { next: string }) {
                   type="password"
                   name="password"
                   autoComplete="current-password"
-                  aria-label="Password"
+                  aria-label={tr("Password")}
                   placeholder="••••••••"
                   className="w-full rounded-xl border border-white/10 bg-white/5 py-3 pl-11 pr-4 text-sm text-white placeholder:text-slate-500 focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500 transition-all"
                   required
@@ -105,11 +109,11 @@ export function LoginForm({ next }: { next: string }) {
               {isLoading ? (
                 <span className="flex items-center gap-2">
                   <span className="h-4 w-4 animate-spin rounded-full border-2 border-black/20 border-t-black" />
-                  Authenticating...
+                  {tr("Authenticating...")}
                 </span>
               ) : (
                 <>
-                  Sign In
+                  {tr("Sign In")}
                   <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                 </>
               )}
@@ -117,7 +121,7 @@ export function LoginForm({ next }: { next: string }) {
           </form>
 
           <p className="text-center text-xs text-slate-500 lg:text-left">
-            By clicking continue, you agree to our Terms of Service and Privacy Policy.
+            {tr("By clicking continue, you agree to our Terms of Service and Privacy Policy.")}
           </p>
         </motion.div>
       </div>

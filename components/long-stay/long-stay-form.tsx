@@ -15,6 +15,7 @@ import type { LongStayFormProps } from "@/lib/long-stay/view"
 import { MediaUploader } from "./media-uploader"
 import { AgreementPanel } from "./agreement-panel"
 import { StatusBadge } from "./badges"
+import { useTr } from "@/components/i18n/language-provider"
 
 const inputClass =
   "h-10 w-full rounded-xl border border-border/60 bg-background px-3 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary/40 aria-invalid:border-destructive aria-invalid:ring-destructive/20 read-only:bg-muted/40"
@@ -34,6 +35,7 @@ function numberOr0(v: string): number {
 }
 
 export function LongStayForm({ mode, initial, initialStatus, locations, units, agreement, createdAt }: LongStayFormProps) {
+  const tr = useTr()
   const router = useRouter()
   const [form, setForm] = useState<LongStayInput>(initial)
   const [baseline, setBaseline] = useState<LongStayInput>(initial)
@@ -78,11 +80,11 @@ export function LongStayForm({ mode, initial, initialStatus, locations, units, a
     if (form.unitId && !unitsHere.some((u) => u.id === form.unitId)) errs.unitId = "This unit doesn't belong to the chosen location"
     const wasIn = initialStatus === "CHECKED_IN" || initialStatus === "CHECKED_OUT"
     if ((form.status === "CHECKED_IN" || form.status === "CHECKED_OUT") && !wasIn && (!signed || materialChanged)) {
-      errs.status = signed ? "These changes void the signed agreement. Send it for e-sign again before check-in." : "The guest has to e-sign the agreement before check-in"
+      errs.status = signed ? tr("These changes void the signed agreement. Send it for e-sign again before check-in.") : tr("The guest has to e-sign the agreement before check-in")
     }
     if (Object.keys(errs).length) {
       setErrors(errs)
-      toast.error("Please fix the highlighted fields.")
+      toast.error(tr("Please fix the highlighted fields."))
       document.querySelector(`[data-field="${Object.keys(errs)[0]}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" })
       return
     }
@@ -95,8 +97,8 @@ export function LongStayForm({ mode, initial, initialStatus, locations, units, a
       return
     }
     setBaseline(form)
-    if (r.voidedSignature) toast.warning("Saved. The guest's signature was voided because the agreement changed — send it for e-sign again.")
-    else toast.success(mode === "new" ? "Booking created" : "Booking saved")
+    if (r.voidedSignature) toast.warning(tr("Saved. The guest's signature was voided because the agreement changed — send it for e-sign again."))
+    else toast.success(mode === "new" ? tr("Booking created") : tr("Booking saved"))
     if (mode === "new") router.replace(`/long-stay/${r.id}`)
     else router.refresh()
   }
@@ -108,20 +110,20 @@ export function LongStayForm({ mode, initial, initialStatus, locations, units, a
     <div className="flex flex-col flex-1 w-full gap-5 pb-0">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <Link href="/long-stay" className="inline-flex h-9 w-9 items-center justify-center rounded-xl border bg-card hover:bg-muted" aria-label="Back to Long Stays">
+          <Link href="/long-stay" className="inline-flex h-9 w-9 items-center justify-center rounded-xl border bg-card hover:bg-muted" aria-label={tr("Back to Long Stays")}>
             <ArrowLeft className="h-4 w-4" />
           </Link>
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight">{mode === "new" ? "New long stay" : baseline.guestName || "Long stay"}</h1>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight">{mode === "new" ? tr("New long stay") : baseline.guestName || tr("Long stay")}</h1>
             <p className="text-sm text-muted-foreground mt-0.5">
-              {mode === "new" ? "Monthly or extended stay booked directly." : `Booking ${initial.id.slice(-8)}${createdAt ? ` · created ${createdAt}` : ""}`}
+              {mode === "new" ? tr("Monthly or extended stay booked directly.") : `Booking ${initial.id.slice(-8)}${createdAt ? ` · created ${createdAt}` : ""}`}
             </p>
           </div>
         </div>
         {mode === "edit" && <StatusBadge status={baseline.status} />}
       </div>
 
-      <Section title="Guest">
+      <Section title={tr("Guest")}>
         <Grid>
           <Field label="Guest name" required error={err("guestName")} name="guestName">
             <input className={inputClass} value={form.guestName} onChange={(e) => set("guestName", e.target.value)} aria-invalid={!!err("guestName")} autoComplete="off" />
@@ -139,11 +141,11 @@ export function LongStayForm({ mode, initial, initialStatus, locations, units, a
             <input className={inputClass} type="number" min={1} step={1} value={form.occupants} onChange={(e) => set("occupants", Math.trunc(numberOr0(e.target.value)))} aria-invalid={!!err("occupants")} />
           </Field>
           <Field label="Emergency contact" error={err("emergencyContact")} name="emergencyContact">
-            <input className={inputClass} placeholder="Name and number" value={form.emergencyContact} onChange={(e) => set("emergencyContact", e.target.value)} />
+            <input className={inputClass} placeholder={tr("Name and number")} value={form.emergencyContact} onChange={(e) => set("emergencyContact", e.target.value)} />
           </Field>
           <Field label="Guest ID type" required error={err("idType")} name="idType">
             <select className={inputClass} value={form.idType} onChange={(e) => set("idType", e.target.value)} aria-invalid={!!err("idType")}>
-              <option value="">Select…</option>
+              <option value="">{tr("Select…")}</option>
               {ID_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
             </select>
           </Field>
@@ -159,29 +161,29 @@ export function LongStayForm({ mode, initial, initialStatus, locations, units, a
         </div>
       </Section>
 
-      <Section title="Stay">
+      <Section title={tr("Stay")}>
         <Grid>
           <Field label="Location" required error={err("propertyId")} name="propertyId">
             <select className={inputClass} value={form.propertyId} onChange={(e) => chooseLocation(e.target.value)} aria-invalid={!!err("propertyId")}>
-              <option value="">Select location…</option>
+              <option value="">{tr("Select location…")}</option>
               {locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
             </select>
           </Field>
-          <Field label="Unit" error={err("unitId")} name="unitId" hint={form.propertyId && unitsHere.length === 0 ? "No units at this location." : undefined}>
+          <Field label="Unit" error={err("unitId")} name="unitId" hint={form.propertyId && unitsHere.length === 0 ? tr("No units at this location.") : undefined}>
             <select className={inputClass} value={form.unitId} onChange={(e) => chooseUnit(e.target.value)} disabled={!form.propertyId} aria-invalid={!!err("unitId")}>
-              <option value="">{form.propertyId ? "No specific unit" : "Pick a location first"}</option>
+              <option value="">{form.propertyId ? tr("No specific unit") : tr("Pick a location first")}</option>
               {unitsHere.map((u) => <option key={u.id} value={u.id}>{u.name} — {u.type}</option>)}
             </select>
           </Field>
           <Field label="Property type" required error={err("propertyType")} name="propertyType">
             <select className={inputClass} value={form.propertyType} onChange={(e) => set("propertyType", e.target.value)} aria-invalid={!!err("propertyType")}>
-              <option value="">Select…</option>
+              <option value="">{tr("Select…")}</option>
               {PROPERTY_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
             </select>
           </Field>
           <Field label="Status" error={err("status")} name="status">
             <select className={inputClass} value={form.status} onChange={(e) => set("status", e.target.value)} aria-invalid={!!err("status")}>
-              {STATUSES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+              {STATUSES.map((s) => <option key={s.value} value={s.value}>{tr(s.label)}</option>)}
             </select>
           </Field>
           <Field label="Check-in" required error={err("checkIn")} name="checkIn">
@@ -199,8 +201,8 @@ export function LongStayForm({ mode, initial, initialStatus, locations, units, a
         </Grid>
       </Section>
 
-      <Section title="Inclusions" required error={err("inclusion")} name="inclusion">
-        <div className="grid gap-3 sm:grid-cols-2" role="radiogroup" aria-label="Inclusion">
+      <Section title={tr("Inclusions")} required error={err("inclusion")} name="inclusion">
+        <div className="grid gap-3 sm:grid-cols-2" role="radiogroup" aria-label={tr("Inclusion")}>
           {INCLUSIONS.map((i) => {
             const active = form.inclusion === i.value
             return (
@@ -209,7 +211,7 @@ export function LongStayForm({ mode, initial, initialStatus, locations, units, a
                 className={`relative rounded-xl border p-4 text-left transition-all ${active ? "border-primary bg-primary/5 ring-2 ring-primary/20" : "border-border/60 bg-background hover:bg-muted/40"}`}
               >
                 {active && <Check className="absolute right-3 top-3 h-4 w-4 text-primary" />}
-                <div className="pr-6 text-sm font-semibold">{i.label}</div>
+                <div className="pr-6 text-sm font-semibold">{tr(i.label)}</div>
                 <div className="mt-1 text-xs text-muted-foreground">{i.description}</div>
               </button>
             )
@@ -217,7 +219,7 @@ export function LongStayForm({ mode, initial, initialStatus, locations, units, a
         </div>
       </Section>
 
-      <Section title="Price">
+      <Section title={tr("Price")}>
         <Grid>
           <Field label="Rate type" error={err("rateType")} name="rateType">
             <div className="grid grid-cols-2 gap-2">
@@ -226,7 +228,7 @@ export function LongStayForm({ mode, initial, initialStatus, locations, units, a
                   type="button" key={r.value} onClick={() => set("rateType", r.value)}
                   className={`h-10 rounded-xl border text-sm font-medium ${form.rateType === r.value ? "border-primary bg-primary/5 text-primary" : "border-border/60 bg-background hover:bg-muted/40"}`}
                 >
-                  {r.label}
+                  {tr(r.label)}
                 </button>
               ))}
             </div>
@@ -241,10 +243,10 @@ export function LongStayForm({ mode, initial, initialStatus, locations, units, a
                 <span>
                   Suggested {formatInr(suggested)} ·{" "}
                   <button type="button" className="font-semibold text-primary hover:underline" onClick={() => { setTotalTouched(false); set("totalAmount", suggested) }}>
-                    Use suggested
+                    {tr("Use suggested")}
                   </button>
                 </span>
-              ) : suggested > 0 ? "Matches the suggested total." : undefined
+              ) : suggested > 0 ? tr("Matches the suggested total.") : undefined
             }
           >
             <MoneyInput value={form.totalAmount} onChange={(v) => { setTotalTouched(true); set("totalAmount", v) }} invalid={!!err("totalAmount")} />
@@ -254,7 +256,7 @@ export function LongStayForm({ mode, initial, initialStatus, locations, units, a
           </Field>
           <Field label="Payment mode" error={err("paymentMode")} name="paymentMode">
             <select className={inputClass} value={form.paymentMode} onChange={(e) => set("paymentMode", e.target.value)}>
-              <option value="">Select…</option>
+              <option value="">{tr("Select…")}</option>
               {PAYMENT_MODES.map((m) => <option key={m} value={m}>{m}</option>)}
             </select>
           </Field>
@@ -266,24 +268,24 @@ export function LongStayForm({ mode, initial, initialStatus, locations, units, a
         </Grid>
       </Section>
 
-      <Section title="Security deposit">
+      <Section title={tr("Security deposit")}>
         <Grid>
           <Field label="Deposit amount (₹)" error={err("securityDeposit")} name="securityDeposit">
             <MoneyInput value={form.securityDeposit} onChange={(v) => set("securityDeposit", v)} invalid={!!err("securityDeposit")} />
           </Field>
           <Field label="Deposit paid via" error={err("depositMode")} name="depositMode">
             <select className={inputClass} value={form.depositMode} onChange={(e) => set("depositMode", e.target.value)}>
-              <option value="">Select…</option>
+              <option value="">{tr("Select…")}</option>
               {PAYMENT_MODES.map((m) => <option key={m} value={m}>{m}</option>)}
             </select>
           </Field>
         </Grid>
         <div className="mt-4" data-field="depositTerms">
           <div className="mb-1.5 flex items-center justify-between gap-2">
-            <label className="text-sm font-medium" htmlFor="depositTerms">Terms and conditions</label>
+            <label className="text-sm font-medium" htmlFor="depositTerms">{tr("Terms and conditions")}</label>
             {form.depositTerms !== DEFAULT_DEPOSIT_TERMS && (
               <button type="button" className="text-xs font-semibold text-primary hover:underline" onClick={() => set("depositTerms", DEFAULT_DEPOSIT_TERMS)}>
-                Reset to default
+                {tr("Reset to default")}
               </button>
             )}
           </div>
@@ -291,18 +293,18 @@ export function LongStayForm({ mode, initial, initialStatus, locations, units, a
             id="depositTerms" rows={9} value={form.depositTerms} onChange={(e) => set("depositTerms", e.target.value)}
             className="w-full rounded-xl border border-border/60 bg-background px-3 py-2.5 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
           />
-          <p className="mt-1 text-xs text-muted-foreground">The guest accepts these terms by e-signing the agreement.</p>
+          <p className="mt-1 text-xs text-muted-foreground">{tr("The guest accepts these terms by e-signing the agreement.")}</p>
         </div>
 
         {mode === "edit" && (
           <div className="mt-5 rounded-xl border border-dashed p-4">
-            <p className="mb-3 text-sm font-semibold">At check-out</p>
+            <p className="mb-3 text-sm font-semibold">{tr("At check-out")}</p>
             <Grid>
               <Field label="Deduction at check-out (₹)" error={err("depositDeduction")} name="depositDeduction">
                 <MoneyInput value={form.depositDeduction} onChange={(v) => set("depositDeduction", v)} invalid={!!err("depositDeduction")} />
               </Field>
               <Field label="Reason for deduction" error={err("deductionReason")} name="deductionReason">
-                <input className={inputClass} value={form.deductionReason} onChange={(e) => set("deductionReason", e.target.value)} placeholder="e.g. broken lamp, extra cleaning" />
+                <input className={inputClass} value={form.deductionReason} onChange={(e) => set("deductionReason", e.target.value)} placeholder={tr("e.g. broken lamp, extra cleaning")} />
               </Field>
               <Field label="Refunded on" error={err("depositRefundedOn")} name="depositRefundedOn">
                 <input className={inputClass} type="date" value={form.depositRefundedOn} onChange={(e) => set("depositRefundedOn", e.target.value)} aria-invalid={!!err("depositRefundedOn")} />
@@ -317,15 +319,15 @@ export function LongStayForm({ mode, initial, initialStatus, locations, units, a
         )}
       </Section>
 
-      <Section title="E-sign agreement">
+      <Section title={tr("E-sign agreement")}>
         {mode === "new" ? (
-          <p className="text-sm text-muted-foreground">Save the booking first. Then send the agreement to the guest for e-sign.</p>
+          <p className="text-sm text-muted-foreground">{tr("Save the booking first. Then send the agreement to the guest for e-sign.")}</p>
         ) : (
           <AgreementPanel bookingId={form.id} agreement={agreement} dirty={dirty} materialChanged={signed && materialChanged} contactNumber={baseline.contactNumber} />
         )}
       </Section>
 
-      <Section title="Photos and videos">
+      <Section title={tr("Photos and videos")}>
         <div className="space-y-6">
           <MediaUploader
             bookingId={form.id} kind="checkin" saved={saved} paths={form.checkInMedia} onChange={(p) => set("checkInMedia", p)}
@@ -338,9 +340,9 @@ export function LongStayForm({ mode, initial, initialStatus, locations, units, a
         </div>
       </Section>
 
-      <Section title="Notes">
+      <Section title={tr("Notes")}>
         <textarea
-          rows={4} value={form.notes} onChange={(e) => set("notes", e.target.value)} placeholder="Anything the team should know"
+          rows={4} value={form.notes} onChange={(e) => set("notes", e.target.value)} placeholder={tr("Anything the team should know")}
           className="w-full rounded-xl border border-border/60 bg-background px-3 py-2.5 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
         />
       </Section>
@@ -349,17 +351,17 @@ export function LongStayForm({ mode, initial, initialStatus, locations, units, a
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="text-xs text-muted-foreground flex items-center gap-2 min-w-0">
             {signed && materialChanged ? (
-              <span className="flex items-center gap-1.5 text-amber-700 dark:text-amber-400"><AlertTriangle className="h-3.5 w-3.5 shrink-0" /> Saving will void the guest&apos;s signature.</span>
-            ) : dirty ? "Unsaved changes" : mode === "edit" ? "All changes saved" : ""}
+              <span className="flex items-center gap-1.5 text-amber-700 dark:text-amber-400"><AlertTriangle className="h-3.5 w-3.5 shrink-0" /> {tr("Saving will void the guest's signature.")}</span>
+            ) : dirty ? tr("Unsaved changes") : mode === "edit" ? tr("All changes saved") : ""}
           </div>
           <div className="flex gap-2">
-            <Link href="/long-stay" className="inline-flex h-10 items-center rounded-xl border px-4 text-sm font-medium hover:bg-muted">Close</Link>
+            <Link href="/long-stay" className="inline-flex h-10 items-center rounded-xl border px-4 text-sm font-medium hover:bg-muted">{tr("Close")}</Link>
             <button
               type="button" onClick={onSave} disabled={saving || (mode === "edit" && !dirty)}
               className="inline-flex h-10 items-center gap-2 rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground shadow-sm shadow-primary/20 hover:bg-primary/90 disabled:opacity-50"
             >
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-              {mode === "new" ? "Create booking" : "Save"}
+              {mode === "new" ? tr("Create booking") : tr("Save")}
             </button>
           </div>
         </div>
@@ -369,10 +371,11 @@ export function LongStayForm({ mode, initial, initialStatus, locations, units, a
 }
 
 function Section({ title, children, required, error, name }: { title: string; children: ReactNode; required?: boolean; error?: string; name?: string }) {
+  const tr = useTr()
   return (
     <section className="rounded-2xl border bg-card p-4 sm:p-5 shadow-sm" data-field={name}>
       <h2 className="mb-4 text-base font-semibold">
-        {title}
+        {tr(title)}
         {required && <span className="text-destructive"> *</span>}
       </h2>
       {children}
@@ -386,14 +389,15 @@ function Grid({ children }: { children: ReactNode }) {
 }
 
 function Field({ label, required, error, hint, name, children }: { label: string; required?: boolean; error?: string; hint?: ReactNode; name: string; children: ReactNode }) {
+  const tr = useTr()
   return (
     <div className="grid content-start gap-1.5" data-field={name}>
       <label className="text-sm font-medium">
-        {label}
+        {tr(label)}
         {required && <span className="text-destructive"> *</span>}
       </label>
       {children}
-      {error ? <p className="text-xs font-medium text-destructive">{error}</p> : hint ? <p className="text-xs text-muted-foreground">{hint}</p> : null}
+      {error ? <p className="text-xs font-medium text-destructive">{error}</p> : hint ? <p className="text-xs text-muted-foreground">{typeof hint === "string" ? tr(hint) : hint}</p> : null}
     </div>
   )
 }

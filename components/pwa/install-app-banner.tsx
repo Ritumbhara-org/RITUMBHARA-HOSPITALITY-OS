@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { Download, Share, SquarePlus, X } from "lucide-react"
+import { useTr } from "@/components/i18n/language-provider"
 
 // Offers to install the OS as an app. Android/desktop Chrome: one tap (browser install prompt).
 // iPhone/iPad Safari has no prompt, so it shows the two steps instead. Hidden once installed or dismissed.
@@ -31,6 +32,7 @@ function wasDismissed(): boolean {
 }
 
 export function InstallAppBanner() {
+  const tr = useTr()
   const [promptEvent, setPromptEvent] = useState<BeforeInstallPromptEvent | null>(null)
   const [mode, setMode] = useState<"hidden" | "prompt" | "ios">("hidden")
   const [showSteps, setShowSteps] = useState(false)
@@ -85,23 +87,23 @@ export function InstallAppBanner() {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/icons/icon-192.png" alt="" className="h-10 w-10 shrink-0 rounded-xl" />
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold">Install Ritumbhara OS</p>
-          <p className="text-xs text-white/75">Open it from your home screen, full screen like an app.</p>
+          <p className="text-sm font-semibold">{tr("Install Ritumbhara OS")}</p>
+          <p className="text-xs text-white/75">{tr("Open it from your home screen, full screen like an app.")}</p>
         </div>
         <button type="button" onClick={install} className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-xl bg-white px-3 text-sm font-semibold text-[#5c0a20] hover:bg-white/90">
-          <Download className="h-4 w-4" /> Install
+          <Download className="h-4 w-4" /> {tr("Install")}
         </button>
-        <button type="button" onClick={dismiss} aria-label="Dismiss" className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white/70 hover:bg-white/10 hover:text-white">
+        <button type="button" onClick={dismiss} aria-label={tr("Dismiss")} className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white/70 hover:bg-white/10 hover:text-white">
           <X className="h-4 w-4" />
         </button>
       </div>
       {mode === "ios" && showSteps && (
         <ol className="space-y-2 border-t border-white/10 px-4 py-3 text-sm">
           <li className="flex items-center gap-2">
-            <span className="font-semibold">1.</span> Tap <Share className="h-4 w-4" aria-label="Share" /> <span className="font-semibold">Share</span> in Safari&apos;s toolbar.
+            <span className="font-semibold">1.</span> {tr("Tap")} <Share className="h-4 w-4" aria-label={tr("Share")} /> <span className="font-semibold">{tr("Share")}</span> {tr("in Safari's toolbar.")}
           </li>
           <li className="flex items-center gap-2">
-            <span className="font-semibold">2.</span> Choose <SquarePlus className="h-4 w-4" aria-hidden /> <span className="font-semibold">Add to Home Screen</span>, then <span className="font-semibold">Add</span>.
+            <span className="font-semibold">2.</span> {tr("Choose")} <SquarePlus className="h-4 w-4" aria-hidden /> <span className="font-semibold">{tr("Add to Home Screen")}</span>, then <span className="font-semibold">{tr("Add")}</span>.
           </li>
         </ol>
       )}

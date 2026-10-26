@@ -9,6 +9,7 @@ import { cancelLongStayAgreement, sendLongStayAgreement } from "@/app/actions/lo
 import { mediaUrl } from "@/lib/long-stay/shared"
 import type { AgreementView } from "@/lib/long-stay/view"
 import { AgreementBadgePill } from "./badges"
+import { useTr } from "@/components/i18n/language-provider"
 
 const when = (iso: string | null) => (iso ? format(new Date(iso), "d MMM yyyy, h:mm a") : "")
 
@@ -27,6 +28,7 @@ export function AgreementPanel({
   materialChanged: boolean
   contactNumber: string
 }) {
+  const tr = useTr()
   const router = useRouter()
   const [busy, setBusy] = useState<"whatsapp" | "in_person" | "cancel" | null>(null)
   const [link, setLink] = useState<string | null>(null)
@@ -49,7 +51,7 @@ export function AgreementPanel({
     }
     setLink(r.url)
     if (r.warning) toast.warning(r.warning)
-    else toast.success(`Agreement sent on WhatsApp to ${contactNumber}`)
+    else toast.success(tr("Agreement sent on WhatsApp to {phone}", { phone: contactNumber }))
     router.refresh()
   }
 
@@ -61,7 +63,7 @@ export function AgreementPanel({
     if (!r.success) toast.error(r.error || "Couldn't cancel the link")
     else {
       setLink(null)
-      toast.success("Signing link cancelled")
+      toast.success(tr("Signing link cancelled"))
       router.refresh()
     }
   }
@@ -70,7 +72,7 @@ export function AgreementPanel({
     if (!link) return
     try {
       await navigator.clipboard.writeText(link)
-      toast.success("Link copied")
+      toast.success(tr("Link copied"))
     } catch {
       window.prompt("Copy this link", link)
     }
@@ -100,11 +102,11 @@ export function AgreementPanel({
             <CheckCircle2 className="h-4 w-4" /> Signed by {agreement.signerName} on {when(agreement.signedAt)}
           </p>
           {materialChanged && (
-            <p className="mt-1 text-xs text-amber-700 dark:text-amber-400">Your unsaved changes alter the agreement. Saving them voids this signature.</p>
+            <p className="mt-1 text-xs text-amber-700 dark:text-amber-400">{tr("Your unsaved changes alter the agreement. Saving them voids this signature.")}</p>
           )}
           {agreement.pdfPath && (
             <a href={mediaUrl(agreement.pdfPath, true)} className={`${btn} mt-3 border bg-background hover:bg-muted`}>
-              <Download className="h-4 w-4" /> Download signed PDF
+              <Download className="h-4 w-4" /> {tr("Download signed PDF")}
             </a>
           )}
         </div>
@@ -113,13 +115,13 @@ export function AgreementPanel({
       {!signed && (
         <>
           <p className="text-sm text-muted-foreground">
-            The guest reviews the agreement, confirms a WhatsApp code and signs on their phone. The booking can&apos;t be checked in until it&apos;s signed.
+            {tr("The guest reviews the agreement, confirms a WhatsApp code and signs on their phone. The booking can't be checked in until it's signed.")}
           </p>
-          {dirty && <p className="text-sm font-medium text-amber-700 dark:text-amber-400">Save your changes first, so the guest signs the latest details.</p>}
+          {dirty && <p className="text-sm font-medium text-amber-700 dark:text-amber-400">{tr("Save your changes first, so the guest signs the latest details.")}</p>}
           <div className="flex flex-wrap gap-2">
             <button type="button" disabled={dirty || !!busy} onClick={() => send("whatsapp")} className={`${btn} bg-primary text-primary-foreground hover:bg-primary/90`}>
               {busy === "whatsapp" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-              {agreement?.linkActive ? "Resend for e-sign" : "Send for e-sign"}
+              {agreement?.linkActive ? tr("Resend for e-sign") : tr("Send for e-sign")}
             </button>
             <button type="button" disabled={dirty || !!busy} onClick={() => send("in_person")} className={`${btn} border bg-background hover:bg-muted`}>
               {busy === "in_person" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Smartphone className="h-4 w-4" />}
@@ -134,14 +136,14 @@ export function AgreementPanel({
           </div>
           {link && (
             <div className="rounded-xl border bg-muted/30 p-3">
-              <p className="mb-2 flex items-center gap-1.5 text-xs font-medium text-muted-foreground"><PenLine className="h-3.5 w-3.5" /> Signing link (valid 7 days)</p>
+              <p className="mb-2 flex items-center gap-1.5 text-xs font-medium text-muted-foreground"><PenLine className="h-3.5 w-3.5" /> {tr("Signing link (valid 7 days)")}</p>
               <div className="flex gap-2">
                 <input readOnly value={link} onFocus={(e) => e.currentTarget.select()} className="h-10 min-w-0 flex-1 rounded-xl border bg-background px-3 text-xs" />
                 <button type="button" onClick={copy} className={`${btn} border bg-background hover:bg-muted`}>
-                  <Copy className="h-4 w-4" /> Copy link
+                  <Copy className="h-4 w-4" /> {tr("Copy link")}
                 </button>
               </div>
-              <p className="mt-2 text-xs text-muted-foreground">For security only a fingerprint of this link is stored, so copy it now. You can always send a new one.</p>
+              <p className="mt-2 text-xs text-muted-foreground">{tr("For security only a fingerprint of this link is stored, so copy it now. You can always send a new one.")}</p>
             </div>
           )}
         </>

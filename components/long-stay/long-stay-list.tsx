@@ -9,6 +9,7 @@ import { BedDouble, CalendarRange, MapPin, Plus, Search, Wallet } from "lucide-r
 import { aboutMonths, formatInr, inclusionLabel, STATUSES } from "@/lib/long-stay/shared"
 import type { LocationOption, LongStayRow } from "@/lib/long-stay/view"
 import { AgreementBadgePill, StatusBadge } from "./badges"
+import { useTr } from "@/components/i18n/language-provider"
 
 interface Stats {
   staying: number
@@ -23,6 +24,7 @@ const selectClass =
   "h-10 rounded-xl border border-border/60 bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
 
 export function LongStayList({ rows, stats, locations }: { rows: LongStayRow[]; stats: Stats; locations: LocationOption[] }) {
+  const tr = useTr()
   const router = useRouter()
   const [search, setSearch] = useState("")
   const [location, setLocation] = useState("ALL")
@@ -59,29 +61,29 @@ export function LongStayList({ rows, stats, locations }: { rows: LongStayRow[]; 
     <div className="flex flex-col flex-1 w-full gap-4 sm:gap-5 pb-4">
       <div className="flex flex-wrap items-end justify-between gap-3 sm:gap-4 shrink-0">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Long Stays</h1>
-          <p className="text-sm text-muted-foreground mt-1">Monthly and extended stays booked directly by the team.</p>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight">{tr("Long Stays")}</h1>
+          <p className="text-sm text-muted-foreground mt-1">{tr("Monthly and extended stays booked directly by the team.")}</p>
         </div>
         <Link
           href="/long-stay/new"
           className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm shadow-primary/20 transition-all duration-200 hover:bg-primary/90 hover:shadow-md active:scale-[0.98]"
         >
           <Plus className="h-4 w-4" />
-          New booking
+          {tr("New booking")}
         </Link>
       </div>
 
       <div className="grid gap-2.5 sm:gap-4 grid-cols-2 sm:grid-cols-3 shrink-0">
         {cards.map((c, i) => (
           <motion.div
-            key={c.label}
+            key={tr(c.label)}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35, delay: i * 0.05 }}
             className={`group rounded-2xl border bg-card min-w-0 p-3 sm:p-4 shadow-sm transition-all duration-300 hover:shadow-md ${i === cards.length - 1 ? "col-span-2 sm:col-span-1" : ""}`}
           >
             <div className="flex items-start justify-between gap-2 mb-1.5 sm:mb-3">
-              <p className="text-xs sm:text-sm leading-snug font-medium text-muted-foreground">{c.label}</p>
+              <p className="text-xs sm:text-sm leading-snug font-medium text-muted-foreground">{tr(c.label)}</p>
               <div className={`shrink-0 rounded-xl p-1.5 sm:p-2 ${c.color} transition-transform duration-300 group-hover:scale-110`}>
                 <c.icon className="h-4 w-4" />
               </div>
@@ -103,7 +105,7 @@ export function LongStayList({ rows, stats, locations }: { rows: LongStayRow[]; 
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
               type="search"
-              placeholder="Search guest, phone or unit..."
+              placeholder={tr("Search guest, phone or unit...")}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full rounded-xl border border-border/60 bg-background py-2.5 pl-9 pr-4 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
@@ -111,20 +113,20 @@ export function LongStayList({ rows, stats, locations }: { rows: LongStayRow[]; 
           </div>
           <div className="flex gap-3 sm:ml-auto">
             <label className="relative flex-1 sm:flex-none">
-              <span className="sr-only">Location</span>
+              <span className="sr-only">{tr("Location")}</span>
               <select value={location} onChange={(e) => setLocation(e.target.value)} className={selectClass + " w-full sm:w-48"}>
-                <option value="ALL">All locations</option>
+                <option value="ALL">{tr("All locations")}</option>
                 {locations.map((l) => (
                   <option key={l.id} value={l.id}>{l.name}</option>
                 ))}
               </select>
             </label>
             <label className="relative flex-1 sm:flex-none">
-              <span className="sr-only">Status</span>
+              <span className="sr-only">{tr("Status")}</span>
               <select value={status} onChange={(e) => setStatus(e.target.value)} className={selectClass + " w-full sm:w-40"}>
-                <option value="ALL">All statuses</option>
+                <option value="ALL">{tr("All statuses")}</option>
                 {STATUSES.map((s) => (
-                  <option key={s.value} value={s.value}>{s.label}</option>
+                  <option key={s.value} value={s.value}>{tr(s.label)}</option>
                 ))}
               </select>
             </label>
@@ -167,14 +169,14 @@ export function LongStayList({ rows, stats, locations }: { rows: LongStayRow[]; 
           <table className="w-full text-sm text-left whitespace-nowrap">
             <thead className="text-[11px] uppercase bg-muted/30 text-muted-foreground sticky top-0 z-10 border-b border-border/40">
               <tr>
-                <th className="px-5 py-3.5 font-semibold">Guest</th>
-                <th className="px-5 py-3.5 font-semibold">Unit</th>
-                <th className="px-5 py-3.5 font-semibold">Stay</th>
-                <th className="px-5 py-3.5 font-semibold">Inclusion</th>
-                <th className="px-5 py-3.5 font-semibold">Total</th>
-                <th className="px-5 py-3.5 font-semibold">Deposit</th>
-                <th className="px-5 py-3.5 font-semibold">Photos</th>
-                <th className="px-5 py-3.5 font-semibold">Status</th>
+                <th className="px-5 py-3.5 font-semibold">{tr("Guest")}</th>
+                <th className="px-5 py-3.5 font-semibold">{tr("Unit")}</th>
+                <th className="px-5 py-3.5 font-semibold">{tr("Stay")}</th>
+                <th className="px-5 py-3.5 font-semibold">{tr("Inclusion")}</th>
+                <th className="px-5 py-3.5 font-semibold">{tr("Total")}</th>
+                <th className="px-5 py-3.5 font-semibold">{tr("Deposit")}</th>
+                <th className="px-5 py-3.5 font-semibold">{tr("Photos")}</th>
+                <th className="px-5 py-3.5 font-semibold">{tr("Status")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/40">
@@ -205,7 +207,7 @@ export function LongStayList({ rows, stats, locations }: { rows: LongStayRow[]; 
                       </div>
                     </td>
                     <td className="px-5 py-3.5">
-                      <div className="font-semibold">{r.unitName || "Unassigned"}</div>
+                      <div className="font-semibold">{r.unitName || tr("Unassigned")}</div>
                       <div className="text-xs text-muted-foreground flex items-center gap-1"><MapPin className="h-3 w-3" />{r.locationName}</div>
                     </td>
                     <td className="px-5 py-3.5">
@@ -218,7 +220,7 @@ export function LongStayList({ rows, stats, locations }: { rows: LongStayRow[]; 
                     <td className="px-5 py-3.5 font-semibold">{formatInr(r.totalAmount)}</td>
                     <td className="px-5 py-3.5">
                       <div className="font-medium">{formatInr(r.securityDeposit)}</div>
-                      <div className="text-[11px] text-muted-foreground">{r.depositRefundedOn ? `Refunded ${fmt(r.depositRefundedOn)}` : r.securityDeposit > 0 ? "Held" : "—"}</div>
+                      <div className="text-[11px] text-muted-foreground">{r.depositRefundedOn ? `Refunded ${fmt(r.depositRefundedOn)}` : r.securityDeposit > 0 ? tr("Held") : "—"}</div>
                     </td>
                     <td className="px-5 py-3.5 text-xs text-muted-foreground">In {r.checkInCount} · Out {r.checkOutCount}</td>
                     <td className="px-5 py-3.5">
@@ -239,13 +241,14 @@ export function LongStayList({ rows, stats, locations }: { rows: LongStayRow[]; 
 }
 
 function EmptyState({ hasRows }: { hasRows: boolean }) {
+  const tr = useTr()
   return (
     <div className="flex flex-col items-center px-6 py-16 text-center text-muted-foreground">
       <CalendarRange className="h-10 w-10 mb-3 opacity-30" />
-      <p className="text-sm font-medium">{hasRows ? "No long stays match your filters." : "No long stays yet."}</p>
+      <p className="text-sm font-medium">{hasRows ? tr("No long stays match your filters.") : tr("No long stays yet.")}</p>
       {!hasRows && (
         <Link href="/long-stay/new" className="mt-3 text-sm font-semibold text-primary hover:underline">
-          Create the first booking
+          {tr("Create the first booking")}
         </Link>
       )}
     </div>

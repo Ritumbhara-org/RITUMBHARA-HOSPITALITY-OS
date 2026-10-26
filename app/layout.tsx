@@ -1,10 +1,12 @@
 import type { Metadata, Viewport } from "next";
-import { Plus_Jakarta_Sans } from "next/font/google";
+import { Plus_Jakarta_Sans, Noto_Sans_Devanagari } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { RegisterServiceWorker } from "@/components/pwa/register-service-worker";
 
-const font = Plus_Jakarta_Sans({ subsets: ["latin"] });
+const font = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-latin" });
+// Hindi text: Plus Jakarta Sans has no Devanagari letters, so the browser falls through to this font for them.
+const devanagari = Noto_Sans_Devanagari({ subsets: ["devanagari"], weight: ["400", "500", "600", "700"], variable: "--font-devanagari" });
 
 export const metadata: Metadata = {
   title: "Ritumbhara Hospitality OS",
@@ -30,7 +32,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={font.className}>
+      <body className={`${font.variable} ${devanagari.variable}`}>
         {children}
         <Toaster />
         <RegisterServiceWorker enabled={process.env.NODE_ENV === "production"} />

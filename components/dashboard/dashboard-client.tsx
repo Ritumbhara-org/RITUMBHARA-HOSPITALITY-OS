@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion"
 import { BedDouble, CalendarCheck, Users, TrendingUp, ArrowUpRight, Clock, AlertCircle, CheckCircle2 } from "lucide-react"
+import { useLanguage, useTr } from "@/components/i18n/language-provider"
 
 type DashboardData = {
   todayArrivals: string;
@@ -18,6 +19,8 @@ type DashboardData = {
 }
 
 export function DashboardClient({ data }: { data: DashboardData }) {
+  const tr = useTr()
+  const { lang } = useLanguage()
   const stats = [
     { 
       name: "Today's Check-ins", 
@@ -72,7 +75,7 @@ export function DashboardClient({ data }: { data: DashboardData }) {
               transition={{ duration: 0.5, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
               className="text-xl sm:text-2xl font-bold tracking-tight text-white"
             >
-              Welcome back, Admin
+              {tr("Welcome back, Admin")}
             </motion.h1>
             <motion.p 
               initial={{ opacity: 0, x: -10 }}
@@ -80,7 +83,7 @@ export function DashboardClient({ data }: { data: DashboardData }) {
               transition={{ duration: 0.5, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
               className="mt-1.5 text-sm text-rose-100/70"
             >
-              System is running smoothly. <span className="text-white font-medium">{data.arrivals.length} check-ins</span> arriving today.
+              {tr("System is running smoothly.")} <span className="text-white font-medium">{data.arrivals.length} {tr("check-ins")}</span> {tr("arriving today.")}
             </motion.p>
           </div>
           <motion.div 
@@ -90,9 +93,9 @@ export function DashboardClient({ data }: { data: DashboardData }) {
             className="hidden sm:block text-right mt-3 sm:mt-0"
           >
              <p suppressHydrationWarning className="text-sm font-semibold text-white/90">
-               {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+               {new Date().toLocaleDateString(lang === 'hi' ? 'hi-IN' : 'en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
              </p>
-             <p className="text-xs text-rose-200/50 mt-0.5">Ritumbhara Hotels</p>
+             <p className="text-xs text-rose-200/50 mt-0.5">{tr("Ritumbhara Hotels")}</p>
           </motion.div>
         </div>
       </motion.div>
@@ -108,7 +111,7 @@ export function DashboardClient({ data }: { data: DashboardData }) {
             className="group relative min-w-0 rounded-2xl border bg-card p-3.5 sm:p-4 shadow-sm transition-all duration-300 hover:shadow-md hover:border-border/80 overflow-hidden"
           >
             <div className="flex items-start justify-between gap-2 mb-2 sm:mb-3">
-              <p className="text-xs sm:text-sm font-medium leading-snug text-muted-foreground">{stat.name}</p>
+              <p className="text-xs sm:text-sm font-medium leading-snug text-muted-foreground">{tr(stat.name)}</p>
               <div className={`shrink-0 rounded-xl p-1.5 sm:p-2 ${stat.lightColor} transition-transform duration-300 group-hover:scale-110`}>
                 <stat.icon className="h-4 w-4" />
               </div>
@@ -118,7 +121,7 @@ export function DashboardClient({ data }: { data: DashboardData }) {
             </div>
             <p className="mt-1.5 text-[11px] sm:text-xs text-muted-foreground flex items-start gap-1">
               <ArrowUpRight className="h-3 w-3 shrink-0 mt-0.5" />
-              <span className="line-clamp-2">{stat.trend}</span>
+              <span className="line-clamp-2">{tr(stat.trend)}</span>
             </p>
           </motion.div>
         ))}
@@ -137,15 +140,15 @@ export function DashboardClient({ data }: { data: DashboardData }) {
               <div className="rounded-lg bg-rose-50 dark:bg-rose-500/10 p-1.5">
                 <Clock className="h-4 w-4 text-rose-600 dark:text-rose-400" />
               </div>
-              <h3 className="text-sm font-semibold tracking-tight">Today&apos;s Arrivals</h3>
+              <h3 className="text-sm font-semibold tracking-tight">{tr("Today's Arrivals")}</h3>
             </div>
-            <span className="text-xs font-medium text-muted-foreground bg-muted/50 px-2 py-1 rounded-lg">{data.arrivals.length} total</span>
+            <span className="text-xs font-medium text-muted-foreground bg-muted/50 px-2 py-1 rounded-lg">{data.arrivals.length} {tr("total")}</span>
           </div>
           <div className="space-y-1 lg:overflow-y-auto lg:flex-1 lg:min-h-0 lg:pr-1">
             {data.arrivals.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                 <CalendarCheck className="h-10 w-10 mb-3 opacity-30" />
-                <p className="text-sm">No arrivals scheduled for today.</p>
+                <p className="text-sm">{tr("No arrivals scheduled for today.")}</p>
               </div>
             ) : (
               data.arrivals.map((reservation: any) => (
@@ -160,7 +163,7 @@ export function DashboardClient({ data }: { data: DashboardData }) {
                     </div>
                   </div>
                   <div suppressHydrationWarning className="shrink-0 whitespace-nowrap text-xs font-semibold text-muted-foreground bg-muted/60 px-2.5 py-1 rounded-lg">
-                    ETA {new Date(reservation.checkIn).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                    {tr("ETA")} {new Date(reservation.checkIn).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                   </div>
                 </div>
               ))
@@ -174,7 +177,7 @@ export function DashboardClient({ data }: { data: DashboardData }) {
               <div className="rounded-lg bg-amber-50 dark:bg-amber-500/10 p-1.5">
                 <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
               </div>
-              <h3 className="text-sm font-semibold tracking-tight">Pending Operations</h3>
+              <h3 className="text-sm font-semibold tracking-tight">{tr("Pending Operations")}</h3>
             </div>
             <span className="text-xs font-medium text-muted-foreground bg-muted/50 px-2 py-1 rounded-lg">{data.pendingOperations.length}</span>
           </div>
@@ -182,7 +185,7 @@ export function DashboardClient({ data }: { data: DashboardData }) {
             {data.pendingOperations.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                 <CheckCircle2 className="h-10 w-10 mb-3 opacity-30" />
-                <p className="text-sm">No pending operations.</p>
+                <p className="text-sm">{tr("No pending operations.")}</p>
               </div>
             ) : (
               data.pendingOperations.map((ticket: any) => {
@@ -198,12 +201,12 @@ export function DashboardClient({ data }: { data: DashboardData }) {
                         <span className={`relative inline-flex rounded-full h-2 w-2 ${isUrgent ? 'bg-red-500' : 'bg-amber-500'}`}></span>
                       </span>
                       <span className={`text-xs font-bold uppercase tracking-wider ${isUrgent ? 'text-red-600 dark:text-red-400' : 'text-amber-600 dark:text-amber-400'}`}>
-                        {ticket.priority}
+                        {tr(ticket.priority)}
                       </span>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <span className={`text-sm font-semibold ${isUrgent ? 'text-red-700 dark:text-red-300' : 'text-amber-700 dark:text-amber-300'}`}>
-                        {ticket.category.replace('_', ' ')}
+                        {tr(ticket.category.replace('_', ' '))}
                       </span>
                       {ticket.unit && (
                         <span className="text-xs text-muted-foreground">&middot; {ticket.unit.name}</span>
@@ -231,15 +234,15 @@ export function DashboardClient({ data }: { data: DashboardData }) {
               <div className="rounded-lg bg-emerald-50 dark:bg-emerald-500/10 p-1.5">
                 <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
               </div>
-              <h3 className="text-sm font-semibold tracking-tight">Today&apos;s Departures</h3>
+              <h3 className="text-sm font-semibold tracking-tight">{tr("Today's Departures")}</h3>
             </div>
-            <span className="text-xs font-medium text-muted-foreground bg-muted/50 px-2 py-1 rounded-lg">{data.departures?.length || 0} total</span>
+            <span className="text-xs font-medium text-muted-foreground bg-muted/50 px-2 py-1 rounded-lg">{data.departures?.length || 0} {tr("total")}</span>
           </div>
           <div className="space-y-1 lg:overflow-y-auto lg:flex-1 lg:min-h-0 lg:pr-1">
             {data.departures?.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                 <CheckCircle2 className="h-10 w-10 mb-3 opacity-30" />
-                <p className="text-sm">No departures scheduled for today.</p>
+                <p className="text-sm">{tr("No departures scheduled for today.")}</p>
               </div>
             ) : (
               data.departures?.map((reservation: any) => (
@@ -254,7 +257,7 @@ export function DashboardClient({ data }: { data: DashboardData }) {
                     </div>
                   </div>
                   <div suppressHydrationWarning className="shrink-0 whitespace-nowrap text-xs font-semibold text-muted-foreground bg-muted/60 px-2.5 py-1 rounded-lg">
-                    Checkout {new Date(reservation.checkOut).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                    {tr("Checkout")} {new Date(reservation.checkOut).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                   </div>
                 </div>
               ))
@@ -268,7 +271,7 @@ export function DashboardClient({ data }: { data: DashboardData }) {
               <div className="rounded-lg bg-blue-50 dark:bg-blue-500/10 p-1.5">
                 <BedDouble className="h-4 w-4 text-blue-600 dark:text-blue-400" />
               </div>
-              <h3 className="text-sm font-semibold tracking-tight">Unit Status</h3>
+              <h3 className="text-sm font-semibold tracking-tight">{tr("Unit Status")}</h3>
             </div>
           </div>
           <div className="grid grid-cols-3 gap-2 sm:gap-2.5 lg:flex-1 lg:min-h-0 content-start lg:overflow-y-auto lg:pr-1">
@@ -286,7 +289,7 @@ export function DashboardClient({ data }: { data: DashboardData }) {
               return (
                 <div key={status} className={`flex min-w-0 flex-col items-center justify-center px-1 py-3 rounded-xl border transition-all duration-200 hover:scale-[1.02] ${colorClass}`}>
                   <span className="text-2xl font-bold">{statusCount}</span>
-                  <span className="mt-1 max-w-full truncate text-[11px] font-semibold capitalize opacity-80">{status.toLowerCase()}</span>
+                  <span className="mt-1 max-w-full truncate text-[11px] font-semibold capitalize opacity-80">{tr(status.toLowerCase())}</span>
                 </div>
               )
             })}
@@ -307,15 +310,15 @@ export function DashboardClient({ data }: { data: DashboardData }) {
               <div className="rounded-lg bg-red-50 dark:bg-red-500/10 p-1.5">
                 <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
               </div>
-              <h3 className="text-sm font-semibold tracking-tight">Low Inventory Alerts</h3>
+              <h3 className="text-sm font-semibold tracking-tight">{tr("Low Inventory Alerts")}</h3>
             </div>
-            <span className="text-xs font-medium text-muted-foreground bg-muted/50 px-2 py-1 rounded-lg">{data.lowInventory?.length || 0} items</span>
+            <span className="text-xs font-medium text-muted-foreground bg-muted/50 px-2 py-1 rounded-lg">{data.lowInventory?.length || 0} {tr("items")}</span>
           </div>
           <div className="space-y-2 lg:overflow-y-auto lg:flex-1 lg:min-h-0 lg:pr-1">
             {data.lowInventory?.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-6 text-muted-foreground">
                 <CheckCircle2 className="h-8 w-8 mb-2 opacity-30" />
-                <p className="text-sm">All stock levels healthy.</p>
+                <p className="text-sm">{tr("All stock levels healthy.")}</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -324,12 +327,12 @@ export function DashboardClient({ data }: { data: DashboardData }) {
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold text-red-900 dark:text-red-300">{item.name}</p>
                       <p className="text-xs text-red-700/70 dark:text-red-400/70">
-                        {item.category} &middot; {item.property?.name || 'All Properties'}
+                        {tr(item.category)} &middot; {item.property?.name || tr("All Properties")}
                       </p>
                     </div>
                     <div className="shrink-0 text-right">
                       <p className="text-lg font-bold text-red-600 dark:text-red-400">{item.quantity} <span className="text-xs font-normal opacity-70">{item.unit}</span></p>
-                      <p className="text-[10px] text-red-600/70 dark:text-red-400/70 uppercase font-semibold">Min: {item.minThreshold}</p>
+                      <p className="text-[10px] text-red-600/70 dark:text-red-400/70 uppercase font-semibold">{tr("Min:")} {item.minThreshold}</p>
                     </div>
                   </div>
                 ))}

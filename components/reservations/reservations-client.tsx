@@ -14,6 +14,7 @@ import { updateReservationStatus, createReservation } from "@/app/actions/reserv
 import Link from "next/link"
 import { format } from "date-fns"
 import { toast } from "sonner"
+import { useTr } from "@/components/i18n/language-provider"
 
 type ReservationStats = {
   total: number
@@ -37,8 +38,9 @@ export function ReservationsClient({
   currentPage?: number,
   totalPages?: number
 }) {
+  const tr = useTr()
   return (
-    <Suspense fallback={<div className="flex items-center justify-center h-64 text-muted-foreground">Loading reservations...</div>}>
+    <Suspense fallback={<div className="flex items-center justify-center h-64 text-muted-foreground">{tr("Loading reservations...")}</div>}>
       <ReservationsClientContent 
         initialData={initialData} 
         stats={stats} 
@@ -66,6 +68,7 @@ function ReservationsClientContent({
   currentPage: number,
   totalPages: number
 }) {
+  const tr = useTr()
   const [searchTerm, setSearchTerm] = useState("")
   const [filterStatus, setFilterStatus] = useState("ALL")
   const [loadingId, setLoadingId] = useState<string | null>(null)
@@ -94,9 +97,9 @@ function ReservationsClientContent({
     setLoadingId(null)
     
     if (!result.success) {
-      toast.error(`Failed to mark as ${label}`, { description: result.error })
+      toast.error(tr("Failed to mark as {status}", { status: tr(label) }), { description: result.error })
     } else {
-      let title = `Reservation marked as ${label}`;
+      let title = tr("Reservation marked as {status}", { status: tr(label) });
       let desc = "";
       
       if (status === 'CONFIRMED') {
@@ -122,11 +125,11 @@ function ReservationsClientContent({
     setIsSubmitting(false)
     if (result.success) {
       setIsDialogOpen(false)
-      toast.success("Booking Created 🗓️", { 
-        description: "The reservation has been added and the guest will be notified." 
+      toast.success(tr("Booking Created 🗓️"), { 
+        description: tr("The reservation has been added and the guest will be notified.") 
       })
     } else {
-      toast.error("Failed to create booking", { description: result.error })
+      toast.error(tr("Failed to create booking"), { description: result.error })
     }
   }
 
@@ -140,15 +143,15 @@ function ReservationsClientContent({
   const getStatusBadge = (status: string) => {
     switch(status) {
       case 'CHECKED_IN':
-        return <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-semibold text-blue-700 ring-1 ring-inset ring-blue-700/10 dark:bg-blue-500/10 dark:text-blue-400 dark:ring-blue-500/20"><CheckCircle2 className="h-3 w-3" /> Checked In</span>
+        return <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-semibold text-blue-700 ring-1 ring-inset ring-blue-700/10 dark:bg-blue-500/10 dark:text-blue-400 dark:ring-blue-500/20"><CheckCircle2 className="h-3 w-3" /> {tr("Checked In")}</span>
       case 'CONFIRMED':
-        return <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-600/15 dark:bg-emerald-500/10 dark:text-emerald-400 dark:ring-emerald-500/20"><Clock className="h-3 w-3" /> Confirmed</span>
+        return <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-600/15 dark:bg-emerald-500/10 dark:text-emerald-400 dark:ring-emerald-500/20"><Clock className="h-3 w-3" /> {tr("Confirmed")}</span>
       case 'CHECKED_OUT':
-        return <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600 ring-1 ring-inset ring-slate-500/10 dark:bg-slate-500/10 dark:text-slate-400 dark:ring-slate-500/20"><CheckCircle2 className="h-3 w-3" /> Checked Out</span>
+        return <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600 ring-1 ring-inset ring-slate-500/10 dark:bg-slate-500/10 dark:text-slate-400 dark:ring-slate-500/20"><CheckCircle2 className="h-3 w-3" /> {tr("Checked Out")}</span>
       case 'CANCELLED':
-        return <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-50 px-2.5 py-1 text-[11px] font-semibold text-rose-700 ring-1 ring-inset ring-rose-600/10 dark:bg-rose-500/10 dark:text-rose-400 dark:ring-rose-500/20"><XCircle className="h-3 w-3" /> Cancelled</span>
+        return <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-50 px-2.5 py-1 text-[11px] font-semibold text-rose-700 ring-1 ring-inset ring-rose-600/10 dark:bg-rose-500/10 dark:text-rose-400 dark:ring-rose-500/20"><XCircle className="h-3 w-3" /> {tr("Cancelled")}</span>
       default:
-        return <span className="inline-flex items-center rounded-full bg-slate-50 px-2.5 py-1 text-[11px] font-semibold text-slate-600 ring-1 ring-inset ring-slate-500/10 dark:bg-slate-500/10 dark:text-slate-400 dark:ring-slate-500/20">{status}</span>
+        return <span className="inline-flex items-center rounded-full bg-slate-50 px-2.5 py-1 text-[11px] font-semibold text-slate-600 ring-1 ring-inset ring-slate-500/10 dark:bg-slate-500/10 dark:text-slate-400 dark:ring-slate-500/20">{tr(status)}</span>
     }
   }
 
@@ -156,34 +159,34 @@ function ReservationsClientContent({
 
   const renderActions = (res: ReservationRow) => (
     <DropdownMenu>
-      <DropdownMenuTrigger aria-label="Booking actions" className="inline-flex items-center justify-center h-9 w-9 rounded-lg hover:bg-muted text-muted-foreground transition-colors">
+      <DropdownMenuTrigger aria-label={tr("Booking actions")} className="inline-flex items-center justify-center h-9 w-9 rounded-lg hover:bg-muted text-muted-foreground transition-colors">
         {loadingId === res.id 
           ? <Loader2 className="h-4 w-4 animate-spin" />
           : <MoreHorizontal className="h-4 w-4" />}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-44">
         <DropdownMenuItem onClick={() => router.push(`/guests/${res.guest.id}`)}>
-          View Details
+          {tr("View Details")}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         {res.status === 'ARRIVING' && (
           <DropdownMenuItem onClick={() => handleStatusChange(res.id, 'CHECKED_IN', 'Checked In')}>
-            Check In Guest
+            {tr("Check In Guest")}
           </DropdownMenuItem>
         )}
         {res.status === 'CONFIRMED' && (
           <DropdownMenuItem onClick={() => handleStatusChange(res.id, 'CHECKED_IN', 'Checked In')}>
-            Check In Guest
+            {tr("Check In Guest")}
           </DropdownMenuItem>
         )}
         {res.status === 'CHECKED_IN' && (
           <DropdownMenuItem onClick={() => handleStatusChange(res.id, 'CHECKED_OUT', 'Checked Out')}>
-            Check Out Guest
+            {tr("Check Out Guest")}
           </DropdownMenuItem>
         )}
         {res.status === 'PENDING' && (
           <DropdownMenuItem onClick={() => handleStatusChange(res.id, 'CONFIRMED', 'Confirmed')}>
-            Confirm Booking
+            {tr("Confirm Booking")}
           </DropdownMenuItem>
         )}
         <DropdownMenuSeparator />
@@ -191,7 +194,7 @@ function ReservationsClientContent({
           className="text-destructive focus:text-destructive"
           onClick={() => handleStatusChange(res.id, 'CANCELLED', 'Cancelled')}
         >
-          Cancel Reservation
+          {tr("Cancel Reservation")}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -201,27 +204,27 @@ function ReservationsClientContent({
     <div className="flex flex-col flex-1 w-full gap-4 sm:gap-5 pb-4">
       <div className="flex flex-wrap items-end justify-between gap-3 sm:gap-4 shrink-0">
         <div className="min-w-0">
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Reservations</h1>
-          <p className="text-sm text-muted-foreground mt-1">Manage all property bookings and stays.</p>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight">{tr("Reservations")}</h1>
+          <p className="text-sm text-muted-foreground mt-1">{tr("Manage all property bookings and stays.")}</p>
         </div>
 
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm shadow-primary/20 transition-all duration-200 hover:bg-primary/90 hover:shadow-md hover:shadow-primary/25 active:scale-[0.98]">
             <Plus className="h-4 w-4" />
-            New Booking
+            {tr("New Booking")}
           </DialogTrigger>
           <DialogContent className="sm:max-w-[480px] sm:rounded-2xl">
             <form onSubmit={handleNewBooking}>
               <DialogHeader>
-                <DialogTitle className="text-lg">New Booking</DialogTitle>
-                <DialogDescription>Create a new reservation for a guest.</DialogDescription>
+                <DialogTitle className="text-lg">{tr("New Booking")}</DialogTitle>
+                <DialogDescription>{tr("Create a new reservation for a guest.")}</DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="guestId">Guest *</Label>
+                  <Label htmlFor="guestId">{tr("Guest *")}</Label>
                   <Select name="guestId" defaultValue={defaultGuestId} required>
                     <SelectTrigger className="w-full rounded-xl">
-                      <SelectValue placeholder="Select guest..." />
+                      <SelectValue placeholder={tr("Select guest...")} />
                     </SelectTrigger>
                     <SelectContent>
                       {guests.map(g => (
@@ -231,10 +234,10 @@ function ReservationsClientContent({
                   </Select>
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="unitId">Unit / Room *</Label>
+                  <Label htmlFor="unitId">{tr("Unit / Room *")}</Label>
                   <Select name="unitId" required>
                     <SelectTrigger className="w-full rounded-xl">
-                      <SelectValue placeholder="Select unit..." />
+                      <SelectValue placeholder={tr("Select unit...")} />
                     </SelectTrigger>
                     <SelectContent>
                       {units.map(u => (
@@ -245,37 +248,37 @@ function ReservationsClientContent({
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="checkIn">Check-In *</Label>
+                    <Label htmlFor="checkIn">{tr("Check-In *")}</Label>
                     <Input id="checkIn" name="checkIn" type="date" required className="rounded-xl" />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="checkOut">Check-Out *</Label>
+                    <Label htmlFor="checkOut">{tr("Check-Out *")}</Label>
                     <Input id="checkOut" name="checkOut" type="date" required className="rounded-xl" />
                   </div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="source">Booking Source</Label>
+                    <Label htmlFor="source">{tr("Booking Source")}</Label>
                     <Select name="source" defaultValue="DIRECT">
                       <SelectTrigger className="w-full rounded-xl">
-                        <SelectValue placeholder="Source" />
+                        <SelectValue placeholder={tr("Source")} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="DIRECT">Direct</SelectItem>
-                        <SelectItem value="OTA">OTA (Booking.com etc)</SelectItem>
-                        <SelectItem value="PHONE">Phone</SelectItem>
-                        <SelectItem value="WALK_IN">Walk-in</SelectItem>
+                        <SelectItem value="DIRECT">{tr("Direct")}</SelectItem>
+                        <SelectItem value="OTA">{tr("OTA (Booking.com etc)")}</SelectItem>
+                        <SelectItem value="PHONE">{tr("Phone")}</SelectItem>
+                        <SelectItem value="WALK_IN">{tr("Walk-in")}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="totalAmount">Total Amount (₹)</Label>
+                    <Label htmlFor="totalAmount">{tr("Total Amount (₹)")}</Label>
                     <Input id="totalAmount" name="totalAmount" type="number" min="0" step="0.01" placeholder="0.00" className="rounded-xl" />
                   </div>
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="bookingNotes">Notes</Label>
-                  <Textarea id="bookingNotes" name="bookingNotes" placeholder="Any special requests or notes..." className="min-h-[80px] rounded-xl" />
+                  <Label htmlFor="bookingNotes">{tr("Notes")}</Label>
+                  <Textarea id="bookingNotes" name="bookingNotes" placeholder={tr("Any special requests or notes...")} className="min-h-[80px] rounded-xl" />
                 </div>
               </div>
               <DialogFooter>
@@ -284,7 +287,7 @@ function ReservationsClientContent({
                   disabled={isSubmitting}
                   className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm shadow-primary/20 transition-all duration-200 hover:bg-primary/90 hover:shadow-md disabled:opacity-50"
                 >
-                  {isSubmitting ? "Saving..." : "Create Booking"}
+                  {isSubmitting ? tr("Saving...") : tr("Create Booking")}
                 </button>
               </DialogFooter>
             </form>
@@ -300,14 +303,14 @@ function ReservationsClientContent({
           { label: "Cancelled", value: stats.cancelled, icon: XCircle, color: "bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400" }
         ].map((stat, i) => (
           <motion.div
-            key={stat.label}
+            key={tr(stat.label)}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35, delay: i * 0.05 }}
             className="group rounded-2xl border bg-card min-w-0 p-3 sm:p-4 shadow-sm transition-all duration-300 hover:shadow-md hover:border-border/80"
           >
             <div className="flex items-start justify-between gap-2 mb-1.5 sm:mb-3">
-              <p className="text-xs sm:text-sm leading-snug font-medium text-muted-foreground">{stat.label}</p>
+              <p className="text-xs sm:text-sm leading-snug font-medium text-muted-foreground">{tr(stat.label)}</p>
               <div className={`shrink-0 rounded-xl p-1.5 sm:p-2 ${stat.color} transition-transform duration-300 group-hover:scale-110`}>
                 <stat.icon className="h-4 w-4" />
               </div>
@@ -328,7 +331,7 @@ function ReservationsClientContent({
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Search guests or units..."
+              placeholder={tr("Search guests or units...")}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full rounded-xl border border-border/60 bg-background py-2.5 pl-9 pr-4 text-sm shadow-sm transition-all placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary/40"
@@ -338,15 +341,15 @@ function ReservationsClientContent({
             <SelectTrigger className="w-full sm:w-[180px] bg-background rounded-xl">
               <div className="flex items-center gap-2">
                 <Filter className="h-4 w-4" />
-                <span>{filterStatus === 'ALL' ? 'All Status' : filterStatus.replace('_', ' ')}</span>
+                <span>{filterStatus === 'ALL' ? tr("All Status") : filterStatus.replace('_', ' ')}</span>
               </div>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="ALL">All Status</SelectItem>
-              <SelectItem value="CONFIRMED">Confirmed</SelectItem>
-              <SelectItem value="CHECKED_IN">Checked In</SelectItem>
-              <SelectItem value="CHECKED_OUT">Checked Out</SelectItem>
-              <SelectItem value="CANCELLED">Cancelled</SelectItem>
+              <SelectItem value="ALL">{tr("All Status")}</SelectItem>
+              <SelectItem value="CONFIRMED">{tr("Confirmed")}</SelectItem>
+              <SelectItem value="CHECKED_IN">{tr("Checked In")}</SelectItem>
+              <SelectItem value="CHECKED_OUT">{tr("Checked Out")}</SelectItem>
+              <SelectItem value="CANCELLED">{tr("Cancelled")}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -356,7 +359,7 @@ function ReservationsClientContent({
           {filteredData.length === 0 ? (
             <li className="px-4 py-14 text-center text-muted-foreground">
               <CalendarCheck className="mx-auto h-10 w-10 mb-3 opacity-30" />
-              <p className="text-sm font-medium">No reservations found matching your criteria.</p>
+              <p className="text-sm font-medium">{tr("No reservations found matching your criteria.")}</p>
             </li>
           ) : (
             filteredData.map((res: ReservationRow) => (
@@ -368,7 +371,7 @@ function ReservationsClientContent({
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <p className="truncate font-semibold text-foreground">{res.guest.name}</p>
-                      <p className="truncate text-xs text-muted-foreground">{res.unit?.name || 'Unassigned'}{res.unit?.type ? ` · ${res.unit.type}` : ''}</p>
+                      <p className="truncate text-xs text-muted-foreground">{res.unit?.name || tr("Unassigned")}{res.unit?.type ? ` · ${res.unit.type}` : ''}</p>
                     </div>
                     <div className="-mr-2 -mt-1 shrink-0">{renderActions(res)}</div>
                   </div>
@@ -390,12 +393,12 @@ function ReservationsClientContent({
           <table className="hidden md:table w-full text-sm text-left whitespace-nowrap">
             <thead className="text-[11px] uppercase bg-muted/30 text-muted-foreground sticky top-0 z-10 border-b border-border/40">
               <tr>
-                <th className="px-6 py-3.5 font-semibold">Guest</th>
-                <th className="px-6 py-3.5 font-semibold">Unit</th>
-                <th className="px-6 py-3.5 font-semibold">Stay Dates</th>
-                <th className="px-6 py-3.5 font-semibold">Status</th>
-                <th className="px-6 py-3.5 font-semibold">Amount</th>
-                <th className="px-6 py-3.5 font-semibold text-right">Actions</th>
+                <th className="px-6 py-3.5 font-semibold">{tr("Guest")}</th>
+                <th className="px-6 py-3.5 font-semibold">{tr("Unit")}</th>
+                <th className="px-6 py-3.5 font-semibold">{tr("Stay Dates")}</th>
+                <th className="px-6 py-3.5 font-semibold">{tr("Status")}</th>
+                <th className="px-6 py-3.5 font-semibold">{tr("Amount")}</th>
+                <th className="px-6 py-3.5 font-semibold text-right">{tr("Actions")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/40">
@@ -404,7 +407,7 @@ function ReservationsClientContent({
                   <td colSpan={6} className="px-6 py-16 text-center text-muted-foreground">
                     <div className="flex flex-col items-center">
                       <CalendarCheck className="h-10 w-10 mb-3 opacity-30" />
-                      <p className="text-sm font-medium">No reservations found matching your criteria.</p>
+                      <p className="text-sm font-medium">{tr("No reservations found matching your criteria.")}</p>
                     </div>
                   </td>
                 </tr>
@@ -423,7 +426,7 @@ function ReservationsClientContent({
                       </div>
                     </td>
                     <td className="px-6 py-3.5">
-                      <div className="font-semibold">{res.unit?.name || 'Unassigned'}</div>
+                      <div className="font-semibold">{res.unit?.name || tr("Unassigned")}</div>
                       <div className="text-xs text-muted-foreground">{res.unit?.type || '-'}</div>
                     </td>
                     <td className="px-6 py-3.5">
@@ -449,7 +452,7 @@ function ReservationsClientContent({
           {totalPages > 1 && (
             <div className="flex items-center justify-between gap-3 px-4 sm:px-6 py-3 sm:py-4 border-t border-border/40">
               <div className="text-sm text-muted-foreground">
-                Page {currentPage} of {totalPages}
+                {tr("Page {page} of {total}", { page: currentPage, total: totalPages })}
               </div>
               <div className="flex gap-2">
                 <button
@@ -457,14 +460,14 @@ function ReservationsClientContent({
                   disabled={currentPage <= 1}
                   className="h-10 px-4 text-sm font-medium rounded-xl border bg-background hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
-                  Previous
+                  {tr("Previous")}
                 </button>
                 <button
                   onClick={() => router.push(`${pathname}?page=${currentPage < totalPages ? currentPage + 1 : totalPages}`)}
                   disabled={currentPage >= totalPages}
                   className="h-10 px-4 text-sm font-medium rounded-xl border bg-background hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
-                  Next
+                  {tr("Next")}
                 </button>
               </div>
             </div>

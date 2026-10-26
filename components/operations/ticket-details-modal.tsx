@@ -6,6 +6,7 @@ import { formatDistanceToNow, isPast, addMinutes, differenceInMinutes } from "da
 import { AlertCircle, Clock, CheckCircle2, User, Wrench, Building, History, TimerReset } from "lucide-react"
 import { TicketStatus } from "@prisma/client"
 import { format } from "date-fns"
+import { useTr } from "@/components/i18n/language-provider"
 
 function mapCategoryToDepartment(category: string): string {
   switch (category) {
@@ -32,6 +33,7 @@ export function TicketDetailsModal({
   onClose: () => void,
   teamMembers: any[]
 }) {
+  const tr = useTr()
   const [isUpdating, setIsUpdating] = useState(false)
 
   if (!ticket) return null
@@ -94,7 +96,7 @@ export function TicketDetailsModal({
             <div>
               <div className="flex flex-wrap items-center gap-2 mb-2">
                 <span className={`px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider rounded-lg border ${getPriorityBadge()}`}>
-                  {ticket.priority}
+                  {tr(ticket.priority)}
                 </span>
                 <span className="text-xs text-muted-foreground font-mono">#{ticket.id.substring(ticket.id.length - 4)}</span>
                 
@@ -107,7 +109,7 @@ export function TicketDetailsModal({
                 {ticket.status === 'ASSIGNED' && timeoutMinutesLeft <= 0 && (
                   <span className="flex items-center gap-1 px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider rounded-lg border bg-red-500/10 text-red-600 border-red-500/20">
                     <TimerReset className="w-3.5 h-3.5" />
-                    Escalating Soon
+                    {tr("Escalating Soon")}
                   </span>
                 )}
               </div>
@@ -120,12 +122,12 @@ export function TicketDetailsModal({
 
         <div className="grid gap-6 py-4">
           <div className="text-sm leading-relaxed text-foreground/80 bg-muted/30 p-4 rounded-xl border border-border/40">
-            {ticket.description ? ticket.description.replace(/\[.*?\]\s*/, '') : 'No description provided.'}
+            {ticket.description ? ticket.description.replace(/\[.*?\]\s*/, '') : tr("No description provided.")}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5 p-3 rounded-xl border border-border/40 bg-card">
-              <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Location</span>
+              <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">{tr("Location")}</span>
               <div className="flex items-center gap-2 font-medium text-sm">
                 {ticket.unit ? (
                   <><Building className="w-4 h-4 text-muted-foreground" /> {ticket.unit.name}{ticket.property?.name ? `, ${ticket.property.name}` : ''}</>
@@ -137,38 +139,38 @@ export function TicketDetailsModal({
             
             {ticket.slaDeadline ? (
               <div className={`flex flex-col gap-1.5 p-3 rounded-xl border ${isOverdue ? 'border-red-500/30 bg-red-500/5' : 'border-border/40 bg-card'}`}>
-                <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">SLA Deadline</span>
+                <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">{tr("SLA Deadline")}</span>
                 <div className={`flex items-center gap-2 font-medium text-sm ${isOverdue ? 'text-red-600' : ''}`}>
                   <Clock className="w-4 h-4" /> 
-                  {isOverdue ? 'Overdue by ' : 'Due in '}
+                  {isOverdue ? tr("Overdue by ") : tr("Due in ")}
                   {formatDistanceToNow(slaDeadline)}
                 </div>
               </div>
             ) : (
               <div className="flex flex-col gap-1.5 p-3 rounded-xl border border-border/40 bg-card">
-                <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Task Type</span>
+                <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">{tr("Task Type")}</span>
                 <div className="flex items-center gap-2 font-medium text-sm">
-                  <Clock className="w-4 h-4" /> Automated Task
+                  <Clock className="w-4 h-4" /> {tr("Automated Task")}
                 </div>
               </div>
             )}
           </div>
 
           <div className="grid gap-4 pt-4 border-t border-border/40">
-            <h4 className="font-semibold text-sm">Ticket Management {isAutoTask && <span className="text-xs font-normal text-muted-foreground ml-2">(Read-only for Auto Tasks)</span>}</h4>
+            <h4 className="font-semibold text-sm">Ticket Management {isAutoTask && <span className="text-xs font-normal text-muted-foreground ml-2">{tr("(Read-only for Auto Tasks)")}</span>}</h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <label className="text-xs font-medium text-muted-foreground">
-                  Assignee <span className="italic opacity-60">({expectedDepartment})</span>
+                  {tr("Assignee")} <span className="italic opacity-60">({expectedDepartment})</span>
                 </label>
                 <Select disabled={isUpdating || isAutoTask} value={ticket.assignedToId || "unassigned"} onValueChange={handleAssignmentChange}>
                   <SelectTrigger className="w-full rounded-xl">
-                    <SelectValue placeholder="Select team member">
-                      {ticket.assignedToId && ticket.assignedToId !== "unassigned" ? assigneeDisplayName : "Select team member"}
+                    <SelectValue placeholder={tr("Select team member")}>
+                      {ticket.assignedToId && ticket.assignedToId !== "unassigned" ? assigneeDisplayName : tr("Select team member")}
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="unassigned" className="text-muted-foreground italic">Unassigned</SelectItem>
+                    <SelectItem value="unassigned" className="text-muted-foreground italic">{tr("Unassigned")}</SelectItem>
                     {eligibleMembers.map((member) => (
                       <SelectItem key={member.id} value={member.id}>
                         {member.name.split(' ')[0]} ({member.id.substring(member.id.length - 4)})
@@ -187,19 +189,19 @@ export function TicketDetailsModal({
               </div>
 
               <div className="grid gap-2">
-                <label className="text-xs font-medium text-muted-foreground">Status</label>
+                <label className="text-xs font-medium text-muted-foreground">{tr("Status")}</label>
                 <Select disabled={isUpdating || isAutoTask} value={ticket.status} onValueChange={handleStatusChange}>
                   <SelectTrigger className="w-full rounded-xl">
-                    <SelectValue placeholder="Update status" />
+                    <SelectValue placeholder={tr("Update status")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="OPEN">Open</SelectItem>
-                    <SelectItem value="TRIAGED">Triaged</SelectItem>
-                    <SelectItem value="ASSIGNED">Assigned</SelectItem>
-                    <SelectItem value="ACKNOWLEDGED">Acknowledged</SelectItem>
-                    <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
-                    <SelectItem value="RESOLVED">Resolved</SelectItem>
-                    <SelectItem value="CLOSED">Closed</SelectItem>
+                    <SelectItem value="OPEN">{tr("Open")}</SelectItem>
+                    <SelectItem value="TRIAGED">{tr("Triaged")}</SelectItem>
+                    <SelectItem value="ASSIGNED">{tr("Assigned")}</SelectItem>
+                    <SelectItem value="ACKNOWLEDGED">{tr("Acknowledged")}</SelectItem>
+                    <SelectItem value="IN_PROGRESS">{tr("In Progress")}</SelectItem>
+                    <SelectItem value="RESOLVED">{tr("Resolved")}</SelectItem>
+                    <SelectItem value="CLOSED">{tr("Closed")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -211,7 +213,7 @@ export function TicketDetailsModal({
             <div className="pt-4 border-t border-border/40">
               <h4 className="font-semibold text-sm flex items-center gap-2 mb-4">
                 <History className="w-4 h-4 text-muted-foreground" />
-                History & Audit Logs
+                {tr("History & Audit Logs")}
               </h4>
               <div className="space-y-4 pl-2 border-l-2 border-muted relative">
                 {ticket.auditLogs.map((log: any, idx: number) => (
@@ -241,7 +243,7 @@ export function TicketDetailsModal({
                 <User className="w-3.5 h-3.5 text-muted-foreground mr-1" />
                 Reported by {
                   ticket.reporterType === 'GUEST' 
-                    ? (ticket.guest?.name || 'Guest') 
+                    ? (ticket.guest?.name || tr("Guest")) 
                     : ticket.reporterType === 'TEAM' 
                       ? (() => {
                           const reporter = teamMembers.find(m => m.id === ticket.reporterId);
