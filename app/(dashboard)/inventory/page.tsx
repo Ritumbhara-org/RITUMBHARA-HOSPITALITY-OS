@@ -45,7 +45,8 @@ export default async function InventoryPage({
   // 1. The one selected in the URL
   // 2. The user's assigned property
   // 3. The first property in the database
-  const activePropertyId = paramPropertyId || user?.propertyId || properties[0].id;
+  // Defaults to all locations; a location picked in the selector comes through the URL.
+  const activePropertyId = paramPropertyId || "ALL";
   
   // Fetch items for the active property
   const items = await getInventoryItems(activePropertyId)

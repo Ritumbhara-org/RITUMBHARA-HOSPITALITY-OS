@@ -28,8 +28,8 @@ export default async function InboxPage({
   ])
 
   const params = await searchParams
-  const activePropertyId =
-    (params?.propertyId as string) || (user?.role === "ADMIN" ? "ALL" : user?.propertyId) || "ALL"
+  // Defaults to all locations; a location picked in the selector comes through the URL.
+  const activePropertyId = (params?.propertyId as string) || "ALL"
 
   let conversations: InboxConversationSummary[] = []
   let setupError: string | null = null
