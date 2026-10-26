@@ -34,9 +34,8 @@ export default async function WhatsAppPage({
   });
 
   const resolvedParams = await searchParams;
-  const activePropertyId = resolvedParams?.propertyId as string 
-    || (user?.role === 'ADMIN' ? 'ALL' : user?.propertyId) 
-    || properties[0]?.id;
+  // Defaults to all locations; a location picked in the selector comes through the URL.
+  const activePropertyId = (resolvedParams?.propertyId as string) || 'ALL';
 
   const threads = await getWhatsAppConversations()
   const broadcasts = await getBroadcastCampaigns(activePropertyId)
