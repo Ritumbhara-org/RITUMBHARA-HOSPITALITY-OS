@@ -1,8 +1,11 @@
 /**
  * Ritumbhara OS — Gmail → Unified Inbox bridge (Google Apps Script)
  *
- * Runs inside the Gmail account that receives Airbnb / Booking.com / Agoda guest-message
- * emails, and posts each new one to /api/inbox/inbound-email. No forwarding or DNS needed.
+ * Runs inside the Gmail account that receives Airbnb / Booking.com / Agoda / Expedia / MakeMyTrip
+ * guest-message emails, and posts each new one to /api/inbox/inbound-email. No forwarding or DNS needed.
+ * It also sends replies typed in the OS Inbox: they go out from this Gmail account, in the same
+ * email thread, so the OTA delivers them to the guest (Booking.com, Agoda, Expedia accept this;
+ * Airbnb no longer accepts email replies).
  *
  * Setup (once):
  *  1. Signed in as that Gmail account, open https://script.google.com → New project.
@@ -13,6 +16,12 @@
  *     It creates a 5-minute trigger and a label "ritumbhara-synced-v2".
  *  4. Optional: run `syncOtaMessages` once to send the last 2 days straight away.
  *  After an inbox parser update, run `resync` to re-send the last 14 days (repeat until the log says "Resync complete").
+ *
+ * Turn on sending from the OS (once):
+ *  5. Deploy → New deployment → type "Web app". Execute as: Me. Who has access: Anyone. Deploy and approve.
+ *     (Anyone can reach the URL, but every request must carry INBOX_SECRET, and it only replies to OTA emails.)
+ *  6. Copy the Web app URL into Vercel as GMAIL_BRIDGE_URL and redeploy the OS.
+ *  After editing this file later: Deploy → Manage deployments → edit → Version: New version.
  */
 
 // Senders that carry guest messages. Edit if an OTA uses another address.
@@ -25,6 +34,9 @@ var SENDERS = [
   'agoda-messaging.com',
   'expedia.com',
   'expediapartnercentral.com',
+  'makemytrip.com',
+  'goibibo.com',
+  'go-mmt.com',
 ];
 
 // Account / marketing / payout emails that are not guest conversations.
@@ -32,7 +44,11 @@ var SKIP_SUBJECT_WORDS = [
   'sign-in', 'sign in', 'password', 'confirm email', 'account is ready', 'thank you for joining',
   'payout', 'invoice', 'statement', 'commission', 'newsletter', 'tips', 'webinar',
   'review', 'reviewed', 'rating', 'policy update', 'terms', 'off-schedule', 'scheduled message',
+  'mybiz', 'business trip', 'gst input', 'payment release',
 ];
+
+// MakeMyTrip marketing and corporate-travel mail, not guest conversations.
+var SKIP_SENDER_PARTS = ['mybiz', 'zen-makemytrip', 'promotions', 'marketing', 'newsletter'];
 
 var LABEL = 'ritumbhara-synced-v2';
 
@@ -95,7 +111,7 @@ function syncOtaMessages(all) {
     thread.getMessages().forEach(function (msg) {
       if (!isOtaSender_(msg.getFrom()) && !isOtaSender_(msg.getReplyTo())) return;
       var subject = msg.getSubject() || '';
-      if (shouldSkip_(subject)) { skipped++; return; }
+      if (shouldSkip_(subject) || isSkippedSender_(msg.getFrom())) { skipped++; return; }
 
       var payload = {
         from: msg.getFrom(),
@@ -107,6 +123,8 @@ function syncOtaMessages(all) {
         date: msg.getDate().toISOString(),
         messageId: msg.getHeader('Message-ID') || msg.getId(),
         inReplyTo: msg.getHeader('In-Reply-To') || '',
+        // Lets the OS reply to this exact email later through doPost below.
+        gmailId: msg.getId(),
       };
       var res = UrlFetchApp.fetch(url, {
         method: 'post',
@@ -132,6 +150,40 @@ function syncOtaMessages(all) {
 function isOtaSender_(addr) {
   addr = (addr || '').toLowerCase();
   return SENDERS.some(function (d) { return addr.indexOf(d) !== -1; });
+}
+
+function isSkippedSender_(addr) {
+  addr = (addr || '').toLowerCase();
+  return SKIP_SENDER_PARTS.some(function (p) { return addr.indexOf(p) !== -1; });
+}
+
+/**
+ * Web app endpoint the OS calls to send a reply: { action: 'reply', secret, gmailId, text }.
+ * Replies to that email from this account (to its Reply-To, else its sender), in the same thread.
+ */
+function doPost(e) {
+  var out = function (obj) {
+    return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+  };
+  try {
+    var req = JSON.parse((e && e.postData && e.postData.contents) || '{}');
+    var secret = PropertiesService.getScriptProperties().getProperty('INBOX_SECRET');
+    if (!secret || req.secret !== secret) return out({ ok: false, error: 'Unauthorized' });
+    if (req.action !== 'reply') return out({ ok: false, error: 'Unknown action' });
+    var text = String(req.text || '').trim();
+    if (!text) return out({ ok: false, error: 'Empty message' });
+    if (text.length > 5000) return out({ ok: false, error: 'Message too long' });
+
+    var msg = GmailApp.getMessageById(String(req.gmailId || ''));
+    if (!msg) return out({ ok: false, error: 'Original email not found in Gmail' });
+    // Only ever reply to OTA guest-message emails.
+    if (!isOtaSender_(msg.getFrom()) && !isOtaSender_(msg.getReplyTo())) return out({ ok: false, error: 'Not an OTA email' });
+
+    msg.reply(text);
+    return out({ ok: true, id: msg.getId() });
+  } catch (err) {
+    return out({ ok: false, error: String(err && err.message ? err.message : err) });
+  }
 }
 
 function shouldSkip_(subject) {

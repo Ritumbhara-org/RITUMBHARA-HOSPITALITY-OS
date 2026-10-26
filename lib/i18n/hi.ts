@@ -852,4 +852,7 @@ export const hi: Record<string, string> = {
   "Refunded": "वापस किया",
   "stay": "स्टे",
   "stays": "स्टे",
+
+  // ---- Inbox sending notes
+  "MakeMyTrip": "मेकमाईट्रिप",
 }

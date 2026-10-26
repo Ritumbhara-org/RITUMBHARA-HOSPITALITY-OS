@@ -118,6 +118,7 @@ export function detectChannel(addresses: string[]): InboxChannelId {
   if (/booking\.com/.test(all)) return "BOOKING_COM";
   if (/agoda[.-]/.test(all)) return "AGODA";
   if (/expedia/.test(all)) return "EXPEDIA";
+  if (/makemytrip|goibibo|go-mmt|ingommt/.test(all)) return "MAKEMYTRIP";
   return "EMAIL";
 }
 
@@ -125,7 +126,7 @@ const NAME = "([A-Z\\u00C0-\\u024F][\\p{L}.'-]+(?:\\s+[A-Z\\u00C0-\\u024F][\\p{L
 
 export function extractGuestName(subject: string, fromName: string | null, channel: InboxChannelId): string | null {
   if (fromName) {
-    const via = fromName.match(/^(.+?)\s+(?:via|from|\()\s*(?:airbnb|booking\.com|agoda|expedia)/i);
+    const via = fromName.match(/^(.+?)\s+(?:via|from|\()\s*(?:airbnb|booking\.com|agoda|expedia|makemytrip|goibibo)/i);
     if (via) return via[1].trim();
     if (channel === "EMAIL") return fromName;
   }

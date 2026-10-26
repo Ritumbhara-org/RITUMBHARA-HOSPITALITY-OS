@@ -1,6 +1,6 @@
 // Channel metadata shared by the server and the inbox UI. No server-only imports here.
 
-export type InboxChannelId = "WHATSAPP" | "AIRBNB" | "BOOKING_COM" | "AGODA" | "EXPEDIA" | "EMAIL";
+export type InboxChannelId = "WHATSAPP" | "AIRBNB" | "BOOKING_COM" | "AGODA" | "EXPEDIA" | "MAKEMYTRIP" | "EMAIL";
 
 export interface ChannelMeta {
   id: InboxChannelId;
@@ -18,10 +18,12 @@ export const CHANNELS: Record<InboxChannelId, ChannelMeta> = {
   BOOKING_COM: { id: "BOOKING_COM", label: "Booking.com", short: "B.com", badge: "bg-blue-500/15 text-blue-600 dark:text-blue-400", extranetUrl: "https://admin.booking.com" },
   AGODA: { id: "AGODA", label: "Agoda", short: "Agoda", badge: "bg-violet-500/15 text-violet-600 dark:text-violet-400", extranetUrl: "https://ycs.agoda.com" },
   EXPEDIA: { id: "EXPEDIA", label: "Expedia", short: "Expedia", badge: "bg-amber-500/15 text-amber-600 dark:text-amber-400", extranetUrl: "https://apps.expediapartnercentral.com" },
+  // MakeMyTrip / Goibibo (go-mmt). Guest chat lives in their Connect app; only emailed messages reach the inbox.
+  MAKEMYTRIP: { id: "MAKEMYTRIP", label: "MakeMyTrip", short: "MMT", badge: "bg-red-500/15 text-red-600 dark:text-red-400" },
   EMAIL: { id: "EMAIL", label: "Email", short: "Email", badge: "bg-slate-500/15 text-slate-600 dark:text-slate-300" },
 };
 
-export const CHANNEL_ORDER: InboxChannelId[] = ["WHATSAPP", "AIRBNB", "BOOKING_COM", "AGODA", "EXPEDIA", "EMAIL"];
+export const CHANNEL_ORDER: InboxChannelId[] = ["WHATSAPP", "AIRBNB", "BOOKING_COM", "AGODA", "EXPEDIA", "MAKEMYTRIP", "EMAIL"];
 
 /** Channels whose messages arrive as forwarded OTA notification emails and are replied to by email. */
-export const EMAIL_BASED_CHANNELS: InboxChannelId[] = ["AIRBNB", "BOOKING_COM", "AGODA", "EXPEDIA", "EMAIL"];
+export const EMAIL_BASED_CHANNELS: InboxChannelId[] = ["AIRBNB", "BOOKING_COM", "AGODA", "EXPEDIA", "MAKEMYTRIP", "EMAIL"];
