@@ -382,3 +382,9 @@ test("parseInboundEmail: keeps the email's own date, ignoring bad or future ones
   assert.equal(parseInboundEmail({ ...base, date: new Date(Date.now() + 864e5).toISOString() }).receivedAt, null);
   assert.equal(parseInboundEmail(base).receivedAt, null);
 });
+
+test("detectChannel recognises MakeMyTrip and Goibibo", () => {
+  assert.equal(detectChannel(["hotelsupport@makemytrip.com"]), "MAKEMYTRIP");
+  assert.equal(detectChannel(["noreply@goibibo.com"]), "MAKEMYTRIP");
+  assert.equal(detectChannel(["partner@go-mmt.com"]), "MAKEMYTRIP");
+});

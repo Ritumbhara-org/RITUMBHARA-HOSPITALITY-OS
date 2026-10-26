@@ -4,7 +4,7 @@
 import { put } from "./blob"
 import { prisma } from "@/lib/prisma"
 import { normalizePhoneNumber } from "@/lib/utils/phone"
-import { emailSendingConfigured, sendEmailReply } from "@/lib/inbox/email-send"
+import { resendConfigured, sendEmailReply } from "@/lib/inbox/email-send"
 import {
   isLinkUsable, OTP_MAX_ATTEMPTS, OTP_MAX_SENDS, OTP_RESEND_GAP_MS, OTP_TTL_MS, VERIFIED_WINDOW_MS, type AgreementSnapshot,
 } from "./agreement"
@@ -193,7 +193,7 @@ export async function signAgreement(token: string, input: SignInput, nowMs = Dat
     body: `Thank you ${first}. Your Ritumbhara stay agreement is signed. Download your copy: ${pdfLink}`,
     variables: { "1": first, "2": pdfLink },
   })
-  if (a.booking.email && emailSendingConfigured()) {
+  if (a.booking.email && resendConfigured()) {
     await sendEmailReply({
       to: a.booking.email,
       subject: "Your signed Ritumbhara stay agreement",

@@ -4,11 +4,21 @@ import { useActionState } from "react"
 import { motion } from "framer-motion"
 import { Mail, Lock, ArrowRight, AlertCircle } from "lucide-react"
 import { loginAction, type LoginState } from "@/app/actions/auth"
-import { useTr } from "@/components/i18n/language-provider"
+import { LanguageProvider, useTr } from "@/components/i18n/language-provider"
+import type { Lang } from "@/lib/i18n/core"
 import { LanguageToggle } from "@/components/i18n/language-toggle"
 
 // The sign-in form. Credentials are checked only on the server (app/actions/auth.ts); nothing secret is in here.
-export function LoginForm({ next }: { next: string }) {
+// The login page sits outside the staff layout, so it brings its own language provider.
+export function LoginForm({ next, initialLang = "en" }: { next: string; initialLang?: Lang }) {
+  return (
+    <LanguageProvider initialLang={initialLang}>
+      <LoginFormBody next={next} />
+    </LanguageProvider>
+  )
+}
+
+function LoginFormBody({ next }: { next: string }) {
   const tr = useTr()
   const [state, formAction, isLoading] = useActionState<LoginState, FormData>(loginAction, { error: null })
 

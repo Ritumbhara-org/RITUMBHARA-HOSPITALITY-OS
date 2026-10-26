@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { normalizePhoneNumber } from "@/lib/utils/phone";
 import { CHANNELS, type InboxChannelId } from "./channels";
-import { sendEmailReply, emailSendingConfigured } from "./email-send";
+import { sendEmailReply, gmailBridgeConfigured, resendConfigured, sendViaGmailBridge } from "./email-send";
 import type {
   ActionResult,
   InboxConversationSummary,
@@ -231,7 +231,9 @@ export async function getThread(key: string): Promise<InboxThread | null> {
   });
   if (!c) return null;
   const channel = c.channel as InboxChannelId;
-  const mailReady = emailSendingConfigured();
+  // Gmail sending needs the newest guest email to have come through the Gmail bridge (it carries Gmail's id).
+  const lastInbound = [...c.messages].reverse().find((m) => m.direction === "INBOUND");
+  const mailReady = resendConfigured() || (gmailBridgeConfigured() && Boolean(gmailIdOf(lastInbound?.raw)));
 
   const conversation: InboxConversationSummary = {
     key: c.id,
@@ -267,9 +269,14 @@ export async function getThread(key: string): Promise<InboxThread | null> {
   if (!c.replyTo)
     replyNote =
       channel === "AIRBNB"
-        ? "Airbnb doesn't accept email replies for this message. Draft here, then reply in Airbnb."
-        : `No reply address came with this ${CHANNELS[channel].label} message. Reply from the extranet.`;
-  else if (!mailReady) replyNote = "Email replies aren't set up yet. Reply from the extranet, or add RESEND_API_KEY and INBOX_FROM_EMAIL.";
+        ? "Airbnb doesn't accept email replies. Draft here, copy it, then reply in Airbnb."
+        : channel === "MAKEMYTRIP"
+          ? "MakeMyTrip doesn't take email replies for this message. Draft here, copy it, then reply in the MakeMyTrip Connect app."
+          : `No reply address came with this ${CHANNELS[channel].label} message. Reply from the extranet.`;
+  else if (!mailReady)
+    replyNote = gmailBridgeConfigured()
+      ? "This message came in before sending was set up. Reply from the extranet; new messages can be answered here."
+      : "Sending from the OS isn't set up yet. Reply from the extranet for now.";
 
   return {
     conversation,
@@ -305,8 +312,22 @@ export async function sendReply(key: string, body: string, senderId: string | nu
   if (!c) return { success: false, error: "Conversation not found." };
   if (!c.replyTo) return { success: false, error: "No reply address for this conversation. Reply from the extranet." };
 
-  const subject = c.subject ? (/^re:/i.test(c.subject) ? c.subject : `Re: ${c.subject}`) : "Re: your message";
-  const sent = await sendEmailReply({ to: c.replyTo, subject, text, inReplyTo: c.messages[0]?.externalMessageId });
+  // Prefer the Gmail bridge: it replies from the mailbox the OTA knows, in the same thread.
+  const gmailId = gmailIdOf(c.messages[0]?.raw)
+  let sent
+  if (gmailBridgeConfigured() && gmailId) {
+    sent = await sendViaGmailBridge(gmailId, text)
+  } else if (resendConfigured()) {
+    const subject = c.subject ? (/^re:/i.test(c.subject) ? c.subject : `Re: ${c.subject}`) : "Re: your message";
+    sent = await sendEmailReply({ to: c.replyTo, subject, text, inReplyTo: c.messages[0]?.externalMessageId });
+  } else {
+    sent = {
+      ok: false as const,
+      error: gmailBridgeConfigured()
+        ? "This message came in before Gmail sending was set up, so it can't be answered from here. Reply from the extranet."
+        : "Sending from the OS isn't set up yet. Reply from the extranet for now.",
+    }
+  }
   if (!sent.ok) return { success: false, error: sent.error };
 
   const now = new Date();
@@ -320,6 +341,13 @@ export async function sendReply(key: string, body: string, senderId: string | nu
     }),
   ]);
   return { success: true };
+}
+
+/** Gmail's own id for a received email, stored by the Gmail bridge in the raw payload. */
+function gmailIdOf(raw: unknown): string | null {
+  if (!raw || typeof raw !== "object") return null
+  const id = (raw as { gmailId?: unknown }).gmailId
+  return typeof id === "string" && id ? id : null
 }
 
 export async function assignConversation(key: string, teamMemberId: string | null): Promise<ActionResult> {

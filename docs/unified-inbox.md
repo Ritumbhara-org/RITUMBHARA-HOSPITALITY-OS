@@ -1,7 +1,7 @@
 # Unified Inbox
 
 One page (`/inbox`) where the team reads and replies to guest messages from every channel:
-WhatsApp, Airbnb, Booking.com, Agoda, Expedia and plain email.
+WhatsApp, Airbnb, Booking.com, Agoda, Expedia, MakeMyTrip / Goibibo and plain email.
 
 ## What the team can do
 
@@ -18,7 +18,9 @@ WhatsApp, Airbnb, Booking.com, Agoda, Expedia and plain email.
 | Channel | Source | Reply from the OS |
 |---|---|---|
 | WhatsApp | Existing Twilio webhook (`/api/whatsapp/webhook`) | Yes, inside the 24-hour window. Templates stay on the WhatsApp page. |
-| Airbnb, Booking.com, Agoda, Expedia | OTA notification emails forwarded to `/api/inbox/inbound-email` | Yes, by replying to the OTA's relay address (needs email sending, below). Otherwise a button opens the extranet. |
+| Booking.com, Agoda, Expedia | OTA notification emails, sent in by the Gmail bridge (`scripts/gmail-to-inbox.gs`) | Yes, once sending is on (step 3): the reply leaves from the same Gmail account, in the same email thread. |
+| Airbnb | Same | No. Airbnb stopped accepting email replies in October 2023. Draft in the OS, copy, reply in Airbnb. Sending from the OS needs a channel manager with Airbnb's messaging API. |
+| MakeMyTrip / Goibibo | Same, for messages MMT sends by email | Only if the email has a reply address. Guest chat on MMT lives in the Connect app, which has no email or API route. |
 | Email | Guest emails forwarded to the same endpoint | Yes (needs email sending) |
 
 IntelliStay's API has no OTA guest-messaging endpoints, so OTA messages come from the notification
@@ -57,9 +59,25 @@ The parser picks out the channel, guest name and reservation code (for example A
 the conversation to the matching booking by code or guest name. Wrong or missing matches can be fixed with
 **Link a booking** on the right-hand panel.
 
-### 3. Send replies by email (optional but recommended)
+### 3. Send replies from the OS
 
-Set:
+**Recommended: through the Gmail bridge.** The Apps Script that brings OTA emails in also sends the replies.
+Replies go out from the Gmail account each OTA already emails, so no new address has to be approved.
+
+1. In the Apps Script project: **Deploy → New deployment → Web app**. Execute as **Me**, access **Anyone**. Deploy.
+   (Every request must carry `INBOX_SECRET`, and the script only ever replies to OTA emails.)
+2. Copy the web app URL into Vercel as `GMAIL_BRIDGE_URL` and redeploy.
+3. On each OTA, make sure guest messages are emailed to that Gmail account:
+   - **Booking.com:** Extranet → Property → Contacts: the Reservations contact uses this Gmail, guest-message emails on.
+     Extranet → Account → Security: add this Gmail as an approved sender, and keep "block all email communication" off.
+   - **Agoda:** YCS → Contacts: this Gmail receives guest messages.
+   - **Expedia:** in Partner Central, set the contact that receives guest messages to this Gmail.
+   - **MakeMyTrip / Goibibo:** in the Connect app, set the property's reservation email to this Gmail.
+4. Messages that arrived before step 1 can't be answered from the OS (they lack Gmail's id); new ones can.
+
+After editing the script later, publish a new version: Deploy → Manage deployments → edit → New version.
+
+**Alternative: Resend.** Set:
 
 - `RESEND_API_KEY`: API key from resend.com, with the sending domain verified.
 - `INBOX_FROM_EMAIL`: the address replies come from. For OTA relays this should be the **same email address
@@ -73,7 +91,9 @@ Test one reply per OTA after setup. Each OTA decides whether it accepts replies 
 - `lib/inbox/email-parser.ts`: turns inbound emails into messages (tested in `tests/inbox-email-parser.test.ts`)
 - `lib/inbox/ingest.ts`: stores messages and matches bookings
 - `lib/inbox/service.ts`: conversation list, threads, replies, assignment, AI draft
-- `lib/inbox/email-send.ts`: outbound email through Resend
+- `lib/inbox/email-send.ts`: outbound replies through the Gmail bridge, or Resend
+- `scripts/gmail-to-inbox.gs`: Gmail bridge (brings OTA emails in, sends replies out)
+- `prisma/sql/2026-10-26_inbox_makemytrip.sql`: adds the MakeMyTrip channel to the database
 - `lib/inbox/quick-replies.ts`: saved replies
 - `app/api/inbox/inbound-email/route.ts`: inbound email webhook
 - `app/actions/inbox.ts`, `app/(dashboard)/inbox/page.tsx`, `components/inbox/inbox-client.tsx`: the page
