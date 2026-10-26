@@ -19,7 +19,8 @@
 // Every admin server action also checks the session itself, wherever it is posted.
 //   /api/whatsapp/meta-webhook - Meta's inbound webhook (machine-to-machine; verifies X-Hub-Signature-256 itself and
 //                            refuses everything when META_APP_SECRET / META_WEBHOOK_VERIFY_TOKEN are not set)
-const PUBLIC_EXACT = new Set(["/login", "/api/whatsapp/webhook", "/api/whatsapp/meta-webhook"])
+//   /api/whatsapp/meta-audit   - read-only Meta audit; 404 everywhere except Preview with a matching META_AUDIT_KEY
+const PUBLIC_EXACT = new Set(["/login", "/api/whatsapp/webhook", "/api/whatsapp/meta-webhook", "/api/whatsapp/meta-audit"])
 const PUBLIC_PREFIXES = ["/stay/", "/api/stay/", "/sign/", "/api/sign/"]
 const CRON_PREFIX = "/api/cron/"
 // Machine endpoints that authenticate themselves with their own secret (no admin session needed or used).
