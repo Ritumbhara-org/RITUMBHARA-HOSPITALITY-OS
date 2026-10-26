@@ -50,24 +50,24 @@ export function TeamModal({ isOpen, onClose, member, properties }: TeamModalProp
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm transition-all duration-300">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-gray-900/40 backdrop-blur-sm transition-all duration-300">
       <div 
-        className="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-200"
+        className="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[92dvh] sm:max-h-[90vh] animate-in fade-in slide-in-from-bottom-8 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex justify-between items-center px-8 py-6 border-b border-gray-100 bg-white/50">
+        <div className="flex justify-between items-center px-5 py-4 sm:px-8 sm:py-6 border-b border-gray-100 bg-white/50">
           <h2 className="text-xl font-bold text-gray-900 tracking-tight">
             {member ? "Edit Team Member" : "Add Team Member"}
           </h2>
           <button 
             onClick={onClose}
-            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors active:scale-95"
+            className="p-2.5 -mr-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors active:scale-95"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="overflow-y-auto flex-1 p-8">
+        <div className="overflow-y-auto overscroll-contain flex-1 p-5 sm:p-8">
           {error && (
             <div className="mb-6 p-4 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100 flex items-start gap-3">
               <div className="p-1 bg-red-100 rounded-full">
@@ -78,8 +78,8 @@ export function TeamModal({ isOpen, onClose, member, properties }: TeamModalProp
           )}
 
           <form ref={formRef} id="teamForm" onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-2 gap-6">
-              <div className="col-span-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+              <div className="sm:col-span-2">
                 <label htmlFor="name" className="block text-sm font-semibold text-gray-700 mb-2">
                   Full Name
                 </label>
@@ -124,7 +124,7 @@ export function TeamModal({ isOpen, onClose, member, properties }: TeamModalProp
                 />
               </div>
 
-              <div className="col-span-2">
+              <div className="sm:col-span-2">
                 <label htmlFor="propertyId" className="block text-sm font-semibold text-gray-700 mb-2">
                   Assigned Location / Property
                 </label>
@@ -180,7 +180,7 @@ export function TeamModal({ isOpen, onClose, member, properties }: TeamModalProp
                 </select>
               </div>
 
-              <div className="col-span-2">
+              <div className="sm:col-span-2">
                 <label htmlFor="isActive" className="block text-sm font-semibold text-gray-700 mb-2">
                   Status
                 </label>
@@ -199,7 +199,7 @@ export function TeamModal({ isOpen, onClose, member, properties }: TeamModalProp
           </form>
         </div>
 
-        <div className="p-6 border-t border-gray-100 bg-gray-50/80 flex justify-end gap-3">
+        <div className="p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:p-6 border-t border-gray-100 bg-gray-50/80 flex justify-end gap-3 [&>button]:flex-1 sm:[&>button]:flex-none">
           <button
             type="button"
             onClick={onClose}

@@ -46,7 +46,7 @@ export default async function InboxPage({
   const teamOptions = team.filter((t) => (seen.has(t.name) ? false : (seen.add(t.name), true)))
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] flex-col">
+    <div className="flex min-h-0 flex-1 flex-col md:h-[calc(100dvh-4rem)] md:flex-none">
       <InboxClient
         initialConversations={conversations}
         properties={properties}

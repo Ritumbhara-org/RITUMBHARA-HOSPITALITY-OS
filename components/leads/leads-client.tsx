@@ -142,7 +142,7 @@ function PageHeader({ onRefresh, refreshing, subtitle }: { onRefresh: () => void
   return (
     <div className="flex flex-wrap items-center justify-between gap-4 shrink-0">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Leads</h1>
+        <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Leads</h1>
         <p className="text-sm text-muted-foreground mt-1">{subtitle || "Every website and WhatsApp lead in one place. Update a status here and it is saved to the leads Sheet."}</p>
       </div>
       <button
@@ -234,7 +234,7 @@ function LeadsBoard({ data, refresh, refreshing }: { data: Extract<LeadsLoadResu
         </div>
       )}
 
-      <div className="grid shrink-0 gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-6">
+      <div className="grid shrink-0 gap-2.5 sm:gap-4 grid-cols-3 lg:grid-cols-6">
         {tiles.map((t, i) => {
           const active = statusFilter === t.filter
           return (
@@ -246,13 +246,13 @@ function LeadsBoard({ data, refresh, refreshing }: { data: Extract<LeadsLoadResu
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.35, delay: i * 0.04 }}
-              className={`group text-left rounded-2xl border bg-card p-4 shadow-sm transition-all duration-300 hover:shadow-md ${active ? "border-primary/40 ring-2 ring-primary/15" : "hover:border-border/80"}`}
+              className={`group text-left rounded-2xl border bg-card min-w-0 p-3 sm:p-4 shadow-sm transition-all duration-300 hover:shadow-md ${active ? "border-primary/40 ring-2 ring-primary/15" : "hover:border-border/80"}`}
             >
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-sm font-medium text-muted-foreground">{t.label}</p>
-                <div className={`rounded-xl p-2 ${t.color} transition-transform duration-300 group-hover:scale-110`}><t.icon className="h-4 w-4" /></div>
+              <div className="flex items-start justify-between gap-2 mb-1.5 sm:mb-3">
+                <p className="text-xs sm:text-sm leading-snug font-medium text-muted-foreground">{t.label}</p>
+                <div className={`hidden sm:block shrink-0 rounded-xl p-2 ${t.color} transition-transform duration-300 group-hover:scale-110`}><t.icon className="h-4 w-4" /></div>
               </div>
-              <h2 className="text-3xl font-bold tracking-tight">{t.value}</h2>
+              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight tabular-nums">{t.value}</h2>
             </motion.button>
           )
         })}

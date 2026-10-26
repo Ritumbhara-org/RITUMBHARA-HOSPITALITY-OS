@@ -90,11 +90,43 @@ export function GuestsClient({
     }
   }
 
+  // Rows come in untyped from the page; this alias keeps the new helpers from adding more `any`.
+  type GuestRow = (typeof initialData)[number]
+  type StayRow = { status: string; totalAmount: number }
+
+  const renderActions = (guest: GuestRow) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger aria-label="Guest actions" className="inline-flex items-center justify-center h-9 w-9 rounded-lg hover:bg-muted text-muted-foreground transition-colors">
+        <MoreHorizontal className="h-4 w-4" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-44">
+        <DropdownMenuItem onClick={() => router.push(`/guests/${guest.id}`)}>
+          View Profile
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setEditGuest(guest)}>
+          Edit Details
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => router.push(`/reservations?newBooking=true&guestId=${guest.id}`)}>
+          New Reservation
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => router.push(`/operations?newTicket=true&guestId=${guest.id}`)}>
+          Create Ticket
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+
+  const guestTotals = (guest: GuestRow) => {
+    const valid = (guest.reservations as StayRow[]).filter((r) => ["CHECKED_IN", "CHECKED_OUT"].includes(r.status))
+    return { stays: valid.length, spend: valid.reduce((sum, r) => sum + r.totalAmount, 0) }
+  }
+
   return (
-    <div className="flex flex-col flex-1 w-full gap-5 pb-4">
-      <div className="flex flex-wrap items-center justify-between gap-4 shrink-0">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Guest Directory</h1>
+    <div className="flex flex-col flex-1 w-full gap-4 sm:gap-5 pb-4">
+      <div className="flex flex-wrap items-end justify-between gap-3 sm:gap-4 shrink-0">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Guest Directory</h1>
           <p className="text-sm text-muted-foreground mt-1">Manage guest profiles, memberships, and history.</p>
         </div>
         
@@ -103,7 +135,7 @@ export function GuestsClient({
             <UserPlus className="h-4 w-4" />
             Add Guest
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px] rounded-2xl">
+          <DialogContent className="sm:max-w-[425px] sm:rounded-2xl">
             <form onSubmit={handleSubmit}>
               <DialogHeader>
                 <DialogTitle className="text-lg">Add Guest</DialogTitle>
@@ -114,7 +146,7 @@ export function GuestsClient({
                   <Label htmlFor="name">Full Name *</Label>
                   <Input id="name" name="name" placeholder="John Doe" required className="rounded-xl" />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="phone">Phone Number *</Label>
                     <Input id="phone" name="phone" placeholder="+1 234 567 8900" required className="rounded-xl" />
@@ -124,11 +156,11 @@ export function GuestsClient({
                     <Input id="email" name="email" type="email" placeholder="john@example.com" className="rounded-xl" />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="idType">ID Type</Label>
                     <Select name="idType">
-                      <SelectTrigger className="rounded-xl">
+                      <SelectTrigger className="w-full rounded-xl">
                         <SelectValue placeholder="Select ID" />
                       </SelectTrigger>
                       <SelectContent>
@@ -173,7 +205,7 @@ export function GuestsClient({
         </Dialog>
       </div>
 
-      <div className="grid shrink-0 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid shrink-0 grid-cols-2 gap-2.5 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
           { label: "Total Guests", value: stats.total, icon: Users, color: "bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400" },
           { label: "Active Members", value: stats.members, icon: CreditCard, color: "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400" },
@@ -185,15 +217,15 @@ export function GuestsClient({
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35, delay: i * 0.05 }}
-            className="group rounded-2xl border bg-card p-4 shadow-sm transition-all duration-300 hover:shadow-md hover:border-border/80"
+            className="group rounded-2xl border bg-card min-w-0 p-3 sm:p-4 shadow-sm transition-all duration-300 hover:shadow-md hover:border-border/80"
           >
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-sm font-medium text-muted-foreground">{stat.label}</p>
-              <div className={`rounded-xl p-2 ${stat.color} transition-transform duration-300 group-hover:scale-110`}>
+            <div className="flex items-start justify-between gap-2 mb-1.5 sm:mb-3">
+              <p className="text-xs sm:text-sm leading-snug font-medium text-muted-foreground">{stat.label}</p>
+              <div className={`shrink-0 rounded-xl p-1.5 sm:p-2 ${stat.color} transition-transform duration-300 group-hover:scale-110`}>
                 <stat.icon className="h-4 w-4" />
               </div>
             </div>
-            <h2 className="text-3xl font-bold tracking-tight">{stat.value}</h2>
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight tabular-nums">{stat.value}</h2>
           </motion.div>
         ))}
       </div>
@@ -204,7 +236,7 @@ export function GuestsClient({
         transition={{ duration: 0.4, delay: 0.2 }}
         className="flex flex-col flex-1 min-h-0 rounded-2xl border bg-card shadow-sm overflow-hidden"
       >
-        <div className="p-4 border-b border-border/40 bg-muted/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
+        <div className="p-3 sm:p-4 border-b border-border/40 bg-muted/20 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-4 shrink-0">
           <div className="relative w-full sm:max-w-xs">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
@@ -216,7 +248,7 @@ export function GuestsClient({
             />
           </div>
           <Select value={filterMembership} onValueChange={(val) => setFilterMembership(val || "ALL")}>
-            <SelectTrigger className="w-[180px] bg-background rounded-xl">
+            <SelectTrigger className="w-full sm:w-[180px] bg-background rounded-xl">
               <div className="flex items-center gap-2">
                 <Filter className="h-4 w-4" />
                 <span>{filterMembership === 'ALL' ? 'All Tiers' : filterMembership}</span>
@@ -233,7 +265,40 @@ export function GuestsClient({
           </Select>
         </div>
 
-        <div className="flex-1 overflow-auto">
+        {/* Phone: one card per guest. */}
+        <ul className="divide-y divide-border/40 md:hidden">
+          {filteredData.length === 0 ? (
+            <li className="px-4 py-14 text-center text-muted-foreground">
+              <Users className="mx-auto h-10 w-10 mb-3 opacity-30" />
+              <p className="text-sm font-medium">No guests found matching your criteria.</p>
+            </li>
+          ) : (
+            filteredData.map((guest: GuestRow) => {
+              const t = guestTotals(guest)
+              return (
+                <li key={guest.id} className="flex gap-3 px-4 py-3.5">
+                  <button type="button" onClick={() => router.push(`/guests/${guest.id}`)} className="flex min-w-0 flex-1 gap-3 text-left">
+                    <div className="h-10 w-10 shrink-0 rounded-xl bg-gradient-to-br from-rose-500/15 to-red-500/15 flex items-center justify-center text-rose-600 dark:text-rose-400 font-bold text-sm">
+                      {guest.name.charAt(0)}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-semibold text-foreground">{guest.name}</p>
+                      <p className="truncate text-xs text-muted-foreground">{guest.phone}{guest.email ? ` · ${guest.email}` : ''}</p>
+                      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs">
+                        {guest.membership ? getTierBadge(guest.membership.tier) : <span className="text-muted-foreground italic">No membership</span>}
+                        <span className="text-muted-foreground">{t.stays} {t.stays === 1 ? 'stay' : 'stays'}</span>
+                        <span className="font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">₹{t.spend.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
+                      </div>
+                    </div>
+                  </button>
+                  <div className="-mr-2 -mt-1 shrink-0">{renderActions(guest)}</div>
+                </li>
+              )
+            })
+          )}
+        </ul>
+
+        <div className="hidden md:block flex-1 overflow-auto">
           <table className="w-full text-sm text-left">
             <thead className="text-[11px] uppercase bg-muted/30 text-muted-foreground sticky top-0 z-10 border-b border-border/40">
               <tr>
@@ -295,26 +360,7 @@ export function GuestsClient({
                         <div className="font-semibold text-emerald-600 dark:text-emerald-400">₹{totalSpend.toFixed(2)}</div>
                       </td>
                       <td className="px-6 py-3.5 text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-muted text-muted-foreground transition-colors">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-44">
-                            <DropdownMenuItem onClick={() => router.push(`/guests/${guest.id}`)}>
-                              View Profile
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => setEditGuest(guest)}>
-                              Edit Details
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => router.push(`/reservations?newBooking=true&guestId=${guest.id}`)}>
-                              New Reservation
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => router.push(`/operations?newTicket=true&guestId=${guest.id}`)}>
-                              Create Ticket
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        {renderActions(guest)}
                       </td>
                     </tr>
                   )
@@ -326,7 +372,7 @@ export function GuestsClient({
       </motion.div>
 
       <Dialog open={!!editGuest} onOpenChange={(open) => !open && setEditGuest(null)}>
-        <DialogContent className="sm:max-w-[425px] rounded-2xl">
+        <DialogContent className="sm:max-w-[425px] sm:rounded-2xl">
           <form key={editGuest?.id} onSubmit={handleEditSubmit}>
             <DialogHeader>
               <DialogTitle className="text-lg">Edit Guest</DialogTitle>
@@ -345,11 +391,11 @@ export function GuestsClient({
                 <Label htmlFor="edit-email">Email Address</Label>
                 <Input id="edit-email" name="email" type="email" defaultValue={editGuest?.email || ''} className="rounded-xl" />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="edit-idType">ID Type</Label>
                   <Select name="idType" defaultValue={editGuest?.idType || 'PASSPORT'}>
-                    <SelectTrigger className="rounded-xl">
+                    <SelectTrigger className="w-full rounded-xl">
                       <SelectValue placeholder="Select ID" />
                     </SelectTrigger>
                     <SelectContent>

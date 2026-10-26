@@ -17,6 +17,10 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: "#5c0a20",
+  width: "device-width",
+  initialScale: 1,
+  // Lets the installed app draw under the notch/home bar; the shell pads itself with safe-area insets.
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

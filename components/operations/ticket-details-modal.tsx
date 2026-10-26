@@ -88,11 +88,11 @@ export function TicketDetailsModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[700px] max-h-[85vh] overflow-y-auto rounded-2xl">
+      <DialogContent className="sm:max-w-[700px] sm:max-h-[85vh] overflow-y-auto sm:rounded-2xl">
         <DialogHeader>
           <div className="flex justify-between items-start pr-6">
             <div>
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex flex-wrap items-center gap-2 mb-2">
                 <span className={`px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider rounded-lg border ${getPriorityBadge()}`}>
                   {ticket.priority}
                 </span>
@@ -111,7 +111,7 @@ export function TicketDetailsModal({
                   </span>
                 )}
               </div>
-              <DialogTitle className="text-xl font-bold">
+              <DialogTitle className="text-lg sm:text-xl font-bold leading-snug">
                 {ticket.description ? (ticket.description.match(/\[(.*?)\]/)?.[1] || ticket.title || ticket.category) : (ticket.title || ticket.category)}
               </DialogTitle>
             </div>
@@ -156,13 +156,13 @@ export function TicketDetailsModal({
 
           <div className="grid gap-4 pt-4 border-t border-border/40">
             <h4 className="font-semibold text-sm">Ticket Management {isAutoTask && <span className="text-xs font-normal text-muted-foreground ml-2">(Read-only for Auto Tasks)</span>}</h4>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <label className="text-xs font-medium text-muted-foreground">
                   Assignee <span className="italic opacity-60">({expectedDepartment})</span>
                 </label>
                 <Select disabled={isUpdating || isAutoTask} value={ticket.assignedToId || "unassigned"} onValueChange={handleAssignmentChange}>
-                  <SelectTrigger className="rounded-xl">
+                  <SelectTrigger className="w-full rounded-xl">
                     <SelectValue placeholder="Select team member">
                       {ticket.assignedToId && ticket.assignedToId !== "unassigned" ? assigneeDisplayName : "Select team member"}
                     </SelectValue>
@@ -189,7 +189,7 @@ export function TicketDetailsModal({
               <div className="grid gap-2">
                 <label className="text-xs font-medium text-muted-foreground">Status</label>
                 <Select disabled={isUpdating || isAutoTask} value={ticket.status} onValueChange={handleStatusChange}>
-                  <SelectTrigger className="rounded-xl">
+                  <SelectTrigger className="w-full rounded-xl">
                     <SelectValue placeholder="Update status" />
                   </SelectTrigger>
                   <SelectContent>

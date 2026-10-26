@@ -60,7 +60,7 @@ export function DashboardClient({ data }: { data: DashboardData }) {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-        className="relative shrink-0 overflow-hidden rounded-2xl bg-gradient-to-br from-[#4a0518] via-[#5c0a20] to-[#3a0312] px-6 py-6 sm:px-8 border border-white/[0.08]"
+        className="relative shrink-0 overflow-hidden rounded-2xl bg-gradient-to-br from-[#4a0518] via-[#5c0a20] to-[#3a0312] px-5 py-5 sm:px-8 sm:py-6 border border-white/[0.08]"
       >
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-rose-500/10 via-transparent to-transparent" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-red-500/5 via-transparent to-transparent" />
@@ -70,7 +70,7 @@ export function DashboardClient({ data }: { data: DashboardData }) {
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
-              className="text-2xl font-bold tracking-tight text-white"
+              className="text-xl sm:text-2xl font-bold tracking-tight text-white"
             >
               Welcome back, Admin
             </motion.h1>
@@ -98,27 +98,27 @@ export function DashboardClient({ data }: { data: DashboardData }) {
       </motion.div>
 
       {/* Stats Grid */}
-      <div className="grid shrink-0 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid shrink-0 grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         {stats.map((stat, index) => (
           <motion.div
             key={stat.name}
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.15 + index * 0.05, ease: [0.22, 1, 0.36, 1] }}
-            className="group relative rounded-2xl border bg-card p-4 shadow-sm transition-all duration-300 hover:shadow-md hover:border-border/80 overflow-hidden"
+            className="group relative min-w-0 rounded-2xl border bg-card p-3.5 sm:p-4 shadow-sm transition-all duration-300 hover:shadow-md hover:border-border/80 overflow-hidden"
           >
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-sm font-medium text-muted-foreground">{stat.name}</p>
-              <div className={`rounded-xl p-2 ${stat.lightColor} transition-transform duration-300 group-hover:scale-110`}>
+            <div className="flex items-start justify-between gap-2 mb-2 sm:mb-3">
+              <p className="text-xs sm:text-sm font-medium leading-snug text-muted-foreground">{stat.name}</p>
+              <div className={`shrink-0 rounded-xl p-1.5 sm:p-2 ${stat.lightColor} transition-transform duration-300 group-hover:scale-110`}>
                 <stat.icon className="h-4 w-4" />
               </div>
             </div>
             <div className="flex items-baseline gap-2">
-              <h2 className="text-3xl font-bold tracking-tight">{stat.value}</h2>
+              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">{stat.value}</h2>
             </div>
-            <p className="mt-1.5 text-xs text-muted-foreground flex items-center gap-1">
-              <ArrowUpRight className="h-3 w-3" />
-              {stat.trend}
+            <p className="mt-1.5 text-[11px] sm:text-xs text-muted-foreground flex items-start gap-1">
+              <ArrowUpRight className="h-3 w-3 shrink-0 mt-0.5" />
+              <span className="line-clamp-2">{stat.trend}</span>
             </p>
           </motion.div>
         ))}
@@ -129,9 +129,9 @@ export function DashboardClient({ data }: { data: DashboardData }) {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
-        className="grid gap-4 md:grid-cols-2 lg:grid-cols-7 flex-1 min-h-0"
+        className="grid gap-4 lg:grid-cols-7 lg:flex-1 lg:min-h-0"
       >
-        <div className="col-span-4 flex flex-col rounded-2xl border bg-card p-5 shadow-sm min-h-0">
+        <div className="lg:col-span-4 flex min-w-0 flex-col rounded-2xl border bg-card p-4 sm:p-5 shadow-sm lg:min-h-0">
           <div className="flex items-center justify-between mb-4 shrink-0">
             <div className="flex items-center gap-2">
               <div className="rounded-lg bg-rose-50 dark:bg-rose-500/10 p-1.5">
@@ -141,7 +141,7 @@ export function DashboardClient({ data }: { data: DashboardData }) {
             </div>
             <span className="text-xs font-medium text-muted-foreground bg-muted/50 px-2 py-1 rounded-lg">{data.arrivals.length} total</span>
           </div>
-          <div className="space-y-1 overflow-y-auto flex-1 min-h-0 pr-1">
+          <div className="space-y-1 lg:overflow-y-auto lg:flex-1 lg:min-h-0 lg:pr-1">
             {data.arrivals.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                 <CalendarCheck className="h-10 w-10 mb-3 opacity-30" />
@@ -149,17 +149,17 @@ export function DashboardClient({ data }: { data: DashboardData }) {
               </div>
             ) : (
               data.arrivals.map((reservation: any) => (
-                <div key={reservation.id} className="flex items-center justify-between rounded-xl p-3 hover:bg-muted/50 transition-colors duration-200">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-rose-500/20 to-red-500/20 flex items-center justify-center text-rose-600 dark:text-rose-400 text-sm font-bold">
+                <div key={reservation.id} className="flex items-center justify-between gap-3 rounded-xl -mx-1 p-2 sm:mx-0 sm:p-3 hover:bg-muted/50 transition-colors duration-200">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="h-10 w-10 shrink-0 rounded-xl bg-gradient-to-br from-rose-500/20 to-red-500/20 flex items-center justify-center text-rose-600 dark:text-rose-400 text-sm font-bold">
                       {reservation.guest.name.charAt(0)}
                     </div>
-                    <div>
-                      <p className="text-sm font-semibold">{reservation.guest.name}</p>
-                      <p className="text-xs text-muted-foreground">{reservation.unit?.name} &middot; {reservation.unit?.type}</p>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold">{reservation.guest.name}</p>
+                      <p className="truncate text-xs text-muted-foreground">{reservation.unit?.name} &middot; {reservation.unit?.type}</p>
                     </div>
                   </div>
-                  <div suppressHydrationWarning className="text-xs font-semibold text-muted-foreground bg-muted/60 px-2.5 py-1 rounded-lg">
+                  <div suppressHydrationWarning className="shrink-0 whitespace-nowrap text-xs font-semibold text-muted-foreground bg-muted/60 px-2.5 py-1 rounded-lg">
                     ETA {new Date(reservation.checkIn).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                   </div>
                 </div>
@@ -168,7 +168,7 @@ export function DashboardClient({ data }: { data: DashboardData }) {
           </div>
         </div>
         
-        <div className="col-span-3 flex flex-col rounded-2xl border bg-card p-5 shadow-sm min-h-0">
+        <div className="lg:col-span-3 flex min-w-0 flex-col rounded-2xl border bg-card p-4 sm:p-5 shadow-sm lg:min-h-0">
           <div className="flex items-center justify-between mb-4 shrink-0">
             <div className="flex items-center gap-2">
               <div className="rounded-lg bg-amber-50 dark:bg-amber-500/10 p-1.5">
@@ -178,7 +178,7 @@ export function DashboardClient({ data }: { data: DashboardData }) {
             </div>
             <span className="text-xs font-medium text-muted-foreground bg-muted/50 px-2 py-1 rounded-lg">{data.pendingOperations.length}</span>
           </div>
-          <div className="space-y-2 overflow-y-auto flex-1 min-h-0 pr-1">
+          <div className="space-y-2 lg:overflow-y-auto lg:flex-1 lg:min-h-0 lg:pr-1">
             {data.pendingOperations.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                 <CheckCircle2 className="h-10 w-10 mb-3 opacity-30" />
@@ -223,9 +223,9 @@ export function DashboardClient({ data }: { data: DashboardData }) {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
-        className="grid gap-4 md:grid-cols-2 lg:grid-cols-7 flex-1 min-h-0"
+        className="grid gap-4 lg:grid-cols-7 lg:flex-1 lg:min-h-0"
       >
-        <div className="col-span-4 flex flex-col rounded-2xl border bg-card p-5 shadow-sm min-h-0">
+        <div className="lg:col-span-4 flex min-w-0 flex-col rounded-2xl border bg-card p-4 sm:p-5 shadow-sm lg:min-h-0">
           <div className="flex items-center justify-between mb-4 shrink-0">
             <div className="flex items-center gap-2">
               <div className="rounded-lg bg-emerald-50 dark:bg-emerald-500/10 p-1.5">
@@ -235,7 +235,7 @@ export function DashboardClient({ data }: { data: DashboardData }) {
             </div>
             <span className="text-xs font-medium text-muted-foreground bg-muted/50 px-2 py-1 rounded-lg">{data.departures?.length || 0} total</span>
           </div>
-          <div className="space-y-1 overflow-y-auto flex-1 min-h-0 pr-1">
+          <div className="space-y-1 lg:overflow-y-auto lg:flex-1 lg:min-h-0 lg:pr-1">
             {data.departures?.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                 <CheckCircle2 className="h-10 w-10 mb-3 opacity-30" />
@@ -243,17 +243,17 @@ export function DashboardClient({ data }: { data: DashboardData }) {
               </div>
             ) : (
               data.departures?.map((reservation: any) => (
-                <div key={reservation.id} className="flex items-center justify-between rounded-xl p-3 hover:bg-muted/50 transition-colors duration-200">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400 text-sm font-bold">
+                <div key={reservation.id} className="flex items-center justify-between gap-3 rounded-xl -mx-1 p-2 sm:mx-0 sm:p-3 hover:bg-muted/50 transition-colors duration-200">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="h-10 w-10 shrink-0 rounded-xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400 text-sm font-bold">
                       {reservation.guest.name.charAt(0)}
                     </div>
-                    <div>
-                      <p className="text-sm font-semibold">{reservation.guest.name}</p>
-                      <p className="text-xs text-muted-foreground">{reservation.unit?.name} &middot; {reservation.unit?.type}</p>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold">{reservation.guest.name}</p>
+                      <p className="truncate text-xs text-muted-foreground">{reservation.unit?.name} &middot; {reservation.unit?.type}</p>
                     </div>
                   </div>
-                  <div suppressHydrationWarning className="text-xs font-semibold text-muted-foreground bg-muted/60 px-2.5 py-1 rounded-lg">
+                  <div suppressHydrationWarning className="shrink-0 whitespace-nowrap text-xs font-semibold text-muted-foreground bg-muted/60 px-2.5 py-1 rounded-lg">
                     Checkout {new Date(reservation.checkOut).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                   </div>
                 </div>
@@ -262,7 +262,7 @@ export function DashboardClient({ data }: { data: DashboardData }) {
           </div>
         </div>
 
-        <div className="col-span-3 flex flex-col rounded-2xl border bg-card p-5 shadow-sm min-h-0">
+        <div className="lg:col-span-3 flex min-w-0 flex-col rounded-2xl border bg-card p-4 sm:p-5 shadow-sm lg:min-h-0">
           <div className="flex items-center justify-between mb-4 shrink-0">
             <div className="flex items-center gap-2">
               <div className="rounded-lg bg-blue-50 dark:bg-blue-500/10 p-1.5">
@@ -271,7 +271,7 @@ export function DashboardClient({ data }: { data: DashboardData }) {
               <h3 className="text-sm font-semibold tracking-tight">Unit Status</h3>
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-2.5 flex-1 min-h-0 content-start overflow-y-auto pr-1">
+          <div className="grid grid-cols-3 gap-2 sm:gap-2.5 lg:flex-1 lg:min-h-0 content-start lg:overflow-y-auto lg:pr-1">
             {['AVAILABLE', 'OCCUPIED', 'DIRTY', 'CLEANING', 'READY', 'MAINTENANCE'].map(status => {
               const statusCount = data.unitStatuses?.find((u: any) => u.status === status)?._count?.id || 0;
               const statusStyles: Record<string, string> = {
@@ -284,9 +284,9 @@ export function DashboardClient({ data }: { data: DashboardData }) {
               }
               const colorClass = statusStyles[status] || "bg-muted text-muted-foreground border-border"
               return (
-                <div key={status} className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all duration-200 hover:scale-[1.02] ${colorClass}`}>
+                <div key={status} className={`flex min-w-0 flex-col items-center justify-center px-1 py-3 rounded-xl border transition-all duration-200 hover:scale-[1.02] ${colorClass}`}>
                   <span className="text-2xl font-bold">{statusCount}</span>
-                  <span className="text-[10px] font-semibold tracking-wider uppercase mt-1 opacity-70">{status}</span>
+                  <span className="mt-1 max-w-full truncate text-[11px] font-semibold capitalize opacity-80">{status.toLowerCase()}</span>
                 </div>
               )
             })}
@@ -299,9 +299,9 @@ export function DashboardClient({ data }: { data: DashboardData }) {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.5, ease: [0.22, 1, 0.36, 1] }}
-        className="grid gap-4 flex-1 min-h-0"
+        className="grid gap-4 lg:flex-1 lg:min-h-0"
       >
-        <div className="flex flex-col rounded-2xl border bg-card p-5 shadow-sm min-h-0">
+        <div className="flex min-w-0 flex-col rounded-2xl border bg-card p-4 sm:p-5 shadow-sm lg:min-h-0">
           <div className="flex items-center justify-between mb-4 shrink-0">
             <div className="flex items-center gap-2">
               <div className="rounded-lg bg-red-50 dark:bg-red-500/10 p-1.5">
@@ -311,23 +311,23 @@ export function DashboardClient({ data }: { data: DashboardData }) {
             </div>
             <span className="text-xs font-medium text-muted-foreground bg-muted/50 px-2 py-1 rounded-lg">{data.lowInventory?.length || 0} items</span>
           </div>
-          <div className="space-y-2 overflow-y-auto flex-1 min-h-0 pr-1">
+          <div className="space-y-2 lg:overflow-y-auto lg:flex-1 lg:min-h-0 lg:pr-1">
             {data.lowInventory?.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-6 text-muted-foreground">
                 <CheckCircle2 className="h-8 w-8 mb-2 opacity-30" />
                 <p className="text-sm">All stock levels healthy.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {data.lowInventory?.map((item: any) => (
-                  <div key={item.id} className="flex items-center justify-between rounded-xl p-3 border bg-red-50/50 border-red-200/50 dark:bg-red-900/10 dark:border-red-900/30">
-                    <div>
-                      <p className="text-sm font-semibold text-red-900 dark:text-red-300">{item.name}</p>
+                  <div key={item.id} className="flex items-center justify-between gap-3 rounded-xl p-3 border bg-red-50/50 border-red-200/50 dark:bg-red-900/10 dark:border-red-900/30">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-red-900 dark:text-red-300">{item.name}</p>
                       <p className="text-xs text-red-700/70 dark:text-red-400/70">
                         {item.category} &middot; {item.property?.name || 'All Properties'}
                       </p>
                     </div>
-                    <div className="text-right">
+                    <div className="shrink-0 text-right">
                       <p className="text-lg font-bold text-red-600 dark:text-red-400">{item.quantity} <span className="text-xs font-normal opacity-70">{item.unit}</span></p>
                       <p className="text-[10px] text-red-600/70 dark:text-red-400/70 uppercase font-semibold">Min: {item.minThreshold}</p>
                     </div>

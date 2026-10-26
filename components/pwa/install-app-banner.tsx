@@ -80,7 +80,7 @@ export function InstallAppBanner() {
   if (mode === "hidden") return null
 
   return (
-    <div className="mx-4 sm:mx-6 rounded-2xl border border-rose-500/15 bg-gradient-to-r from-[#5c0a20] to-[#7a0f2c] text-white shadow-sm">
+    <div className="shrink-0 rounded-2xl border border-rose-500/15 bg-gradient-to-r from-[#5c0a20] to-[#7a0f2c] text-white shadow-sm">
       <div className="flex items-center gap-3 p-3">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/icons/icon-192.png" alt="" className="h-10 w-10 shrink-0 rounded-xl" />

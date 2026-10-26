@@ -3,47 +3,15 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
-import {
-  LayoutDashboard,
-  MapPin,
-  CalendarCheck,
-  Users,
-  BedDouble,
-  Wrench,
-  MessageSquare,
-  Inbox,
-  Globe,
-  Sparkles,
-  ShieldCheck,
-  Package,
-  LineChart,
-  Target,
-  CalendarRange
-} from 'lucide-react'
+import { navigation, isActivePath } from "./nav-items"
 
-const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Leads', href: '/leads', icon: Target },
-  { name: 'Analytics', href: '/analytics', icon: LineChart },
-  { name: 'Locations', href: '/locations', icon: MapPin },
-  { name: 'Reservations', href: '/reservations', icon: CalendarCheck },
-  { name: 'Long Stays', href: '/long-stay', icon: CalendarRange },
-  { name: 'Guests', href: '/guests', icon: Users },
-  { name: 'Units', href: '/units', icon: BedDouble },
-  { name: 'Operations', href: '/operations', icon: Wrench },
-  { name: 'Inventory', href: '/inventory', icon: Package },
-  { name: 'Team', href: '/team', icon: ShieldCheck },
-  { name: 'Inbox', href: '/inbox', icon: Inbox },
-  { name: 'WhatsApp', href: '/whatsapp', icon: MessageSquare },
-  { name: 'SEO Tools', href: '/seo', icon: Globe },
-]
-
-export function Sidebar() {
+// onNavigate lets the phone drawer close itself when a link is tapped.
+export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
   const pathname = usePathname()
 
   return (
-    <div className="flex h-full w-64 flex-col bg-gradient-to-b from-[#4a0518] via-[#5c0a20] to-[#3a0312] border-r border-white/[0.06]">
-      <div className="px-5 pt-6 pb-8">
+    <div className="flex h-full w-full sm:w-64 flex-col overflow-y-auto overscroll-contain pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] bg-gradient-to-b from-[#4a0518] via-[#5c0a20] to-[#3a0312] border-r border-white/[0.06]">
+      <div className="px-5 pt-6 pb-6 sm:pb-8">
         <div className="flex flex-col items-start gap-1.5">
           <img src="/logo.svg" alt="Ritumbhara Logo" className="h-9 w-auto object-contain drop-shadow-md" />
           <h1 className="text-sm font-bold tracking-tight text-white/90 pl-1 mt-1">
@@ -51,14 +19,16 @@ export function Sidebar() {
           </h1>
         </div>
       </div>
-      <nav className="flex-1 space-y-0.5 px-3">
+      <nav className="flex-1 space-y-0.5 px-3" aria-label="Main">
         {navigation.map((item, index) => {
-          const isActive = pathname === item.href || pathname?.startsWith(item.href + '/')
+          const isActive = isActivePath(pathname, item.href)
           return (
             <Link
               key={item.name}
               href={item.href}
-              className={`group relative flex items-center rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
+              onClick={onNavigate}
+              aria-current={isActive ? 'page' : undefined}
+              className={`group relative flex items-center rounded-xl px-3 py-3 sm:py-2.5 text-[15px] sm:text-sm font-medium transition-all duration-200 ${
                 isActive
                   ? 'bg-white/[0.1] text-white shadow-sm'
                   : 'text-rose-100/70 hover:text-white hover:bg-white/[0.05]'

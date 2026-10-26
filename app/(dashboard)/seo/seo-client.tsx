@@ -63,26 +63,26 @@ export function SeoClient({ properties }: { properties: any[] }) {
   }
 
   return (
-    <div className="flex flex-col flex-1 h-full w-full gap-5 pb-4 min-h-0">
+    <div className="flex flex-col flex-1 w-full gap-4 sm:gap-5 pb-4 lg:h-full lg:min-h-0">
       <div className="flex flex-col gap-1.5 shrink-0">
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2.5">
+        <h1 className="text-xl sm:text-2xl font-bold tracking-tight flex items-center gap-2.5">
           <div className="rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 p-2 shadow-lg shadow-violet-500/20">
             <Sparkles className="h-5 w-5 text-white" />
           </div>
           SEO Automation
         </h1>
-        <p className="text-muted-foreground text-sm max-w-2xl ml-[44px]">
+        <p className="text-muted-foreground text-sm max-w-2xl sm:ml-[44px]">
           Generate comprehensive Meta tags, FAQs, H1/H2 structures, and JSON-LD Schema markup for your properties.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 min-h-0 flex-1">
-        <div className="lg:col-span-4 flex flex-col h-full bg-card border border-border/60 rounded-2xl shadow-sm overflow-hidden shrink-0">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 lg:min-h-0 lg:flex-1">
+        <div className="lg:col-span-4 flex flex-col lg:h-full bg-card border border-border/60 rounded-2xl shadow-sm overflow-hidden shrink-0">
           <div className="p-4 border-b border-border/40 font-semibold bg-muted/20 shrink-0 text-sm flex items-center gap-2">
             <div className="h-1.5 w-1.5 rounded-full bg-violet-500" />
             Property Details
           </div>
-          <div className="p-4 overflow-y-auto flex-1">
+          <div className="p-4 lg:overflow-y-auto lg:flex-1">
             <form id="seo-form" onSubmit={handleSubmit} className="flex flex-col gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="propertyName">Property Name *</Label>
@@ -167,12 +167,12 @@ export function SeoClient({ properties }: { properties: any[] }) {
           </div>
         </div>
 
-        <div className="lg:col-span-8 flex flex-col h-full bg-muted/20 border border-border/60 rounded-2xl overflow-hidden shrink-0">
+        <div className="lg:col-span-8 flex flex-col lg:h-full bg-muted/20 border border-border/60 rounded-2xl overflow-hidden shrink-0">
           <div className="p-4 border-b border-border/40 font-semibold bg-card shrink-0 text-sm flex items-center gap-2">
             <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
             SEO Outputs
           </div>
-          <div className="p-4 overflow-y-auto flex-1">
+          <div className="p-4 lg:overflow-y-auto lg:flex-1">
             {!result && !isLoading && !error && (
               <div className="h-full flex flex-col items-center justify-center text-muted-foreground">
                 <Sparkles className="h-12 w-12 mb-4 opacity-20" />

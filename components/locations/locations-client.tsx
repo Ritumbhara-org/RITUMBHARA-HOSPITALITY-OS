@@ -49,19 +49,19 @@ export function LocationsClient({ initialLocations }: LocationsClientProps) {
   };
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-8">
+    <div className="w-full max-w-7xl mx-auto space-y-4 sm:space-y-8 pb-4 sm:p-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 tracking-tight flex items-center gap-3">
-            <MapPin className="w-8 h-8 text-rose-600" />
+      <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 sm:gap-4">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-3xl font-bold text-gray-900 tracking-tight flex items-center gap-2 sm:gap-3">
+            <MapPin className="w-6 h-6 sm:w-8 sm:h-8 shrink-0 text-rose-600" />
             Locations (Properties)
           </h1>
-          <p className="text-gray-500 mt-1">Manage all physical properties and branches in your portfolio.</p>
+          <p className="text-sm sm:text-base text-gray-500 mt-1">Manage all physical properties and branches in your portfolio.</p>
         </div>
         <button
           onClick={handleAddNew}
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm shadow-primary/20 transition-all duration-200 hover:bg-primary/90 hover:shadow-md hover:shadow-primary/25 active:scale-[0.98]"
+          className="inline-flex h-11 sm:h-auto items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm shadow-primary/20 transition-all duration-200 hover:bg-primary/90 hover:shadow-md hover:shadow-primary/25 active:scale-[0.98]"
         >
           <Plus className="w-5 h-5" />
           Add Location
@@ -69,25 +69,27 @@ export function LocationsClient({ initialLocations }: LocationsClientProps) {
       </div>
 
       {/* Data Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
         {initialLocations.map((location) => (
-          <div key={location.id} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow relative group flex flex-col">
-            <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2 bg-white/90 backdrop-blur-sm p-1 rounded-lg">
+          <div key={location.id} className="bg-white p-4 sm:p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow relative group flex flex-col">
+            <div className="absolute top-2 right-2 sm:top-4 sm:right-4 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100 transition-opacity flex gap-1 sm:gap-2 bg-white/90 backdrop-blur-sm p-1 rounded-lg">
               <button
                 onClick={() => handleEdit(location)}
-                className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors"
+                aria-label="Edit location"
+                className="p-2 sm:p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors"
               >
                 <Edit2 className="w-4 h-4" />
               </button>
               <button
                 onClick={() => handleDelete(location.id)}
-                className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                aria-label="Delete location"
+                className="p-2 sm:p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
               >
                 <Trash2 className="w-4 h-4" />
               </button>
             </div>
             
-            <h3 className="text-xl font-semibold text-gray-900 mb-1">{location.name}</h3>
+            <h3 className="pr-20 text-lg sm:text-xl font-semibold text-gray-900 mb-1 leading-snug">{location.name}</h3>
             <p className="text-sm text-gray-500 mb-4 flex items-center gap-1.5">
               <MapPin className="w-3.5 h-3.5" />
               {location.city}{location.state ? `, ${location.state}` : ''}

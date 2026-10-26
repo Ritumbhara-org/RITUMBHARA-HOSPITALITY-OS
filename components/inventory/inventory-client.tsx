@@ -94,15 +94,15 @@ export function InventoryClient({ initialItems, activePropertyId, properties, re
     <div className="flex flex-col gap-6 pb-4">
       
       {/* Property Selector Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl border bg-card/60 shadow-sm backdrop-blur-sm">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 p-4 sm:p-5 rounded-2xl border bg-card/60 shadow-sm backdrop-blur-sm">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="h-10 w-10 shrink-0 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
             <MapPin className="h-5 w-5" />
           </div>
-          <div>
+          <div className="min-w-0 flex-1">
             <h3 className="text-sm font-medium text-muted-foreground">Select Location</h3>
             <Select value={activePropertyId} onValueChange={handlePropertyChange}>
-              <SelectTrigger className="w-[240px] h-9 border-none bg-transparent hover:bg-muted/50 focus:ring-0 px-2 -ml-2 rounded-lg font-bold text-lg">
+              <SelectTrigger className="w-auto min-w-0 max-w-full sm:min-w-[240px] h-9 border-none bg-transparent hover:bg-muted/50 focus:ring-0 px-2 -ml-2 rounded-lg font-bold text-lg">
                 <SelectValue placeholder="Select property...">
                   {properties.find(p => p.id === activePropertyId)?.name}
                 </SelectValue>
@@ -128,7 +128,7 @@ export function InventoryClient({ initialItems, activePropertyId, properties, re
       </div>
 
       {/* Metrics Row */}
-      <div className="grid shrink-0 gap-4 sm:grid-cols-3">
+      <div className="grid shrink-0 grid-cols-3 gap-2.5 sm:gap-4">
         {[
           { label: "Total Items", value: items.length, icon: Box, color: "bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400" },
           { label: "Healthy Stock", value: healthyCount, icon: CheckCircle2, color: "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400" },
@@ -139,15 +139,15 @@ export function InventoryClient({ initialItems, activePropertyId, properties, re
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35, delay: i * 0.05 }}
-            className="group rounded-2xl border bg-card p-4 shadow-sm transition-all duration-300 hover:shadow-md hover:border-border/80"
+            className="group rounded-2xl border bg-card min-w-0 p-3 sm:p-4 shadow-sm transition-all duration-300 hover:shadow-md hover:border-border/80"
           >
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-sm font-medium text-muted-foreground">{stat.label}</p>
-              <div className={`rounded-xl p-2 ${stat.color} transition-transform duration-300 group-hover:scale-110`}>
+            <div className="flex items-start justify-between gap-2 mb-1.5 sm:mb-3">
+              <p className="text-xs sm:text-sm leading-snug font-medium text-muted-foreground">{stat.label}</p>
+              <div className={`hidden sm:block shrink-0 rounded-xl p-2 ${stat.color} transition-transform duration-300 group-hover:scale-110`}>
                 <stat.icon className="h-4 w-4" />
               </div>
             </div>
-            <h2 className="text-3xl font-bold tracking-tight">{stat.value}</h2>
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight tabular-nums">{stat.value}</h2>
           </motion.div>
         ))}
       </div>
@@ -161,17 +161,17 @@ export function InventoryClient({ initialItems, activePropertyId, properties, re
             transition={{ duration: 0.3, type: "spring", bounce: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="rounded-2xl border bg-gradient-to-br from-card to-muted/20 p-6 shadow-md mb-2">
+            <div className="rounded-2xl border bg-gradient-to-br from-card to-muted/20 p-4 sm:p-6 shadow-md mb-2">
               <h3 className="text-lg font-semibold mb-5 flex items-center gap-2">
                 <Box className="w-5 h-5 text-primary" />
                 Add New Inventory Item
               </h3>
-              <form onSubmit={handleAddItem} className="grid gap-5 md:grid-cols-2 lg:grid-cols-5">
-                <div className="space-y-2">
+              <form onSubmit={handleAddItem} className="grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-2 lg:grid-cols-5">
+                <div className="col-span-2 md:col-span-1 space-y-2">
                   <label className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">Item Name</label>
                   <input required name="name" className="flex h-11 w-full rounded-xl border border-input bg-background/50 px-3 py-2 text-sm transition-all focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary/50" placeholder="e.g. Toilet Paper" />
                 </div>
-                <div className="space-y-2">
+                <div className="col-span-2 md:col-span-1 space-y-2">
                   <label className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">Category</label>
                   <select required name="category" className="flex h-11 w-full rounded-xl border border-input bg-background/50 px-3 py-2 text-sm transition-all focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary/50">
                     <option value="TOWELS">Towels</option>
@@ -194,7 +194,7 @@ export function InventoryClient({ initialItems, activePropertyId, properties, re
                   <label className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">Min Alert Level</label>
                   <input required name="minThreshold" type="number" min="0" className="flex h-11 w-full rounded-xl border border-input bg-background/50 px-3 py-2 text-sm transition-all focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary/50" placeholder="Alert at..." />
                 </div>
-                <div className="space-y-2">
+                <div className="col-span-2 md:col-span-1 space-y-2">
                   <label className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">Deduct Per Clean</label>
                   <div className="flex items-end gap-3">
                     <input required name="defaultDeduction" type="number" min="0" defaultValue="0" className="flex h-11 w-full rounded-xl border border-input bg-background/50 px-3 py-2 text-sm transition-all focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary/50" placeholder="e.g. 2" />
@@ -215,7 +215,7 @@ export function InventoryClient({ initialItems, activePropertyId, properties, re
         transition={{ duration: 0.4, delay: 0.2 }}
         className="flex flex-col flex-1 min-h-0 rounded-2xl border bg-card shadow-sm overflow-hidden"
       >
-        <div className="p-4 border-b border-border/40 bg-muted/20">
+        <div className="p-3 sm:p-4 border-b border-border/40 bg-muted/20">
           <div className="relative w-full sm:max-w-sm">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
@@ -228,7 +228,60 @@ export function InventoryClient({ initialItems, activePropertyId, properties, re
           </div>
         </div>
 
-        <div className="relative w-full overflow-auto">
+        {/* Phone: one row per item with − / + right under the thumb. */}
+        <ul className="divide-y divide-border/40 md:hidden">
+          {filteredItems.length === 0 ? (
+            <li className="flex flex-col items-center gap-2 py-12 text-muted-foreground">
+              <Package className="h-8 w-8 text-muted-foreground/50" />
+              <p>No inventory items found.</p>
+            </li>
+          ) : (
+            filteredItems.map((item) => {
+              const isLowStock = item.quantity < item.minThreshold
+              const isUpdating = updatingId === item.id
+              return (
+                <li key={item.id} className="flex items-center gap-3 px-4 py-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-semibold">{item.name}</p>
+                    <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                      {item.category.replace('_', ' ')} · min {item.minThreshold}
+                      {(item as { defaultDeduction?: number }).defaultDeduction ? ` · −${(item as { defaultDeduction?: number }).defaultDeduction}/clean` : ''}
+                    </p>
+                    {isLowStock && (
+                      <span className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-rose-500/10 px-2 py-0.5 text-[11px] font-semibold text-rose-600 dark:text-rose-400">
+                        <AlertTriangle className="h-3 w-3" /> Restock
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    <button
+                      onClick={() => handleUpdateStock(item.id, -1)}
+                      disabled={isUpdating || item.quantity <= 0}
+                      aria-label={`Remove one ${item.name}`}
+                      className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-border/60 bg-background shadow-sm disabled:opacity-40 active:scale-95"
+                    >
+                      <Minus className="h-4 w-4" />
+                    </button>
+                    <div className="w-12 text-center leading-none">
+                      <span className={`block text-lg font-bold tabular-nums ${isLowStock ? 'text-red-500' : 'text-emerald-600'}`}>{item.quantity}</span>
+                      <span className="text-[10px] font-medium uppercase text-muted-foreground">{item.unit}</span>
+                    </div>
+                    <button
+                      onClick={() => handleUpdateStock(item.id, 1)}
+                      disabled={isUpdating}
+                      aria-label={`Add one ${item.name}`}
+                      className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-border/60 bg-background shadow-sm disabled:opacity-40 active:scale-95"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </button>
+                  </div>
+                </li>
+              )
+            })
+          )}
+        </ul>
+
+        <div className="relative hidden w-full overflow-auto md:block">
           <table className="w-full caption-bottom text-sm">
             <thead className="[&_tr]:border-b bg-muted/30">
               <tr className="border-b transition-colors">

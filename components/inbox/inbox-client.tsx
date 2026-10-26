@@ -292,20 +292,20 @@ export function InboxClient({
   const res = active?.conversation.reservation ?? selected?.reservation ?? null
 
   return (
-    <div className="flex h-full w-full flex-col bg-background p-3 sm:p-6">
-      {/* Header */}
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Inbox</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Every guest message from WhatsApp, Airbnb, Booking.com, Agoda and email, in one place.</p>
+    <div className="flex min-h-0 w-full flex-1 flex-col sm:bg-background sm:p-6">
+      {/* Header (hidden on phones while a conversation is open, so the chat gets the room) */}
+      <div className={`${selected ? "hidden md:flex" : "flex"} mb-3 sm:mb-4 flex-wrap items-center justify-between gap-3`}>
+        <div className="min-w-0">
+          <h1 className="text-xl font-bold tracking-tight sm:text-3xl">Inbox</h1>
+          <p className="mt-1 hidden text-sm text-muted-foreground sm:block">Every guest message from WhatsApp, Airbnb, Booking.com, Agoda and email, in one place.</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex w-full items-center gap-2 sm:w-auto">
           {isRefreshing && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" aria-label="Refreshing" />}
-          <div className="flex h-10 items-center rounded-xl border bg-muted/20 px-3">
+          <div className="flex h-11 min-w-0 flex-1 items-center rounded-xl border bg-card px-3 sm:h-10 sm:flex-none sm:bg-muted/20">
             <select
               value={activePropertyId}
               onChange={(e) => handlePropertyChange(e.target.value)}
-              className="cursor-pointer border-none bg-transparent text-sm font-medium outline-none focus:ring-0"
+              className="w-full cursor-pointer border-none bg-transparent text-sm font-medium outline-none focus:ring-0"
               aria-label="Location"
             >
               <option value="ALL">All locations</option>
@@ -332,11 +332,11 @@ export function InboxClient({
                 placeholder="Search guest, unit or message"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full rounded-xl border-none bg-background py-2 pl-9 pr-3 text-sm shadow-sm ring-1 ring-inset ring-border focus:ring-2 focus:ring-primary"
+                className="w-full rounded-xl border-none bg-background py-2.5 sm:py-2 pl-9 pr-3 text-sm shadow-sm ring-1 ring-inset ring-border focus:ring-2 focus:ring-primary"
               />
             </div>
 
-            <div className="grid grid-cols-4 gap-1 rounded-xl bg-muted/40 p-1 text-xs font-medium">
+            <div className="flex gap-1 rounded-xl bg-muted/40 p-1 text-xs font-medium">
               {(
                 [
                   ["OPEN", "Open"],
@@ -348,7 +348,7 @@ export function InboxClient({
                 <button
                   key={id}
                   onClick={() => setView(id)}
-                  className={`truncate rounded-lg px-1.5 py-1.5 transition-colors ${
+                  className={`flex-1 whitespace-nowrap rounded-lg px-1.5 py-2 sm:py-1.5 transition-colors ${
                     view === id ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
@@ -361,7 +361,7 @@ export function InboxClient({
             <div className="flex gap-1.5 overflow-x-auto pb-0.5 [scrollbar-width:none]">
               <button
                 onClick={() => setChannel("ALL")}
-                className={`shrink-0 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ${
+                className={`shrink-0 rounded-full border px-3 py-1.5 sm:px-2.5 sm:py-1 text-xs font-medium transition-colors ${
                   channel === "ALL" ? "border-primary/40 bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted"
                 }`}
               >
@@ -371,7 +371,7 @@ export function InboxClient({
                 <button
                   key={ch}
                   onClick={() => setChannel(ch)}
-                  className={`flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ${
+                  className={`flex shrink-0 items-center gap-1 rounded-full border px-3 py-1.5 sm:px-2.5 sm:py-1 text-xs font-medium transition-colors ${
                     channel === ch ? "border-primary/40 bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted"
                   }`}
                 >
@@ -441,30 +441,31 @@ export function InboxClient({
             </div>
           ) : (
             <>
-              <header className="flex items-center gap-3 border-b px-3 py-3 sm:px-4">
+              <header className="flex items-center gap-2 border-b px-2 py-2.5 sm:gap-3 sm:px-4 sm:py-3">
                 <button
                   onClick={() => {
                     setSelectedKey(null)
                     setThread(null)
                   }}
-                  className="rounded-lg p-1.5 hover:bg-muted md:hidden"
+                  className="rounded-lg p-2 hover:bg-muted md:hidden"
                   aria-label="Back to conversations"
                 >
-                  <ArrowLeft className="h-4 w-4" />
+                  <ArrowLeft className="h-5 w-5" />
                 </button>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <h2 className="truncate font-semibold">{selected.guestName}</h2>
-                    <ChannelBadge channel={selected.channel} />
+                    <span className="hidden shrink-0 sm:inline-flex"><ChannelBadge channel={selected.channel} /></span>
                   </div>
                   <p className="truncate text-xs text-muted-foreground">
+                    <span className="sm:hidden">{CHANNELS[selected.channel].label} · </span>
                     {selected.subject || selected.contact || CHANNELS[selected.channel].label}
                   </p>
                 </div>
                 <select
                   value={selected.assignee?.id ?? ""}
                   onChange={(e) => handleAssign(e.target.value)}
-                  className="h-8 max-w-[7rem] cursor-pointer rounded-lg border bg-background px-2 text-xs sm:max-w-[9rem]"
+                  className="h-9 max-w-[6.5rem] shrink-0 cursor-pointer rounded-lg border bg-background px-2 text-xs sm:h-8 sm:max-w-[9rem]"
                   aria-label="Assign to"
                 >
                   <option value="">Unassigned</option>
@@ -477,24 +478,38 @@ export function InboxClient({
                 {selected.status === "OPEN" ? (
                   <button
                     onClick={() => handleStatus("CLOSED")}
-                    className="flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-medium hover:bg-muted"
+                    aria-label="Mark done"
+                    className="flex h-9 shrink-0 sm:h-8 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-medium hover:bg-muted"
                   >
-                    <Check className="h-3.5 w-3.5" /> Done
+                    <Check className="h-4 w-4 sm:h-3.5 sm:w-3.5" /> <span className="hidden sm:inline">Done</span>
                   </button>
                 ) : (
                   <button
                     onClick={() => handleStatus("OPEN")}
-                    className="flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-medium hover:bg-muted"
+                    aria-label="Re-open"
+                    className="flex h-9 shrink-0 sm:h-8 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-medium hover:bg-muted"
                   >
-                    <RotateCcw className="h-3.5 w-3.5" /> Re-open
+                    <RotateCcw className="h-4 w-4 sm:h-3.5 sm:w-3.5" /> <span className="hidden sm:inline">Re-open</span>
                   </button>
                 )}
               </header>
 
+              {res && (
+                <div className="flex items-center gap-2 border-b bg-muted/20 px-3 py-2 text-xs text-muted-foreground xl:hidden">
+                  <BedDouble className="h-3.5 w-3.5 shrink-0" />
+                  <span className="truncate">
+                    <span className="font-medium text-foreground">{res.unitName ?? "Unit"}</span>
+                    {" · "}
+                    {format(new Date(res.checkIn), "d MMM")} – {format(new Date(res.checkOut), "d MMM")}
+                    {" · "}₹{res.totalAmount.toLocaleString("en-IN")}
+                  </span>
+                </div>
+              )}
+
               <div className="flex min-h-0 flex-1">
                 {/* Messages + composer */}
                 <div className="flex min-w-0 flex-1 flex-col">
-                  <div className="flex-1 space-y-3 overflow-y-auto bg-muted/10 p-4">
+                  <div className="flex-1 space-y-3 overflow-y-auto overscroll-contain bg-muted/10 p-3 sm:p-4">
                     {threadLoading && !active && (
                       <div className="flex justify-center py-10">
                         <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -522,7 +537,7 @@ export function InboxClient({
                     <div ref={messagesEndRef} />
                   </div>
 
-                  <div className="border-t p-3">
+                  <div className="border-t p-2.5 sm:p-3">
                     {active?.replyNote && (
                       <div className="mb-2 flex items-start justify-between gap-2 rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
                         <span>{active.replyNote}</span>
@@ -541,7 +556,7 @@ export function InboxClient({
 
                     <div className="relative">
                       {showQuick && (
-                        <div className="absolute bottom-full left-0 z-20 mb-2 max-h-72 w-72 overflow-y-auto rounded-xl border bg-popover p-1 shadow-lg">
+                        <div className="absolute bottom-full left-0 z-20 mb-2 max-h-72 w-[min(18rem,calc(100vw-3rem))] overflow-y-auto rounded-xl border bg-popover p-1 shadow-lg">
                           {QUICK_REPLIES.map((q) => (
                             <button
                               key={q.id}
@@ -560,27 +575,27 @@ export function InboxClient({
                         onKeyDown={(e) => {
                           if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleSend()
                         }}
-                        rows={3}
+                        rows={2}
                         placeholder={
                           active?.canReply
                             ? `Reply on ${CHANNELS[selected.channel].label}… (Ctrl/Cmd + Enter to send)`
                             : "Draft here, then copy it into the extranet"
                         }
-                        className="w-full resize-none rounded-xl border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                        className="w-full resize-none rounded-xl border bg-background px-3 py-2.5 text-sm sm:min-h-[5.5rem] focus:outline-none focus:ring-2 focus:ring-primary"
                       />
                     </div>
 
                     <div className="mt-2 flex flex-wrap items-center gap-2">
                       <button
                         onClick={() => setShowQuick((s) => !s)}
-                        className="flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-medium hover:bg-muted"
+                        className="flex h-9 sm:h-8 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-medium hover:bg-muted"
                       >
-                        <MessageSquareText className="h-3.5 w-3.5" /> Quick replies
+                        <MessageSquareText className="h-3.5 w-3.5" /> <span className="sm:hidden">Quick</span><span className="hidden sm:inline">Quick replies</span>
                       </button>
                       <button
                         onClick={handleDraft}
                         disabled={drafting || !active}
-                        className="flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-medium hover:bg-muted disabled:opacity-50"
+                        className="flex h-9 sm:h-8 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-medium hover:bg-muted disabled:opacity-50"
                       >
                         {drafting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
                         AI draft
@@ -588,7 +603,7 @@ export function InboxClient({
                       {!active?.canReply && reply.trim() && (
                         <button
                           onClick={() => navigator.clipboard.writeText(reply).then(() => toast.success("Copied"))}
-                          className="flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-medium hover:bg-muted"
+                          className="flex h-9 sm:h-8 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-medium hover:bg-muted"
                         >
                           Copy text
                         </button>
@@ -596,7 +611,7 @@ export function InboxClient({
                       <button
                         onClick={handleSend}
                         disabled={sending || !reply.trim() || !active?.canReply}
-                        className="ml-auto flex h-8 items-center gap-1.5 rounded-lg bg-primary px-3 text-xs font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                        className="ml-auto flex h-9 sm:h-8 items-center gap-1.5 rounded-lg bg-primary px-4 sm:px-3 text-xs font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
                       >
                         {sending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
                         Send
