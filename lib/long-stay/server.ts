@@ -5,6 +5,7 @@ import twilio from "twilio"
 import { prisma } from "@/lib/prisma"
 import { normalizePhoneNumber } from "@/lib/utils/phone"
 import { resolveWhatsAppProvider } from "@/lib/whatsapp/meta/config"
+import { isTwilioSendBlocked, TWILIO_BLOCKED_MESSAGE, TWILIO_BLOCKED_STATUS } from "@/lib/twilio/preview-guard"
 import { canonicalJson, type AgreementSnapshot } from "./agreement"
 
 if (typeof window !== "undefined") {
@@ -110,6 +111,23 @@ export async function sendLongStayWhatsApp(msg: WhatsAppSend): Promise<{ ok: boo
   let error: string | undefined
 
   if (!to) return { ok: false, error: "The booking has no valid contact number." }
+
+  // Preview Twilio guard (fail closed): Preview deployments never send through Twilio; Production is unaffected.
+  if (isTwilioSendBlocked()) {
+    console.warn("[Twilio Preview Guard] " + TWILIO_BLOCKED_MESSAGE)
+    try {
+      await prisma.whatsAppMessage.create({
+        data: {
+          direction: "OUTBOUND", from: "SYSTEM", to, messageType: contentSid ? "template" : "text",
+          content: msg.logBody ?? msg.body, templateName: contentSid ? "long_stay_" + msg.kind.toLowerCase() : null,
+          status: TWILIO_BLOCKED_STATUS, relatedEntityType: "LONG_STAY", relatedEntityId: msg.bookingId,
+        },
+      })
+    } catch (dbErr) {
+      console.error("[Long Stay WhatsApp log]", dbErr)
+    }
+    return { ok: false, error: TWILIO_BLOCKED_MESSAGE }
+  }
 
   try {
     if (!accountSid || !authToken || !fromNumber) {

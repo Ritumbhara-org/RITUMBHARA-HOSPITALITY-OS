@@ -3,6 +3,7 @@ import twilio from "twilio";
 import { normalizePhoneNumber } from "@/lib/utils/phone";
 import { resolveWhatsAppProvider } from "@/lib/whatsapp/meta/config";
 import { sendWhatsAppMessageViaMeta } from "@/lib/whatsapp/meta/outbound";
+import { isTwilioSendBlocked, TWILIO_BLOCKED_MESSAGE, TWILIO_BLOCKED_STATUS } from "@/lib/twilio/preview-guard";
 
 export async function sendWhatsAppMessage(
   toPhone: string,
@@ -18,6 +19,20 @@ export async function sendWhatsAppMessage(
   // below runs exactly as before.
   if (resolveWhatsAppProvider() === "meta") {
     return sendWhatsAppMessageViaMeta(toPhone, messageType, content, templateName, relatedEntityType, relatedEntityId, templateVariables);
+  }
+
+  // Preview Twilio guard (fail closed): Preview deployments never send through Twilio. Production is unaffected
+  // (the guard is false there) and the Twilio code below runs exactly as before.
+  if (isTwilioSendBlocked()) {
+    console.warn("[Twilio Preview Guard] " + TWILIO_BLOCKED_MESSAGE);
+    try {
+      await prisma.whatsAppMessage.create({
+        data: { direction: 'OUTBOUND', from: 'SYSTEM', to: toPhone, messageType, content, templateName, status: TWILIO_BLOCKED_STATUS, relatedEntityType, relatedEntityId }
+      });
+    } catch (dbError) {
+      console.error('[WhatsApp DB Logging Error]', dbError);
+    }
+    return { success: false, status: TWILIO_BLOCKED_STATUS };
   }
 
   const accountSid = process.env.TWILIO_ACCOUNT_SID;
