@@ -11,6 +11,13 @@ const MIN_SECRET_LENGTH = 32;
 const MAX_QUESTION_LENGTH = 500;
 export const META_LEAD_BOT_TIMEOUT_MS = 15000;
 
+// Preview testing only: website preview deployments sit behind Vercel Deployment Protection. When
+// WEBSITE_PROTECTION_BYPASS is set (Preview env only, never Production), it is sent as Vercel's automation-bypass header.
+function bypassHeader(): Record<string, string> {
+  const v = (process.env.WEBSITE_PROTECTION_BYPASS || "").trim();
+  return v ? { "x-vercel-protection-bypass": v } : {};
+}
+
 type Log = (event: string, meta?: Record<string, string | number | boolean>) => void;
 const defaultLog = (prefix: string): Log => (event, meta) => console.warn(`[${prefix}] ` + event + (meta ? " " + JSON.stringify(meta) : ""));
 
@@ -68,7 +75,7 @@ export async function askGuestMessagesForMeta(input: MetaRoutedMessage, deps: Me
   try {
     const res = await (deps.fetchImpl || fetch)(askUrl, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: "Bearer " + secret },
+      headers: Object.assign({ "Content-Type": "application/json", Authorization: "Bearer " + secret }, bypassHeader()),
       body: JSON.stringify(payload),
       redirect: "manual",
       signal: controller.signal,
@@ -137,7 +144,7 @@ export async function forwardToWebsiteLeadBotForMeta(input: MetaRoutedMessage, d
   try {
     const res = await (deps.fetchImpl || fetch)(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json", "X-Ritumbhara-Signature": signLeadBotRequest(secret, body, ts) },
+      headers: Object.assign({ "Content-Type": "application/json", "X-Ritumbhara-Signature": signLeadBotRequest(secret, body, ts) }, bypassHeader()),
       body,
       redirect: "manual",
       signal: controller.signal,
