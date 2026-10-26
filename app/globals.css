@@ -127,12 +127,30 @@
   html {
     @apply font-sans scroll-smooth;
   }
+  body {
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior-y: none;
+  }
+  /* iPhone zooms into any field with text under 16px. Keep fields at 16px on phones so the page never jumps. */
+  @media (max-width: 767px) {
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+    select,
+    textarea {
+      font-size: max(16px, 1em);
+    }
+  }
   ::selection {
     @apply bg-primary/20 text-foreground;
   }
 }
 
 @layer utilities {
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
   .glass {
     @apply backdrop-blur-xl bg-background/80 border border-border/50;
   }

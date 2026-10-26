@@ -152,11 +152,56 @@ function ReservationsClientContent({
     }
   }
 
+  type ReservationRow = (typeof initialData)[number]
+
+  const renderActions = (res: ReservationRow) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger aria-label="Booking actions" className="inline-flex items-center justify-center h-9 w-9 rounded-lg hover:bg-muted text-muted-foreground transition-colors">
+        {loadingId === res.id 
+          ? <Loader2 className="h-4 w-4 animate-spin" />
+          : <MoreHorizontal className="h-4 w-4" />}
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-44">
+        <DropdownMenuItem onClick={() => router.push(`/guests/${res.guest.id}`)}>
+          View Details
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        {res.status === 'ARRIVING' && (
+          <DropdownMenuItem onClick={() => handleStatusChange(res.id, 'CHECKED_IN', 'Checked In')}>
+            Check In Guest
+          </DropdownMenuItem>
+        )}
+        {res.status === 'CONFIRMED' && (
+          <DropdownMenuItem onClick={() => handleStatusChange(res.id, 'CHECKED_IN', 'Checked In')}>
+            Check In Guest
+          </DropdownMenuItem>
+        )}
+        {res.status === 'CHECKED_IN' && (
+          <DropdownMenuItem onClick={() => handleStatusChange(res.id, 'CHECKED_OUT', 'Checked Out')}>
+            Check Out Guest
+          </DropdownMenuItem>
+        )}
+        {res.status === 'PENDING' && (
+          <DropdownMenuItem onClick={() => handleStatusChange(res.id, 'CONFIRMED', 'Confirmed')}>
+            Confirm Booking
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem 
+          className="text-destructive focus:text-destructive"
+          onClick={() => handleStatusChange(res.id, 'CANCELLED', 'Cancelled')}
+        >
+          Cancel Reservation
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+
   return (
-    <div className="flex flex-col flex-1 w-full gap-5 pb-4">
-      <div className="flex flex-wrap items-center justify-between gap-4 shrink-0">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Reservations</h1>
+    <div className="flex flex-col flex-1 w-full gap-4 sm:gap-5 pb-4">
+      <div className="flex flex-wrap items-end justify-between gap-3 sm:gap-4 shrink-0">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Reservations</h1>
           <p className="text-sm text-muted-foreground mt-1">Manage all property bookings and stays.</p>
         </div>
 
@@ -165,7 +210,7 @@ function ReservationsClientContent({
             <Plus className="h-4 w-4" />
             New Booking
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[480px] rounded-2xl">
+          <DialogContent className="sm:max-w-[480px] sm:rounded-2xl">
             <form onSubmit={handleNewBooking}>
               <DialogHeader>
                 <DialogTitle className="text-lg">New Booking</DialogTitle>
@@ -175,7 +220,7 @@ function ReservationsClientContent({
                 <div className="grid gap-2">
                   <Label htmlFor="guestId">Guest *</Label>
                   <Select name="guestId" defaultValue={defaultGuestId} required>
-                    <SelectTrigger className="rounded-xl">
+                    <SelectTrigger className="w-full rounded-xl">
                       <SelectValue placeholder="Select guest..." />
                     </SelectTrigger>
                     <SelectContent>
@@ -188,7 +233,7 @@ function ReservationsClientContent({
                 <div className="grid gap-2">
                   <Label htmlFor="unitId">Unit / Room *</Label>
                   <Select name="unitId" required>
-                    <SelectTrigger className="rounded-xl">
+                    <SelectTrigger className="w-full rounded-xl">
                       <SelectValue placeholder="Select unit..." />
                     </SelectTrigger>
                     <SelectContent>
@@ -198,7 +243,7 @@ function ReservationsClientContent({
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="checkIn">Check-In *</Label>
                     <Input id="checkIn" name="checkIn" type="date" required className="rounded-xl" />
@@ -208,11 +253,11 @@ function ReservationsClientContent({
                     <Input id="checkOut" name="checkOut" type="date" required className="rounded-xl" />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="source">Booking Source</Label>
                     <Select name="source" defaultValue="DIRECT">
-                      <SelectTrigger className="rounded-xl">
+                      <SelectTrigger className="w-full rounded-xl">
                         <SelectValue placeholder="Source" />
                       </SelectTrigger>
                       <SelectContent>
@@ -247,7 +292,7 @@ function ReservationsClientContent({
         </Dialog>
       </div>
 
-      <div className="grid shrink-0 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid shrink-0 grid-cols-2 gap-2.5 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
           { label: "Total Bookings", value: stats.total, icon: Calendar, color: "bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400" },
           { label: "Active Stays", value: stats.active, icon: CheckCircle2, color: "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400" },
@@ -259,15 +304,15 @@ function ReservationsClientContent({
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35, delay: i * 0.05 }}
-            className="group rounded-2xl border bg-card p-4 shadow-sm transition-all duration-300 hover:shadow-md hover:border-border/80"
+            className="group rounded-2xl border bg-card min-w-0 p-3 sm:p-4 shadow-sm transition-all duration-300 hover:shadow-md hover:border-border/80"
           >
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-sm font-medium text-muted-foreground">{stat.label}</p>
-              <div className={`rounded-xl p-2 ${stat.color} transition-transform duration-300 group-hover:scale-110`}>
+            <div className="flex items-start justify-between gap-2 mb-1.5 sm:mb-3">
+              <p className="text-xs sm:text-sm leading-snug font-medium text-muted-foreground">{stat.label}</p>
+              <div className={`shrink-0 rounded-xl p-1.5 sm:p-2 ${stat.color} transition-transform duration-300 group-hover:scale-110`}>
                 <stat.icon className="h-4 w-4" />
               </div>
             </div>
-            <h2 className="text-3xl font-bold tracking-tight">{stat.value}</h2>
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight tabular-nums">{stat.value}</h2>
           </motion.div>
         ))}
       </div>
@@ -278,7 +323,7 @@ function ReservationsClientContent({
         transition={{ duration: 0.4, delay: 0.2 }}
         className="flex flex-col flex-1 min-h-0 rounded-2xl border bg-card shadow-sm overflow-hidden"
       >
-        <div className="p-4 border-b border-border/40 bg-muted/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
+        <div className="p-3 sm:p-4 border-b border-border/40 bg-muted/20 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-4 shrink-0">
           <div className="relative w-full sm:max-w-xs">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
@@ -290,7 +335,7 @@ function ReservationsClientContent({
             />
           </div>
           <Select value={filterStatus} onValueChange={(val) => setFilterStatus(val || "ALL")}>
-            <SelectTrigger className="w-[180px] bg-background rounded-xl">
+            <SelectTrigger className="w-full sm:w-[180px] bg-background rounded-xl">
               <div className="flex items-center gap-2">
                 <Filter className="h-4 w-4" />
                 <span>{filterStatus === 'ALL' ? 'All Status' : filterStatus.replace('_', ' ')}</span>
@@ -306,8 +351,43 @@ function ReservationsClientContent({
           </Select>
         </div>
 
+        {/* Phone: one card per booking. */}
+        <ul className="divide-y divide-border/40 md:hidden">
+          {filteredData.length === 0 ? (
+            <li className="px-4 py-14 text-center text-muted-foreground">
+              <CalendarCheck className="mx-auto h-10 w-10 mb-3 opacity-30" />
+              <p className="text-sm font-medium">No reservations found matching your criteria.</p>
+            </li>
+          ) : (
+            filteredData.map((res: ReservationRow) => (
+              <li key={res.id} className="flex gap-3 px-4 py-3.5">
+                <div className="h-10 w-10 shrink-0 rounded-xl bg-gradient-to-br from-rose-500/15 to-red-500/15 flex items-center justify-center text-rose-600 dark:text-rose-400 font-bold text-sm">
+                  {res.guest.name.charAt(0)}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold text-foreground">{res.guest.name}</p>
+                      <p className="truncate text-xs text-muted-foreground">{res.unit?.name || 'Unassigned'}{res.unit?.type ? ` · ${res.unit.type}` : ''}</p>
+                    </div>
+                    <div className="-mr-2 -mt-1 shrink-0">{renderActions(res)}</div>
+                  </div>
+                  <p className="mt-1.5 text-[13px] text-foreground/80">
+                    {format(new Date(res.checkIn), "d MMM")} → {format(new Date(res.checkOut), "d MMM yyyy")}
+                  </p>
+                  <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                    {getStatusBadge(res.status)}
+                    <span className="text-sm font-semibold tabular-nums">₹{res.totalAmount.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
+                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">{res.source}</span>
+                  </div>
+                </div>
+              </li>
+            ))
+          )}
+        </ul>
+
         <div className="flex-1 overflow-x-auto">
-          <table className="w-full text-sm text-left whitespace-nowrap">
+          <table className="hidden md:table w-full text-sm text-left whitespace-nowrap">
             <thead className="text-[11px] uppercase bg-muted/30 text-muted-foreground sticky top-0 z-10 border-b border-border/40">
               <tr>
                 <th className="px-6 py-3.5 font-semibold">Guest</th>
@@ -358,46 +438,7 @@ function ReservationsClientContent({
                       <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">{res.source}</div>
                     </td>
                     <td className="px-6 py-3.5 text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-muted text-muted-foreground transition-colors">
-                          {loadingId === res.id 
-                            ? <Loader2 className="h-4 w-4 animate-spin" />
-                            : <MoreHorizontal className="h-4 w-4" />}
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-44">
-                          <DropdownMenuItem onClick={() => router.push(`/guests/${res.guest.id}`)}>
-                            View Details
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          {res.status === 'ARRIVING' && (
-                            <DropdownMenuItem onClick={() => handleStatusChange(res.id, 'CHECKED_IN', 'Checked In')}>
-                              Check In Guest
-                            </DropdownMenuItem>
-                          )}
-                          {res.status === 'CONFIRMED' && (
-                            <DropdownMenuItem onClick={() => handleStatusChange(res.id, 'CHECKED_IN', 'Checked In')}>
-                              Check In Guest
-                            </DropdownMenuItem>
-                          )}
-                          {res.status === 'CHECKED_IN' && (
-                            <DropdownMenuItem onClick={() => handleStatusChange(res.id, 'CHECKED_OUT', 'Checked Out')}>
-                              Check Out Guest
-                            </DropdownMenuItem>
-                          )}
-                          {res.status === 'PENDING' && (
-                            <DropdownMenuItem onClick={() => handleStatusChange(res.id, 'CONFIRMED', 'Confirmed')}>
-                              Confirm Booking
-                            </DropdownMenuItem>
-                          )}
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem 
-                            className="text-destructive focus:text-destructive"
-                            onClick={() => handleStatusChange(res.id, 'CANCELLED', 'Cancelled')}
-                          >
-                            Cancel Reservation
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      {renderActions(res)}
                     </td>
                   </tr>
                 ))
@@ -406,22 +447,22 @@ function ReservationsClientContent({
           </table>
           
           {totalPages > 1 && (
-            <div className="flex items-center justify-between px-6 py-4 border-t border-white/5 bg-white/[0.02]">
-              <div className="text-sm text-slate-400">
+            <div className="flex items-center justify-between gap-3 px-4 sm:px-6 py-3 sm:py-4 border-t border-border/40">
+              <div className="text-sm text-muted-foreground">
                 Page {currentPage} of {totalPages}
               </div>
               <div className="flex gap-2">
                 <button
                   onClick={() => router.push(`${pathname}?page=${currentPage > 1 ? currentPage - 1 : 1}`)}
                   disabled={currentPage <= 1}
-                  className="px-3 py-1 text-sm bg-white/5 rounded hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="h-10 px-4 text-sm font-medium rounded-xl border bg-background hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   Previous
                 </button>
                 <button
                   onClick={() => router.push(`${pathname}?page=${currentPage < totalPages ? currentPage + 1 : totalPages}`)}
                   disabled={currentPage >= totalPages}
-                  className="px-3 py-1 text-sm bg-white/5 rounded hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="h-10 px-4 text-sm font-medium rounded-xl border bg-background hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   Next
                 </button>

@@ -56,10 +56,10 @@ export function LongStayList({ rows, stats, locations }: { rows: LongStayRow[]; 
   ]
 
   return (
-    <div className="flex flex-col flex-1 w-full gap-5 pb-4">
-      <div className="flex flex-wrap items-center justify-between gap-4 shrink-0">
+    <div className="flex flex-col flex-1 w-full gap-4 sm:gap-5 pb-4">
+      <div className="flex flex-wrap items-end justify-between gap-3 sm:gap-4 shrink-0">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Long Stays</h1>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Long Stays</h1>
           <p className="text-sm text-muted-foreground mt-1">Monthly and extended stays booked directly by the team.</p>
         </div>
         <Link
@@ -71,22 +71,22 @@ export function LongStayList({ rows, stats, locations }: { rows: LongStayRow[]; 
         </Link>
       </div>
 
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-3 shrink-0">
+      <div className="grid gap-2.5 sm:gap-4 grid-cols-2 sm:grid-cols-3 shrink-0">
         {cards.map((c, i) => (
           <motion.div
             key={c.label}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35, delay: i * 0.05 }}
-            className="group rounded-2xl border bg-card p-4 shadow-sm transition-all duration-300 hover:shadow-md"
+            className={`group rounded-2xl border bg-card min-w-0 p-3 sm:p-4 shadow-sm transition-all duration-300 hover:shadow-md ${i === cards.length - 1 ? "col-span-2 sm:col-span-1" : ""}`}
           >
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-sm font-medium text-muted-foreground">{c.label}</p>
-              <div className={`rounded-xl p-2 ${c.color} transition-transform duration-300 group-hover:scale-110`}>
+            <div className="flex items-start justify-between gap-2 mb-1.5 sm:mb-3">
+              <p className="text-xs sm:text-sm leading-snug font-medium text-muted-foreground">{c.label}</p>
+              <div className={`shrink-0 rounded-xl p-1.5 sm:p-2 ${c.color} transition-transform duration-300 group-hover:scale-110`}>
                 <c.icon className="h-4 w-4" />
               </div>
             </div>
-            <h2 className="text-3xl font-bold tracking-tight">{c.value}</h2>
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight tabular-nums">{c.value}</h2>
             {c.sub && <p className="text-xs text-muted-foreground mt-1">{c.sub}</p>}
           </motion.div>
         ))}

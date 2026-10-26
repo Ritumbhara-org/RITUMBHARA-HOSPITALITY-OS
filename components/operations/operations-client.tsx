@@ -56,6 +56,8 @@ function OperationsClientContent({
   teamMembers: any[]
 }) {
   const [searchTerm, setSearchTerm] = useState("")
+  // Phone: the board shows one column at a time, picked with the tabs above it.
+  const [mobileColumn, setMobileColumn] = useState<"open" | "progress" | "resolved">("open")
   const [filterCategory, setFilterCategory] = useState("ALL")
   const [filterProperty, setFilterProperty] = useState("ALL")
   const [filterUnit, setFilterUnit] = useState("ALL")
@@ -143,7 +145,7 @@ function OperationsClientContent({
     <div 
       key={ticket.id} 
       onClick={() => setSelectedTicket(ticket)}
-      className={`p-3.5 mb-2.5 bg-card border rounded-xl shadow-sm cursor-pointer hover:shadow-md transition-all duration-200 group ${isOverdue ? 'border-red-500/50 hover:border-red-500/80' : 'border-border/60 hover:border-border'}`}
+      className={`p-3.5 mb-2.5 sm:mb-0 lg:mb-2.5 bg-card border rounded-xl shadow-sm cursor-pointer hover:shadow-md transition-all duration-200 group ${isOverdue ? 'border-red-500/50 hover:border-red-500/80' : 'border-border/60 hover:border-border'}`}
     >
       <div className="flex justify-between items-start mb-2">
         <div className="flex gap-2 items-center">
@@ -208,10 +210,10 @@ function OperationsClientContent({
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-100px)] w-full gap-5 pb-4">
-      <div className="flex flex-wrap items-center justify-between gap-4 shrink-0">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Operations Hub</h1>
+    <div className="flex flex-col w-full gap-4 sm:gap-5 pb-4 lg:h-[calc(100dvh-100px)]">
+      <div className="flex flex-wrap items-end justify-between gap-3 sm:gap-4 shrink-0">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Operations Hub</h1>
           <p className="text-sm text-muted-foreground mt-1">Manage housekeeping, maintenance, and guest requests.</p>
         </div>
         
@@ -220,7 +222,7 @@ function OperationsClientContent({
             <Plus className="h-4 w-4" />
             Create Ticket
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px] rounded-2xl">
+          <DialogContent className="sm:max-w-[425px] sm:rounded-2xl">
             <form onSubmit={handleSubmit}>
               <DialogHeader>
                 <DialogTitle className="text-lg">Create Ticket</DialogTitle>
@@ -231,11 +233,11 @@ function OperationsClientContent({
                   <Label htmlFor="title">Title</Label>
                   <Input id="title" name="title" placeholder="e.g., AC not working" required className="rounded-xl" />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="assigneeId">Assign To (Optional)</Label>
                     <Select name="assigneeId" defaultValue="unassigned">
-                      <SelectTrigger className="rounded-xl">
+                      <SelectTrigger className="w-full rounded-xl">
                         <SelectValue placeholder="Select Assignee" />
                       </SelectTrigger>
                       <SelectContent>
@@ -251,7 +253,7 @@ function OperationsClientContent({
                   <div className="grid gap-2">
                     <Label htmlFor="unitId">Location / Unit</Label>
                     <Select name="unitId" defaultValue="property">
-                      <SelectTrigger className="rounded-xl">
+                      <SelectTrigger className="w-full rounded-xl">
                         <SelectValue placeholder="Select Location" />
                       </SelectTrigger>
                       <SelectContent>
@@ -263,11 +265,11 @@ function OperationsClientContent({
                     </Select>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="category">Category</Label>
                     <Select name="category" defaultValue="MAINTENANCE">
-                      <SelectTrigger className="rounded-xl">
+                      <SelectTrigger className="w-full rounded-xl">
                         <SelectValue placeholder="Category" />
                       </SelectTrigger>
                       <SelectContent>
@@ -281,7 +283,7 @@ function OperationsClientContent({
                   <div className="grid gap-2">
                     <Label htmlFor="priority">Priority</Label>
                     <Select name="priority" defaultValue="MEDIUM">
-                      <SelectTrigger className="rounded-xl">
+                      <SelectTrigger className="w-full rounded-xl">
                         <SelectValue placeholder="Priority" />
                       </SelectTrigger>
                       <SelectContent>
@@ -318,7 +320,7 @@ function OperationsClientContent({
         </Dialog>
       </div>
 
-      <div className="grid shrink-0 gap-4 sm:grid-cols-2 lg:grid-cols-6">
+      <div className="grid shrink-0 grid-cols-3 gap-2.5 sm:gap-4 lg:grid-cols-6">
         {[
           { label: "Open Issues", value: statsOpen, icon: AlertCircle, color: "bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400" },
           { label: "Assigned", value: statsAssigned, icon: Wrench, color: "bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400" },
@@ -332,15 +334,15 @@ function OperationsClientContent({
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35, delay: i * 0.05 }}
-            className={`group rounded-2xl border p-4 shadow-sm transition-all duration-300 hover:shadow-md hover:border-border/80 ${stat.urgent && stat.value > 0 ? 'bg-red-50/50 dark:bg-red-950/20 border-red-200 dark:border-red-900' : 'bg-card'}`}
+            className={`group rounded-2xl border min-w-0 p-3 sm:p-4 shadow-sm transition-all duration-300 hover:shadow-md hover:border-border/80 ${stat.urgent && stat.value > 0 ? 'bg-red-50/50 dark:bg-red-950/20 border-red-200 dark:border-red-900' : 'bg-card'}`}
           >
-            <div className="flex items-center justify-between mb-3">
-              <p className={`text-sm font-medium ${stat.urgent && stat.value > 0 ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}`}>{stat.label}</p>
-              <div className={`rounded-xl p-2 ${stat.color} transition-transform duration-300 group-hover:scale-110`}>
+            <div className="flex items-start justify-between gap-2 mb-1.5 sm:mb-3">
+              <p className={`text-xs sm:text-sm leading-snug font-medium ${stat.urgent && stat.value > 0 ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}`}>{stat.label}</p>
+              <div className={`hidden sm:block shrink-0 rounded-xl p-2 ${stat.color} transition-transform duration-300 group-hover:scale-110`}>
                 <stat.icon className="h-4 w-4" />
               </div>
             </div>
-            <h2 className="text-3xl font-bold tracking-tight">{stat.value}</h2>
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight tabular-nums">{stat.value}</h2>
           </motion.div>
         ))}
       </div>
@@ -349,9 +351,9 @@ function OperationsClientContent({
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.2 }}
-        className="flex flex-col flex-1 min-h-0 rounded-2xl border bg-card shadow-sm overflow-hidden"
+        className="flex flex-col lg:flex-1 lg:min-h-0 rounded-2xl border bg-card shadow-sm overflow-hidden"
       >
-        <div className="p-4 border-b border-border/40 bg-muted/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
+        <div className="p-3 sm:p-4 border-b border-border/40 bg-muted/20 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-4 shrink-0">
           <div className="relative w-full sm:max-w-xs">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
@@ -362,24 +364,26 @@ function OperationsClientContent({
               className="w-full rounded-xl border border-border/60 bg-background py-2.5 pl-9 pr-4 text-sm shadow-sm transition-all placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary/40"
             />
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex w-full sm:w-auto items-center gap-2">
             <button 
               onClick={() => setViewMode('board')}
-              className={`p-2 rounded-xl transition-all duration-200 border shadow-sm ${viewMode === 'board' ? 'bg-muted text-foreground' : 'bg-background text-muted-foreground hover:text-foreground border-border/60'}`}
+              aria-label="Board view"
+              className={`hidden sm:inline-flex p-2 rounded-xl transition-all duration-200 border shadow-sm ${viewMode === 'board' ? 'bg-muted text-foreground' : 'bg-background text-muted-foreground hover:text-foreground border-border/60'}`}
             >
               <GripVertical className="h-4 w-4" />
             </button>
             <Popover>
-              <PopoverTrigger className="inline-flex items-center justify-center gap-2 rounded-xl border border-border/60 bg-background px-4 py-2.5 text-sm font-medium shadow-sm transition-all hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20">
+              <PopoverTrigger className="inline-flex w-full sm:w-auto whitespace-nowrap items-center justify-center gap-2 rounded-xl border border-border/60 bg-background px-4 py-2.5 text-sm font-medium shadow-sm transition-all hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20">
                 <ListFilter className="h-4 w-4" />
-                Advanced Filters
+                <span className="sm:hidden">Filters</span>
+                <span className="hidden sm:inline">Advanced Filters</span>
                 {([filterCategory, filterProperty, filterUnit, filterPriority, filterAssignee, filterReporter, filterStatus].filter(v => v !== "ALL").length > 0 || filterOverdue) && (
                   <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
                     {[filterCategory, filterProperty, filterUnit, filterPriority, filterAssignee, filterReporter, filterStatus].filter(v => v !== "ALL").length + (filterOverdue ? 1 : 0)}
                   </span>
                 )}
               </PopoverTrigger>
-              <PopoverContent className="w-80 rounded-2xl p-4" align="end">
+              <PopoverContent className="w-[min(20rem,calc(100vw-2rem))] max-h-[70dvh] overflow-y-auto rounded-2xl p-4" align="end">
                 <div className="space-y-4">
                   <h4 className="font-semibold text-sm">Filter Tickets</h4>
                   
@@ -496,7 +500,7 @@ function OperationsClientContent({
                         setFilterCategory("ALL"); setFilterProperty("ALL"); setFilterUnit("ALL");
                         setFilterPriority("ALL"); setFilterAssignee("ALL"); setFilterReporter("ALL"); setFilterStatus("ALL"); setFilterOverdue(false);
                       }}
-                      className="w-full text-xs text-center py-1.5 text-muted-foreground hover:text-foreground transition-colors"
+                      className="w-full text-sm sm:text-xs text-center py-2.5 sm:py-1.5 text-muted-foreground hover:text-foreground transition-colors"
                     >
                       Reset Filters
                     </button>
@@ -507,49 +511,73 @@ function OperationsClientContent({
           </div>
         </div>
 
-        <div className="flex-1 overflow-auto bg-muted/10 p-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 h-full min-w-[768px]">
-            <div className="flex flex-col h-full rounded-2xl bg-muted/30 border border-border/40">
-              <div className="p-3.5 border-b border-border/40 flex items-center justify-between sticky top-0 bg-inherit z-10 backdrop-blur-sm rounded-t-2xl">
+        {/* Phone: pick a column. */}
+        <div className="grid grid-cols-3 gap-1 border-b border-border/40 bg-muted/20 p-1.5 lg:hidden" role="tablist">
+          {([
+            ["open", "To Do", openTickets.length, "bg-amber-500"],
+            ["progress", "In Progress", inProgressTickets.length, "bg-blue-500"],
+            ["resolved", "Resolved", resolvedTickets.length, "bg-emerald-500"],
+          ] as const).map(([key, label, count, dot]) => (
+            <button
+              key={key}
+              type="button"
+              role="tab"
+              aria-selected={mobileColumn === key}
+              onClick={() => setMobileColumn(key)}
+              className={`flex h-10 items-center justify-center gap-1.5 rounded-xl text-[13px] font-semibold transition-colors ${
+                mobileColumn === key ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"
+              }`}
+            >
+              <span className={`h-2 w-2 rounded-full ${dot}`} />
+              {label}
+              <span className="text-xs font-medium text-muted-foreground tabular-nums">{count}</span>
+            </button>
+          ))}
+        </div>
+
+        <div className="lg:flex-1 lg:overflow-auto bg-muted/10 p-3 sm:p-4">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 lg:h-full">
+            <div className={`${mobileColumn === "open" ? "flex" : "hidden"} lg:flex flex-col lg:h-full lg:rounded-2xl lg:bg-muted/30 lg:border lg:border-border/40`}>
+              <div className="hidden lg:flex p-3.5 border-b border-border/40 items-center justify-between sticky top-0 bg-inherit z-10 backdrop-blur-sm rounded-t-2xl">
                 <div className="flex items-center gap-2">
                   <div className="h-2.5 w-2.5 rounded-full bg-amber-500" />
                   <h3 className="font-semibold text-sm">To Do</h3>
                 </div>
                 <span className="text-xs font-semibold text-muted-foreground bg-background/80 px-2.5 py-1 rounded-lg border border-border/40">{openTickets.length}</span>
               </div>
-              <div className="p-2.5 flex-1 overflow-y-auto">
+              <div className="sm:grid sm:grid-cols-2 sm:gap-2.5 lg:block lg:p-2.5 flex-1 lg:overflow-y-auto">
                 {openTickets.length === 0 ? (
-                  <div className="flex items-center justify-center py-8 text-muted-foreground text-xs">No open tickets</div>
+                  <div className="flex items-center justify-center py-8 text-muted-foreground text-xs sm:col-span-2">No open tickets</div>
                 ) : openTickets.map(renderTicketCard)}
               </div>
             </div>
 
-            <div className="flex flex-col h-full rounded-2xl bg-muted/30 border border-border/40">
-              <div className="p-3.5 border-b border-border/40 flex items-center justify-between sticky top-0 bg-inherit z-10 backdrop-blur-sm rounded-t-2xl">
+            <div className={`${mobileColumn === "progress" ? "flex" : "hidden"} lg:flex flex-col lg:h-full lg:rounded-2xl lg:bg-muted/30 lg:border lg:border-border/40`}>
+              <div className="hidden lg:flex p-3.5 border-b border-border/40 items-center justify-between sticky top-0 bg-inherit z-10 backdrop-blur-sm rounded-t-2xl">
                 <div className="flex items-center gap-2">
                   <div className="h-2.5 w-2.5 rounded-full bg-blue-500" />
                   <h3 className="font-semibold text-sm">In Progress</h3>
                 </div>
                 <span className="text-xs font-semibold text-muted-foreground bg-background/80 px-2.5 py-1 rounded-lg border border-border/40">{inProgressTickets.length}</span>
               </div>
-              <div className="p-2.5 flex-1 overflow-y-auto">
+              <div className="sm:grid sm:grid-cols-2 sm:gap-2.5 lg:block lg:p-2.5 flex-1 lg:overflow-y-auto">
                 {inProgressTickets.length === 0 ? (
-                  <div className="flex items-center justify-center py-8 text-muted-foreground text-xs">No tickets in progress</div>
+                  <div className="flex items-center justify-center py-8 text-muted-foreground text-xs sm:col-span-2">No tickets in progress</div>
                 ) : inProgressTickets.map(renderTicketCard)}
               </div>
             </div>
 
-            <div className="flex flex-col h-full rounded-2xl bg-muted/30 border border-border/40">
-              <div className="p-3.5 border-b border-border/40 flex items-center justify-between sticky top-0 bg-inherit z-10 backdrop-blur-sm rounded-t-2xl">
+            <div className={`${mobileColumn === "resolved" ? "flex" : "hidden"} lg:flex flex-col lg:h-full lg:rounded-2xl lg:bg-muted/30 lg:border lg:border-border/40`}>
+              <div className="hidden lg:flex p-3.5 border-b border-border/40 items-center justify-between sticky top-0 bg-inherit z-10 backdrop-blur-sm rounded-t-2xl">
                 <div className="flex items-center gap-2">
                   <div className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
                   <h3 className="font-semibold text-sm">Resolved</h3>
                 </div>
                 <span className="text-xs font-semibold text-muted-foreground bg-background/80 px-2.5 py-1 rounded-lg border border-border/40">{resolvedTickets.length}</span>
               </div>
-              <div className="p-2.5 flex-1 overflow-y-auto opacity-75">
+              <div className="sm:grid sm:grid-cols-2 sm:gap-2.5 lg:block lg:p-2.5 flex-1 lg:overflow-y-auto opacity-75">
                 {resolvedTickets.length === 0 ? (
-                  <div className="flex items-center justify-center py-8 text-muted-foreground text-xs">No resolved tickets</div>
+                  <div className="flex items-center justify-center py-8 text-muted-foreground text-xs sm:col-span-2">No resolved tickets</div>
                 ) : resolvedTickets.map(renderTicketCard)}
               </div>
             </div>

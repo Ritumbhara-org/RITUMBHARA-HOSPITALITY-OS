@@ -112,7 +112,7 @@ export function LongStayForm({ mode, initial, initialStatus, locations, units, a
             <ArrowLeft className="h-4 w-4" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">{mode === "new" ? "New long stay" : baseline.guestName || "Long stay"}</h1>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight">{mode === "new" ? "New long stay" : baseline.guestName || "Long stay"}</h1>
             <p className="text-sm text-muted-foreground mt-0.5">
               {mode === "new" ? "Monthly or extended stay booked directly." : `Booking ${initial.id.slice(-8)}${createdAt ? ` · created ${createdAt}` : ""}`}
             </p>
@@ -345,7 +345,7 @@ export function LongStayForm({ mode, initial, initialStatus, locations, units, a
         />
       </Section>
 
-      <div className="sticky bottom-0 z-20 -mx-4 sm:-mx-6 mt-2 border-t bg-background/95 px-4 sm:px-6 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+      <div className="sticky bottom-0 z-20 -mx-4 sm:-mx-6 -mb-4 sm:mb-0 mt-2 border-t bg-background/95 px-4 sm:px-6 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/80">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="text-xs text-muted-foreground flex items-center gap-2 min-w-0">
             {signed && materialChanged ? (

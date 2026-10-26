@@ -121,23 +121,25 @@ export function UnitsClient({
   }
 
   return (
-    <div className="flex flex-col flex-1 w-full gap-5 pb-4">
-      <div className="flex flex-wrap items-center justify-between gap-4 shrink-0">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Units & Inventory</h1>
+    <div className="flex flex-col flex-1 w-full gap-4 sm:gap-5 pb-4">
+      <div className="flex flex-wrap items-end justify-between gap-3 sm:gap-4 shrink-0">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Units & Inventory</h1>
           <p className="text-sm text-muted-foreground mt-1">Manage property rooms, spaces, and live status.</p>
         </div>
         <div className="flex items-center gap-2">
           <div className="flex items-center rounded-xl border border-border/60 bg-background p-1 shadow-sm">
             <button 
               onClick={() => setViewMode('grid')}
-              className={`p-1.5 rounded-lg transition-all duration-200 ${viewMode === 'grid' ? 'bg-muted text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+              aria-label="Grid view"
+              className={`p-2 sm:p-1.5 rounded-lg transition-all duration-200 ${viewMode === 'grid' ? 'bg-muted text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
             >
               <LayoutGrid className="h-4 w-4" />
             </button>
             <button 
               onClick={() => setViewMode('list')}
-              className={`p-1.5 rounded-lg transition-all duration-200 ${viewMode === 'list' ? 'bg-muted text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+              aria-label="List view"
+              className={`p-2 sm:p-1.5 rounded-lg transition-all duration-200 ${viewMode === 'list' ? 'bg-muted text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
             >
               <List className="h-4 w-4" />
             </button>
@@ -148,7 +150,7 @@ export function UnitsClient({
               <Plus className="h-4 w-4" />
               Add Unit
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[660px] max-h-[90vh] rounded-3xl flex flex-col p-6 overflow-hidden">
+            <DialogContent className="sm:max-w-[660px] sm:max-h-[90vh] sm:rounded-3xl flex flex-col sm:p-6 sm:overflow-hidden">
               <form key={editingUnit ? editingUnit.id : 'new'} onSubmit={handleSubmit} className="flex flex-col min-h-0 flex-1">
                 <DialogHeader className="pb-3 border-b border-border/40 shrink-0">
                   <DialogTitle className="text-xl font-bold">{editingUnit ? `Edit Unit: ${editingUnit.name}` : "Add Unit"}</DialogTitle>
@@ -163,12 +165,15 @@ export function UnitsClient({
                   {/* Basic Information */}
                   <div className="space-y-3">
                     <h3 className="font-semibold text-xs tracking-wider uppercase text-muted-foreground">General Details</h3>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="grid gap-1.5 col-span-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="grid gap-1.5 sm:col-span-2">
                         <Label htmlFor="propertyId">Location / Property *</Label>
                         <Select name="propertyId" required defaultValue={editingUnit?.propertyId || properties[0]?.id}>
-                          <SelectTrigger className="rounded-xl">
-                            <SelectValue placeholder="Select Location" />
+                          <SelectTrigger className="w-full rounded-xl">
+                            {/* Show the location's name, not its id. */}
+                            <SelectValue placeholder="Select Location">
+                              {(value: string) => properties.find(p => p.id === value)?.name ?? "Select Location"}
+                            </SelectValue>
                           </SelectTrigger>
                           <SelectContent>
                             {properties.map(p => (
@@ -184,7 +189,7 @@ export function UnitsClient({
                       <div className="grid gap-1.5">
                         <Label htmlFor="type">Unit Type</Label>
                         <Select name="type" defaultValue={editingUnit?.type || "Studio"}>
-                          <SelectTrigger className="rounded-xl">
+                          <SelectTrigger className="w-full rounded-xl">
                             <SelectValue placeholder="Type" />
                           </SelectTrigger>
                           <SelectContent>
@@ -211,7 +216,7 @@ export function UnitsClient({
                   {/* Access Codes */}
                   <div className="space-y-3 pt-3 border-t border-border/40">
                     <h3 className="font-semibold text-xs tracking-wider uppercase text-muted-foreground">Access Codes & Digital Entry</h3>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div className="grid gap-1.5">
                         <Label htmlFor="gateAccessCode">Main Gate / Guard Code</Label>
                         <Input id="gateAccessCode" name="gateAccessCode" placeholder="e.g. 299239 or 335429" className="rounded-xl font-mono" defaultValue={editingUnit?.gateAccessCode || ""} />
@@ -226,7 +231,7 @@ export function UnitsClient({
                   {/* Unit-Specific Wi-Fi */}
                   <div className="space-y-3 pt-3 border-t border-border/40">
                     <h3 className="font-semibold text-xs tracking-wider uppercase text-muted-foreground">Unit Wi-Fi Credentials</h3>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div className="grid gap-1.5">
                         <Label htmlFor="wifiNetwork">Wi-Fi SSID / Network</Label>
                         <Input id="wifiNetwork" name="wifiNetwork" placeholder="e.g. Room1210-5G" className="rounded-xl" defaultValue={editingUnit?.wifiNetwork || ""} />
@@ -311,7 +316,7 @@ export function UnitsClient({
         </div>
       </div>
 
-      <div className="grid shrink-0 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid shrink-0 grid-cols-3 gap-2.5 sm:gap-4 lg:grid-cols-5">
         {[
           { label: "Total Units", value: stats.total, color: "bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400" },
           { label: "Available", value: stats.available, color: "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400" },
@@ -324,10 +329,10 @@ export function UnitsClient({
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35, delay: i * 0.05 }}
-            className="group rounded-2xl border bg-card p-4 shadow-sm transition-all duration-300 hover:shadow-md hover:border-border/80"
+            className="group rounded-2xl border bg-card min-w-0 p-3 sm:p-4 shadow-sm transition-all duration-300 hover:shadow-md hover:border-border/80"
           >
-            <p className="text-sm font-medium text-muted-foreground mb-2">{stat.label}</p>
-            <h2 className="text-3xl font-bold tracking-tight">{stat.value}</h2>
+            <p className="text-xs sm:text-sm leading-snug font-medium text-muted-foreground mb-1.5 sm:mb-2">{stat.label}</p>
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight tabular-nums">{stat.value}</h2>
           </motion.div>
         ))}
       </div>
@@ -338,7 +343,7 @@ export function UnitsClient({
         transition={{ duration: 0.4, delay: 0.2 }}
         className="flex flex-col flex-1 min-h-0 rounded-2xl border bg-card shadow-sm overflow-hidden"
       >
-        <div className="p-4 border-b border-border/40 bg-muted/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
+        <div className="p-3 sm:p-4 border-b border-border/40 bg-muted/20 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-4 shrink-0">
           <div className="relative w-full sm:max-w-xs">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
@@ -349,10 +354,10 @@ export function UnitsClient({
               className="w-full rounded-xl border border-border/60 bg-background py-2.5 pl-9 pr-4 text-sm shadow-sm transition-all placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary/40"
             />
           </div>
-          <div className="flex items-center gap-3">
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:gap-3">
             <Select value={filterLocation} onValueChange={(val) => setFilterLocation(val || "ALL")}>
-              <SelectTrigger className="w-[180px] bg-background rounded-xl">
-                <div className="flex items-center gap-2">
+              <SelectTrigger className="w-full min-w-0 sm:w-[180px] bg-background rounded-xl">
+                <div className="flex min-w-0 items-center gap-2">
                   <MapPin className="h-4 w-4" />
                   <span className="truncate">{filterLocation === 'ALL' ? 'All Locations' : properties.find(p => p.id === filterLocation)?.name || 'Unknown'}</span>
                 </div>
@@ -365,10 +370,10 @@ export function UnitsClient({
               </SelectContent>
             </Select>
             <Select value={filterStatus} onValueChange={(val) => setFilterStatus(val || "ALL")}>
-              <SelectTrigger className="w-[180px] bg-background rounded-xl">
+              <SelectTrigger className="w-full min-w-0 sm:w-[180px] bg-background rounded-xl">
                 <div className="flex items-center gap-2">
                   <Filter className="h-4 w-4" />
-                  <span>{filterStatus === 'ALL' ? 'All Status' : filterStatus}</span>
+                  <span className="truncate">{filterStatus === 'ALL' ? 'All Status' : filterStatus}</span>
                 </div>
               </SelectTrigger>
               <SelectContent>
@@ -384,7 +389,7 @@ export function UnitsClient({
           </div>
         </div>
 
-        <div className="flex-1 overflow-auto p-4 bg-muted/10">
+        <div className="flex-1 overflow-auto p-3 sm:p-4 bg-muted/10">
           {filteredData.length === 0 ? (
             <div className="h-full flex items-center justify-center text-muted-foreground">
               <div className="flex flex-col items-center">
@@ -397,14 +402,15 @@ export function UnitsClient({
               {filteredData.map((unit: any) => (
                 <div 
                   key={unit.id} 
-                  className={`relative flex flex-col p-3.5 rounded-2xl border-2 transition-all duration-200 hover:shadow-md hover:scale-[1.02] cursor-pointer ${getStatusColor(unit.status)}`}
+                  className={`relative flex min-w-0 flex-col p-3 sm:p-3.5 rounded-2xl border-2 transition-all duration-200 hover:shadow-md hover:scale-[1.02] cursor-pointer ${getStatusColor(unit.status)}`}
                 >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-bold text-lg">{unit.name}</span>
-                    <div className="flex items-center gap-1.5">
+                  <div className="flex items-start justify-between gap-1 mb-2">
+                    <span className="min-w-0 font-bold text-base sm:text-lg leading-tight break-words">{unit.name}</span>
+                    <div className="flex shrink-0 items-center gap-1">
                       <button 
                         onClick={(e) => { e.stopPropagation(); openDialogForEdit(unit); }}
-                        className="p-1 rounded-md opacity-50 hover:opacity-100 hover:bg-current/10 transition-all"
+                        aria-label="Edit unit"
+                        className="p-1.5 -m-0.5 rounded-md opacity-50 hover:opacity-100 hover:bg-current/10 transition-all"
                       >
                         <PenTool className="h-3 w-3" />
                       </button>
@@ -423,8 +429,8 @@ export function UnitsClient({
               ))}
             </div>
           ) : (
-            <div className="border border-border/60 rounded-2xl bg-background overflow-hidden">
-              <table className="w-full text-sm text-left">
+            <div className="border border-border/60 rounded-2xl bg-background overflow-x-auto">
+              <table className="w-full min-w-[760px] text-sm text-left">
                 <thead className="text-[11px] uppercase bg-muted/30 text-muted-foreground border-b border-border/40">
                   <tr>
                     <th className="px-6 py-3.5 font-semibold">Unit Name</th>
