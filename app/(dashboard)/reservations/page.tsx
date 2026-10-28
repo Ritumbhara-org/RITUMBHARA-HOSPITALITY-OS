@@ -18,7 +18,7 @@ export default async function ReservationsPage(props: {
   const skip = (page - 1) * limit
 
   // Run all independent queries simultaneously
-  const [reservations, totalCount, guests, units, allStats] = await Promise.all([
+  const [reservations, totalCount, guests, units, activeCount, upcomingCount, cancelledCount] = await Promise.all([
     prisma.reservation.findMany({
       include: {
         guest: true,
@@ -38,15 +38,11 @@ export default async function ReservationsPage(props: {
       orderBy: { name: 'asc' }, 
       select: { id: true, name: true, type: true } 
     }),
-    prisma.reservation.findMany({
-      select: { status: true, checkIn: true }
-    })
+    // Summary stats across ALL reservations, counted by the database (not by loading every row).
+    prisma.reservation.count({ where: { status: 'CHECKED_IN' } }),
+    prisma.reservation.count({ where: { status: 'CONFIRMED', checkIn: { gte: today } } }),
+    prisma.reservation.count({ where: { status: 'CANCELLED' } }),
   ])
-
-  // Calculate summary stats across ALL reservations (not just the current page)
-  const activeCount = allStats.filter(r => r.status === 'CHECKED_IN').length
-  const upcomingCount = allStats.filter(r => r.status === 'CONFIRMED' && r.checkIn >= today).length
-  const cancelledCount = allStats.filter(r => r.status === 'CANCELLED').length
 
   const stats = {
     total: totalCount,
