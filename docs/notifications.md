@@ -45,7 +45,26 @@ This only adds the `AdminNotification` table. Until it runs the bell shows a set
 Without database access from your machine, run `prisma/sql/2026-10-28_admin_notifications.sql` in the Supabase SQL
 editor instead. It does the same and is safe to run twice.
 
-## Not included
+## Phone alerts (push)
 
-The bell only shows while the OS is open in a browser. For an alert when it is closed, add push, email or a
-WhatsApp message to the admin on top of `notifyAdmin()`.
+Every notification is also pushed to phones that turned alerts on, so the admin is told even when the app is closed.
+
+- `PushSubscription` table: one row per phone or browser. `lib/notifications/push.ts` sends; `notifyAdmin()` calls it.
+  A repeat of the same thing reuses the notification tag, so the phone replaces the alert instead of stacking them.
+- `public/sw.js` shows the alert and opens the right page when it is tapped.
+- `GET/POST/DELETE /api/notifications/push` (admin session only) give the public key and save or remove a phone.
+- Phones that stop answering (404/410) are forgotten automatically. Push never blocks the real work.
+- Without the VAPID keys below, push does nothing and the bell footer says setup is needed.
+
+### Setup (once)
+
+1. Make a key pair: `npx web-push generate-vapid-keys`
+2. In Vercel, set `VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY` (optional `VAPID_SUBJECT`, for example `mailto:you@example.com`), then redeploy.
+3. Run `npx prisma db push`, or run `prisma/sql/2026-10-28_push_subscriptions.sql` in the Supabase SQL editor.
+4. On each phone: open the installed app, tap the bell, tap **Turn on phone alerts**, allow notifications.
+   You get a test alert straight away.
+
+iPhone: alerts only work after the app is added to the Home Screen (Share, then Add to Home Screen) and opened from there.
+Android and desktop Chrome work from the installed app or the browser.
+
+Keep the private key secret. Changing the keys later stops existing phones, who then need to turn alerts on again.

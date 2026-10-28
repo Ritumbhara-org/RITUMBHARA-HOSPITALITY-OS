@@ -1,13 +1,14 @@
 "use client"
 
 import { useState } from "react"
-import { Bell, CheckCheck } from "lucide-react"
+import { Bell, BellRing, CheckCheck } from "lucide-react"
 import { formatDistanceToNowStrict } from "date-fns"
 import { cn } from "cn"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { useTr } from "@/components/i18n/language-provider"
 import type { NotificationItem, NotificationsState } from "./use-notifications"
+import type { PhoneAlertsState } from "./use-phone-alerts"
 
 const DOT: Record<string, string> = {
   CRITICAL: "bg-red-500",
@@ -46,8 +47,50 @@ function Row({ item, onOpen }: { item: NotificationItem; onOpen: (item: Notifica
   )
 }
 
-// The bell in the top bar. The data comes from useNotifications(), called once in the Topbar.
-export function NotificationBell({ state, className }: { state: NotificationsState; className?: string }) {
+// Footer of the bell: turn alerts on this phone on or off, or say why they are not available.
+function PhoneAlertsFooter({ phone }: { phone: PhoneAlertsState }) {
+  const tr = useTr()
+  const { status } = phone
+  if (status === "loading" || status === "unsupported") return null
+
+  const note = (text: string) => <p className="text-xs text-muted-foreground">{text}</p>
+  return (
+    <div className="border-t border-border/60 px-3 py-2.5">
+      {status === "off" && (
+        <Button type="button" variant="outline" size="sm" className="h-8 w-full gap-2 text-xs" onClick={phone.enable}>
+          <BellRing className="h-3.5 w-3.5" />
+          {tr("Turn on phone alerts")}
+        </Button>
+      )}
+      {status === "working" && note(tr("Working…"))}
+      {status === "on" && (
+        <div className="flex items-center justify-between gap-2">
+          <span className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400">
+            <BellRing className="h-3.5 w-3.5" />
+            {tr("Phone alerts are on")}
+          </span>
+          <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={phone.disable}>
+            {tr("Turn off")}
+          </Button>
+        </div>
+      )}
+      {status === "blocked" && note(tr("Alerts are blocked. Allow notifications for this app in your phone's settings, then reload."))}
+      {status === "needs-install" && note(tr("To get alerts on an iPhone, add this app to your Home Screen (Share, then Add to Home Screen) and open it from there."))}
+      {status === "not-configured" && note(tr("Phone alerts need a one-time server setup (VAPID keys)."))}
+      {status === "error" && (
+        <div className="flex items-center justify-between gap-2">
+          {note(tr("Could not turn on phone alerts."))}
+          <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={phone.enable}>
+            {tr("Try again")}
+          </Button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// The bell in the top bar. The data comes from useNotifications() and usePhoneAlerts(), each called once in the Topbar.
+export function NotificationBell({ state, phone, className }: { state: NotificationsState; phone: PhoneAlertsState; className?: string }) {
   const tr = useTr()
   const [open, setOpen] = useState(false)
   const { items, unread, hasCritical, setupNeeded } = state
@@ -106,6 +149,7 @@ export function NotificationBell({ state, className }: { state: NotificationsSta
             ))
           )}
         </div>
+        <PhoneAlertsFooter phone={phone} />
       </PopoverContent>
     </Popover>
   )
