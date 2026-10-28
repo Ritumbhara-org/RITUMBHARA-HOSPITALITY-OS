@@ -4,6 +4,8 @@ import { handleWhatsAppAction } from "@/lib/whatsapp/action-handler";
 import { handleGuestAIChat } from "@/lib/whatsapp/ai-handler";
 import { defaultLeadRouterDeps, routeToWebsiteLeadBot } from "@/lib/whatsapp/website-lead-router";
 import { defaultGuestMessagesRouterDeps, routeToGuestMessages } from "@/lib/whatsapp/guest-messages-router";
+import { notifyAdmin } from "@/lib/notifications/service";
+import { whatsappMessage } from "@/lib/notifications/builders";
 
 export async function POST(req: Request) {
   try {
@@ -46,6 +48,9 @@ export async function POST(req: Request) {
 
     // If no response is needed (e.g., standard guest chat), forward to AI!
     if (!responseMessage) {
+      // Not a staff command: a guest or lead wrote in. Show it in the admin's bell (never throws).
+      await notifyAdmin(whatsappMessage({ from: senderPhone, text: originalText }));
+
       // Week 7 Guest Messages: a sender the OS does not know, asking about an existing stay (extension, early check-in,
       // cancellation...), whose phone matches a current Intellistay booking on the website, gets the website's guest
       // assistant reply/escalation instead of the lead bot. OFF unless configured; otherwise, or on any failure, null.

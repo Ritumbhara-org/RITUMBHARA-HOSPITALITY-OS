@@ -54,7 +54,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     });
 
     // Fire the event to trigger assignment and WhatsApp notification
-    eventBus.emit('TICKET_CREATED', {
+    await eventBus.emit('TICKET_CREATED', {
       ticketId: ticket.id,
       propertyId: ticket.propertyId,
       category: ticket.category,

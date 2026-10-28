@@ -18,6 +18,7 @@ const state = {
   routerResult: null as string | null,
   guestCalls: [] as { senderPhone: string; text: string; rawBody: string; signature: string | null }[],
   guestResult: null as string | null,
+  notified: [] as { type: string; title: string; groupKey?: string }[],
 };
 
 mock.module(mod("lib/prisma.ts"), {
@@ -49,7 +50,12 @@ mock.module(mod("lib/whatsapp/guest-messages-router.ts"), {
   },
 });
 
+mock.module(mod("lib/notifications/service.ts"), {
+  namedExports: { notifyAdmin: async (draft: { type: string; title: string; groupKey?: string }) => { state.notified.push(draft); } },
+});
+
 function reset() {
+  state.notified = [];
   state.staffReply = null;
   state.aiCalls = [];
   state.inbound = 0;
@@ -176,4 +182,31 @@ test("guest-messages router times out (empty TwiML): the lead bot and the OS AI 
   assert.equal(state.routerCalls.length, 0, "the website lead bot is not asked");
   assert.equal(state.aiCalls.length, 0, "the OS AI is not called");
   assert.equal(state.outbound, 0, "nothing logged as sent");
+});
+
+// ---------- Admin notifications (the bell) ----------
+
+test("guest message: the admin is notified once, with the sender's number", async () => {
+  reset();
+  const { POST } = await loadRoute();
+  await POST(twilioRequest());
+  assert.equal(state.notified.length, 1);
+  assert.equal(state.notified[0].type, "WHATSAPP_MESSAGE");
+  assert.match(state.notified[0].title, /\+919000000001/);
+  assert.equal(state.notified[0].groupKey, "wa:919000000001");
+});
+
+test("staff command: no admin notification (staff replies are not guest messages)", async () => {
+  reset();
+  state.staffReply = "✅ Ticket Acknowledged!";
+  const { POST } = await loadRoute();
+  await POST(twilioRequest("Body=ACCEPT&From=whatsapp%3A%2B919111111111"));
+  assert.equal(state.notified.length, 0);
+});
+
+test("invalid payload: no admin notification", async () => {
+  reset();
+  const { POST } = await loadRoute();
+  await POST(twilioRequest("From=whatsapp%3A%2B919000000001&NumMedia=1"));
+  assert.equal(state.notified.length, 0);
 });

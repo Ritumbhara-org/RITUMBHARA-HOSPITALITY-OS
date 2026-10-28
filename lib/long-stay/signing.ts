@@ -5,6 +5,8 @@ import { put } from "./blob"
 import { prisma } from "@/lib/prisma"
 import { normalizePhoneNumber } from "@/lib/utils/phone"
 import { resendConfigured, sendEmailReply } from "@/lib/inbox/email-send"
+import { notifyAdmin } from "@/lib/notifications/service"
+import { agreementSigned } from "@/lib/notifications/builders"
 import {
   isLinkUsable, OTP_MAX_ATTEMPTS, OTP_MAX_SENDS, OTP_RESEND_GAP_MS, OTP_TTL_MS, VERIFIED_WINDOW_MS, type AgreementSnapshot,
 } from "./agreement"
@@ -185,6 +187,8 @@ export async function signAgreement(token: string, input: SignInput, nowMs = Dat
     console.error("[Long Stay] signing failed", err)
     return { ok: false, status: 500, error: "Something went wrong while signing. Please try again." }
   }
+
+  await notifyAdmin(agreementSigned({ guestName: a.booking.guestName, bookingId: a.bookingId }))
 
   const pdfLink = `${input.pdfBaseUrl}/api/sign/${token}/pdf`
   const first = a.booking.guestName.split(" ")[0] || a.booking.guestName

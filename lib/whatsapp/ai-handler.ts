@@ -213,6 +213,16 @@ If intent is ESCALATE_ISSUE or REOPEN_ISSUE, replyText should assure the user th
          }
        });
        
+       // Tell the admin a new request came in (bell notification).
+       const { eventBus: bus } = await import("@/lib/events/bus");
+       await bus.emit('TICKET_CREATED', {
+         ticketId: ticket.id,
+         propertyId: ticket.propertyId,
+         category: ticket.category,
+         priority: ticket.priority,
+         description: ticket.description
+       });
+
        // Automatically assign it to a team member in round-robin
        await assignTicketRoundRobin(ticket.id);
     } else if (parsed.intent === "REOPEN_ISSUE" && parsed.ticketId) {

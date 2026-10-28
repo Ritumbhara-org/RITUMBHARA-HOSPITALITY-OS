@@ -432,6 +432,28 @@ model SyncLog {
   source          String      @default("INTELLISTAY")
 }
 
+// The admin's notification feed (the bell in the top bar): new guest messages, bookings, tickets and failures
+// that someone needs to look at. One shared feed, because the OS has a single admin sign-in.
+// Repeated events about the same thing (e.g. several WhatsApp messages from one guest) collapse into one
+// unread row via groupKey, with `count` showing how many.
+model AdminNotification {
+  id         String    @id @default(cuid())
+  type       String                       // e.g. WHATSAPP_MESSAGE, OTA_MESSAGE, BOOKING_CREATED, TICKET_CREATED, SLA_BREACHED
+  severity   String    @default("INFO")   // INFO | ACTION | CRITICAL
+  title      String
+  body       String?   @db.Text
+  href       String?                      // where "take action" leads, always a path inside the OS
+  groupKey   String?
+  count      Int       @default(1)
+  propertyId String?
+  readAt     DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([readAt, createdAt])
+  @@index([groupKey, readAt])
+}
+
 model LocationKnowledge {
   id          String   @id @default(cuid())
   propertyId  String   @unique
