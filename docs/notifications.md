@@ -42,6 +42,9 @@ npx prisma db push
 
 This only adds the `AdminNotification` table. Until it runs the bell shows a setup notice and nothing else changes.
 
+Without database access from your machine, run `prisma/sql/2026-10-28_admin_notifications.sql` in the Supabase SQL
+editor instead. It does the same and is safe to run twice.
+
 ## Not included
 
 The bell only shows while the OS is open in a browser. For an alert when it is closed, add push, email or a
