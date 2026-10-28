@@ -75,6 +75,13 @@ export function getMetaWebhookConfig(env: Env = process.env): MetaWebhookConfig 
   return { appSecret, verifyToken };
 }
 
+// Our own Meta phone number id (digits), or "" when not configured. Inbound messages are only accepted for this id,
+// independently of whether an access token is set.
+export function metaPhoneNumberId(env: Env = process.env): string {
+  const id = read(env, "META_WA_PHONE_NUMBER_ID");
+  return /^\d{5,25}$/.test(id) ? id : "";
+}
+
 export function metaDisplayNumber(env: Env = process.env): string {
   return read(env, "META_WA_DISPLAY_NUMBER") || "META";
 }

@@ -1,5 +1,5 @@
 import { NextResponse, after } from "next/server";
-import { getMetaSendConfig, getMetaWebhookConfig } from "@/lib/whatsapp/meta/config";
+import { getMetaWebhookConfig, metaPhoneNumberId } from "@/lib/whatsapp/meta/config";
 import { verifyMetaSignature } from "@/lib/whatsapp/meta/signature";
 import { parseMetaWebhook } from "@/lib/whatsapp/meta/parse";
 import { defaultPipelineDeps, processMetaInbound } from "@/lib/whatsapp/meta/pipeline";
@@ -15,7 +15,9 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60; // the website guest assistant can take up to ~25 s
 
 const MAX_BODY_BYTES = 256 * 1024;
-const seen = new Map<string, number>(); // wamid -> time; best-effort de-duplication per instance
+// wamid -> time: a fast first filter on this instance. The durable check (across instances and restarts) is in the
+// pipeline, which records each wamid with the inbound message and skips one it has already recorded.
+const seen = new Map<string, number>();
 const SEEN_TTL_MS = 60 * 60 * 1000;
 
 function firstSighting(id: string): boolean {
@@ -57,8 +59,14 @@ export async function POST(req: Request) {
     return new Response(null, { status: 400 });
   }
 
-  const send = getMetaSendConfig();
-  const messages = parseMetaWebhook(body, send.ok ? send.config.phoneNumberId : undefined).filter((m) => firstSighting(m.id));
+  // Only messages addressed to OUR phone number id are processed. Without a configured id nothing is processed
+  // (fail closed): a webhook shared with other numbers must never be answered from this app.
+  const ownId = metaPhoneNumberId();
+  if (!ownId) {
+    console.warn("[meta-webhook] phone_number_id_not_configured");
+    return new Response("OK", { status: 200, headers: { "Cache-Control": "no-store" } });
+  }
+  const messages = parseMetaWebhook(body, ownId).filter((m) => firstSighting(m.id));
 
   if (messages.length) {
     after(async () => {

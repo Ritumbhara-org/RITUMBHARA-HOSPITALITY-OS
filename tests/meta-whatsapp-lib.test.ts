@@ -15,7 +15,11 @@ const twilioCalls: Record<string, unknown>[] = [];
 mock.module(mod("lib/prisma.ts"), {
   namedExports: {
     prisma: {
-      whatsAppMessage: { create: async (args: { data: Record<string, unknown> }) => { logged.push(args.data); return {}; } },
+      whatsAppMessage: {
+        create: async (args: { data: Record<string, unknown> }) => { logged.push(args.data); return {}; },
+        findFirst: async (args: { where: Record<string, unknown> }) =>
+          logged.find((r) => Object.entries(args.where).every(([k, v]) => r[k] === v)) ? { id: "row" } : null,
+      },
       guest: { findMany: async () => [] },
       teamMember: { findMany: async () => [] },
     },
@@ -27,7 +31,7 @@ mock.module("twilio", {
   }),
 });
 
-let verifyMetaSignature: any, computeMetaSignature: any, parseMetaWebhook: any, metaTemplateFor: any, orderedParams: any, OS_TEMPLATE_DEFAULTS: any, sendMetaText: any, sendMetaTemplate: any, resolveWhatsAppProvider: any, runWithWhatsAppProvider: any, getMetaSendConfig: any, getMetaWebhookConfig: any, askGuestMessagesForMeta: any, forwardToWebsiteLeadBotForMeta: any, signLeadBotRequest: any, processMetaInbound: any, sendWhatsAppMessage: any, fetchMetaMedia: any;
+let verifyMetaSignature: any, computeMetaSignature: any, parseMetaWebhook: any, metaTemplateFor: any, orderedParams: any, OS_TEMPLATE_DEFAULTS: any, sendMetaText: any, sendMetaTemplate: any, resolveWhatsAppProvider: any, runWithWhatsAppProvider: any, getMetaSendConfig: any, getMetaWebhookConfig: any, askGuestMessagesForMeta: any, forwardToWebsiteLeadBotForMeta: any, signLeadBotRequest: any, processMetaInbound: any, sendWhatsAppMessage: any, fetchMetaMedia: any, defaultPipelineDeps: any;
 before(async () => {
   ({ verifyMetaSignature, computeMetaSignature } = await import(mod("lib/whatsapp/meta/signature.ts")));
   ({ parseMetaWebhook } = await import(mod("lib/whatsapp/meta/parse.ts")));
@@ -35,7 +39,7 @@ before(async () => {
   ({ sendMetaText, sendMetaTemplate } = await import(mod("lib/whatsapp/meta/send.ts")));
   ({ resolveWhatsAppProvider, runWithWhatsAppProvider, getMetaSendConfig, getMetaWebhookConfig } = await import(mod("lib/whatsapp/meta/config.ts")));
   ({ askGuestMessagesForMeta, forwardToWebsiteLeadBotForMeta, signLeadBotRequest } = await import(mod("lib/whatsapp/meta/routers.ts")));
-  ({ processMetaInbound } = await import(mod("lib/whatsapp/meta/pipeline.ts")));
+  ({ processMetaInbound, defaultPipelineDeps } = await import(mod("lib/whatsapp/meta/pipeline.ts")));
   ({ sendWhatsAppMessage } = await import(mod("lib/whatsapp/client.ts")));
   ({ fetchMetaMedia } = await import(mod("lib/whatsapp/meta/media.ts")));
 });
@@ -184,6 +188,25 @@ test("client.sendWhatsAppMessage: inside a Meta conversation it sends through Me
   assert.equal(logged[0].status, "DELIVERED");
 });
 
+test("Preview + WHATSAPP_PROVIDER=meta (no conversation context): sends via graph.facebook.com from the configured phone number id; Twilio never called", async () => {
+  twilioCalls.length = 0; logged.length = 0;
+  const calls: { url: string; init: RequestInit }[] = [];
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = fakeFetch([], calls);
+  try {
+    await withEnv({ VERCEL: "1", VERCEL_ENV: "preview", WHATSAPP_PROVIDER: "meta", TWILIO_ACCOUNT_SID: "AC_test", TWILIO_AUTH_TOKEN: "tok", TWILIO_WHATSAPP_NUMBER: "+918306312778", META_WA_ACCESS_TOKEN: "t", META_WA_PHONE_NUMBER_ID: "1329917073545911", META_WA_DISPLAY_NUMBER: "+15551422953", META_GRAPH_API_VERSION: undefined }, async () => {
+      const r = await sendWhatsAppMessage("+919000000001", "text", "Preview test");
+      assert.deepEqual(r, { success: true, status: "DELIVERED" });
+    });
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+  assert.equal(twilioCalls.length, 0);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].url, "https://graph.facebook.com/v23.0/1329917073545911/messages");
+  assert.equal(logged[0].from, "+15551422953");
+});
+
 test("client.sendWhatsAppMessage: Meta selected but not configured -> FAILED (no silent sandbox success)", async () => {
   twilioCalls.length = 0; logged.length = 0;
   await withEnv({ META_WA_ACCESS_TOKEN: undefined, META_WA_PHONE_NUMBER_ID: undefined }, async () => {
@@ -283,6 +306,25 @@ test("pipeline: guest messages -> lead bot -> guest AI, in that order", async ()
   p = pipelineDeps();
   assert.equal(await processMetaInbound(MSG, p.deps), "guest_ai");
   assert.deepEqual(p.trace, ["inbound", "staff", "guest", "lead", "ai"]);
+});
+
+test("pipeline: a message id already logged (duplicate delivery) is skipped: no handlers, no replies", async () => {
+  const p = pipelineDeps({ logInbound: async () => { p.trace.push("inbound"); return false; } });
+  assert.equal(await processMetaInbound(MSG, p.deps), "duplicate");
+  assert.deepEqual(p.trace, ["inbound"]);
+  assert.equal(p.sent.length, 0);
+});
+
+test("pipeline (default wiring): the inbound row records the Meta message id; the same id again is reported as a duplicate", async () => {
+  logged.length = 0;
+  const deps = defaultPipelineDeps();
+  assert.equal(await deps.logInbound({ ...MSG, id: "wamid.DUP" }), true);
+  assert.equal(await deps.logInbound({ ...MSG, id: "wamid.DUP" }), false);
+  assert.equal(await deps.logInbound({ ...MSG, id: "wamid.OTHER" }), true);
+  assert.equal(logged.length, 2);
+  assert.equal(logged[0].relatedEntityType, "META_INBOUND");
+  assert.equal(logged[0].relatedEntityId, "wamid.DUP");
+  assert.equal(logged[0].direction, "INBOUND");
 });
 
 test("pipeline: staff photo without caption reaches the staff handler with the stored media URL; otherwise ignored", async () => {

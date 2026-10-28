@@ -79,6 +79,27 @@ test("POST: a retried message id is processed once; other phone numbers and stat
   assert.deepEqual(processed.map((p) => p.id), ["wamid.3"]);
 });
 
+test("POST: without META_WA_PHONE_NUMBER_ID nothing is processed (even with no access token set)", async () => {
+  const savedId = process.env.META_WA_PHONE_NUMBER_ID, savedTok = process.env.META_WA_ACCESS_TOKEN;
+  delete process.env.META_WA_PHONE_NUMBER_ID;
+  delete process.env.META_WA_ACCESS_TOKEN;
+  processed.length = 0;
+  try {
+    assert.equal((await POST(signed(payload("wamid.7")))).status, 200);
+    await drain();
+    assert.equal(processed.length, 0);
+    // Phone id set, token missing: the filter still applies (only our number is processed).
+    process.env.META_WA_PHONE_NUMBER_ID = "1234567890";
+    await POST(signed(payload("wamid.8", "hi", "999999")));
+    await POST(signed(payload("wamid.9")));
+    await drain();
+    assert.deepEqual(processed.map((p) => p.id), ["wamid.9"]);
+  } finally {
+    process.env.META_WA_PHONE_NUMBER_ID = savedId;
+    process.env.META_WA_ACCESS_TOKEN = savedTok;
+  }
+});
+
 test("POST: fail closed when the Meta webhook secrets are not configured", async () => {
   const saved = process.env.META_APP_SECRET;
   delete process.env.META_APP_SECRET;

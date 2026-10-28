@@ -1,3 +1,4 @@
+import { prisma } from "@/lib/prisma";
 import { runWithWhatsAppProvider, getMetaSendConfig, metaDisplayNumber } from "./config";
 import type { MetaInboundMessage } from "./parse";
 
@@ -12,8 +13,13 @@ import type { MetaInboundMessage } from "./parse";
 export const GUEST_MESSAGES_ENTITY = "GUEST_MESSAGES";
 export const WEBSITE_LEAD_BOT_ENTITY = "WEBSITE_LEAD_BOT";
 
+// The inbound log row records Meta's message id here (existing columns, no schema change), so a message Meta
+// delivers again (retries can reach a different server instance) is recognised and not processed twice.
+export const META_INBOUND_ENTITY = "META_INBOUND";
+
 export interface PipelineDeps {
-  logInbound: (msg: MetaInboundMessage) => Promise<void>;
+  // Logs the inbound message. Returns false when this message id was already logged (a duplicate delivery).
+  logInbound: (msg: MetaInboundMessage) => Promise<boolean | void>;
   resolveMedia: (mediaId: string | null) => Promise<string | null>;
   staffAction: (senderPhone: string, commandText: string, mediaUrl: string | null) => Promise<string | null>;
   guestMessages: (msg: MetaInboundMessage) => Promise<string | null>;
@@ -23,14 +29,17 @@ export interface PipelineDeps {
   log?: (event: string, meta?: Record<string, string | number | boolean>) => void;
 }
 
-export type PipelineOutcome = "staff" | "media_ignored" | "guest_messages" | "lead_bot" | "guest_ai";
+export type PipelineOutcome = "duplicate" | "staff" | "media_ignored" | "guest_messages" | "lead_bot" | "guest_ai";
 
 export async function processMetaInbound(msg: MetaInboundMessage, deps: PipelineDeps): Promise<PipelineOutcome> {
   return runWithWhatsAppProvider("meta", async () => {
     const log = deps.log || ((e: string, m?: Record<string, string | number | boolean>) => console.warn("[meta-webhook] " + e + (m ? " " + JSON.stringify(m) : "")));
     const meta = { id: msg.id.slice(0, 12) + "…", type: msg.type };
 
-    await deps.logInbound(msg);
+    if ((await deps.logInbound(msg)) === false) {
+      log("duplicate_skipped", meta);
+      return "duplicate";
+    }
 
     const mediaUrl = await deps.resolveMedia(msg.mediaId);
     const staffReply = await deps.staffAction(msg.senderPhone, msg.text.toUpperCase(), mediaUrl);
@@ -62,11 +71,16 @@ export async function processMetaInbound(msg: MetaInboundMessage, deps: Pipeline
   });
 }
 
-// Production wiring: Prisma, the existing OS handlers, and the Meta senders (all imported lazily).
+// Default wiring: Prisma (the Preview-isolated client from lib/prisma), the existing OS handlers and the Meta senders
+// (handlers imported lazily).
 export function defaultPipelineDeps(): PipelineDeps {
   return {
     logInbound: async (msg) => {
-      const { prisma } = await import("@/lib/prisma");
+      const already = await prisma.whatsAppMessage.findFirst({
+        where: { direction: "INBOUND", relatedEntityType: META_INBOUND_ENTITY, relatedEntityId: msg.id },
+        select: { id: true },
+      });
+      if (already) return false;
       await prisma.whatsAppMessage.create({
         data: {
           direction: "INBOUND",
@@ -75,8 +89,11 @@ export function defaultPipelineDeps(): PipelineDeps {
           messageType: "text",
           content: msg.text || (msg.mediaId ? "[" + msg.type + "]" : ""),
           status: "RECEIVED",
+          relatedEntityType: META_INBOUND_ENTITY,
+          relatedEntityId: msg.id,
         },
       });
+      return true;
     },
     resolveMedia: async (mediaId) => {
       if (!mediaId) return null;
