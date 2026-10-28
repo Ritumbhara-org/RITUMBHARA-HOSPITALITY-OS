@@ -14,9 +14,6 @@ export default async function DashboardPage() {
   tomorrow.setDate(tomorrow.getDate() + 1)
 
   const [
-    totalUnits,
-    availableUnitsCount,
-    dirtyUnitsCount,
     activeGuestsCount,
     todayArrivals,
     pendingTickets,
@@ -25,9 +22,6 @@ export default async function DashboardPage() {
     unitStatusCounts,
     lowInventoryItems
   ] = await Promise.all([
-    prisma.unit.count(),
-    prisma.unit.count({ where: { status: 'AVAILABLE' } }),
-    prisma.unit.count({ where: { status: 'DIRTY' } }),
     prisma.reservation.count({ where: { status: 'CHECKED_IN' } }),
     prisma.reservation.findMany({
       where: {
@@ -92,6 +86,12 @@ export default async function DashboardPage() {
       take: 5
     })
   ])
+
+  // Unit totals come from the one status grouping above (3 fewer database round trips).
+  const countOf = (status: string) => unitStatusCounts.find((u) => u.status === status)?._count.id ?? 0
+  const totalUnits = unitStatusCounts.reduce((sum, u) => sum + u._count.id, 0)
+  const availableUnitsCount = countOf('AVAILABLE')
+  const dirtyUnitsCount = countOf('DIRTY')
 
   // Calculate stats
   const occupancyRate = totalUnits > 0 
