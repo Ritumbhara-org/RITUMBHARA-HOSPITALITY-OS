@@ -126,10 +126,10 @@ test("send: text and template payloads match the Graph API; token sent as Bearer
   assert.equal(JSON.parse(String(calls[2].init.body)).template.components[1].sub_type, "url");
 });
 
-test("send: Meta errors become short reasons (no message text); bad numbers are refused before any request", async () => {
+test("send: Meta errors keep code, subcode, type and a sanitized message (no token, numbers masked); bad numbers are refused before any request", async () => {
   const calls: { url: string; init: RequestInit }[] = [];
-  const r = await sendMetaText(CFG, "+919000000001", "x", { fetchImpl: fakeFetch([{ status: 400, body: { error: { code: 131047, message: "Re-engagement message +919000000001" } } }], calls) });
-  assert.deepEqual(r, { ok: false, reason: "http_400", status: 400, code: 131047 });
+  const r = await sendMetaText(CFG, "+919000000001", "x", { fetchImpl: fakeFetch([{ status: 400, body: { error: { code: 131047, error_subcode: 2494010, type: "OAuthException", message: "Re-engagement message +919000000001 token test-token Bearer EAAabcdefghijklmnop" } } }], calls) });
+  assert.deepEqual(r, { ok: false, reason: "http_400", status: 400, code: 131047, subcode: 2494010, type: "OAuthException", message: "Re-engagement message …0001 token [redacted] Bearer [redacted]" });
   assert.deepEqual(await sendMetaText(CFG, "abc", "x", { fetchImpl: fakeFetch([], calls) }), { ok: false, reason: "invalid_input" });
   assert.equal(calls.length, 1);
 });
@@ -205,6 +205,27 @@ test("Preview + WHATSAPP_PROVIDER=meta (no conversation context): sends via grap
   assert.equal(calls.length, 1);
   assert.equal(calls[0].url, "https://graph.facebook.com/v23.0/1329917073545911/messages");
   assert.equal(logged[0].from, "+15551422953");
+});
+
+test("send failure log: shows status, Meta code/subcode/type and sanitized message, never the token or the full number", async () => {
+  logged.length = 0;
+  const errors: string[] = [];
+  const realError = console.error;
+  const realFetch = globalThis.fetch;
+  console.error = (...a: unknown[]) => { errors.push(a.map(String).join(" ")); };
+  globalThis.fetch = fakeFetch([{ status: 400, body: { error: { code: 10, error_subcode: 2388001, type: "OAuthException", message: "(#10) Application does not have permission for this action. Recipient 918712308682. Token SECRET-TOKEN-VALUE-123" } } }], []);
+  try {
+    await withEnv({ META_WA_ACCESS_TOKEN: "SECRET-TOKEN-VALUE-123", META_WA_PHONE_NUMBER_ID: "1329917073545911", META_APP_SECRET: "app-secret-should-never-appear" }, async () => {
+      const r = await runWithWhatsAppProvider("meta", () => sendWhatsAppMessage("+918712308682", "text", "Hello"));
+      assert.deepEqual(r, { success: false, status: "FAILED" });
+    });
+  } finally {
+    console.error = realError;
+    globalThis.fetch = realFetch;
+  }
+  const line = errors.find((e) => e.startsWith("[Meta WhatsApp] send failed"));
+  assert.equal(line, "[Meta WhatsApp] send failed: http_400 (meta 10, subcode 2388001, OAuthException): (#10) Application does not have permission for this action. Recipient …8682. Token [redacted]");
+  for (const secret of ["SECRET-TOKEN-VALUE-123", "app-secret-should-never-appear", "918712308682", "Bearer"]) assert.ok(!errors.join("\n").includes(secret), secret);
 });
 
 test("client.sendWhatsAppMessage: Meta selected but not configured -> FAILED (no silent sandbox success)", async () => {
