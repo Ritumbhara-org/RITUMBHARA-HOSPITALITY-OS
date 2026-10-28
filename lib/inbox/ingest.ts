@@ -1,6 +1,8 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import type { ParsedInboundEmail } from "./email-parser";
+import { notifyAdmin } from "@/lib/notifications/service";
+import { otaMessage } from "@/lib/notifications/builders";
 
 /** Finds the booking an OTA message belongs to: by reservation code first, then by guest name. */
 export async function matchReservation(code: string | null, guestName: string | null) {
@@ -105,6 +107,16 @@ export async function ingestInboundEmail(parsed: ParsedInboundEmail, raw: unknow
         raw: raw == null ? undefined : (raw as Prisma.InputJsonValue),
       },
     });
+    // A message older than a day (a resync of old emails) is stored but not announced.
+    if (Date.now() - at.getTime() < 24 * 60 * 60 * 1000) {
+      await notifyAdmin(otaMessage({
+        channel: parsed.channel,
+        guestName: conversation.guestName ?? parsed.guestName,
+        body: parsed.body,
+        conversationId: conversation.id,
+        propertyId: conversation.propertyId,
+      }));
+    }
     return { conversationId: conversation.id, messageId: message.id, duplicate: false };
   } catch (err) {
     // Two deliveries of the same email at once (e.g. the 5-minute trigger and a manual run):

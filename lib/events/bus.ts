@@ -80,7 +80,8 @@ class EventBus {
     if (!this.initPromise) {
       this.initPromise = Promise.all([
         import('../whatsapp/listeners').then(m => m.initWhatsAppListeners()),
-        import('../housekeeping/listeners').then(m => m.initHousekeepingListeners())
+        import('../housekeeping/listeners').then(m => m.initHousekeepingListeners()),
+        import('../notifications/listeners').then(m => m.initNotificationListeners())
       ]).then(() => {
         this.isInitialized = true;
       }).catch(console.error);

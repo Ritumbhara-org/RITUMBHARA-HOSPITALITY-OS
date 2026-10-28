@@ -1,7 +1,7 @@
 "use client"
 
 import { usePathname } from "next/navigation"
-import { Bell, Search, Menu } from "lucide-react"
+import { Search, Menu } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
@@ -16,6 +16,8 @@ import {
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from "@/components/ui/sheet"
 import { Sidebar } from "./sidebar"
 import { LogoutMenuItem } from "./logout-menu-item"
+import { NotificationBell } from "./notification-bell"
+import { useNotifications } from "./use-notifications"
 import { currentNavItem } from "./nav-items"
 import { LanguageToggle } from "@/components/i18n/language-toggle"
 import { useTr } from "@/components/i18n/language-provider"
@@ -70,6 +72,8 @@ export function Topbar({ onOpenMenu }: { onOpenMenu?: () => void }) {
   const tr = useTr()
   const pathname = usePathname()
   const title = currentNavItem(pathname)?.name ?? tr("Ritumbhara OS")
+  // One poller for the bell; it is drawn in both the phone and the desktop layout below.
+  const notifications = useNotifications()
 
   return (
     <header className="sticky top-0 z-30 shrink-0 border-b border-border/50 bg-background/90 backdrop-blur-xl pt-[env(safe-area-inset-top)] sm:static sm:border-0 sm:bg-transparent sm:backdrop-blur-none sm:pt-0">
@@ -84,6 +88,7 @@ export function Topbar({ onOpenMenu }: { onOpenMenu?: () => void }) {
           <span className="truncate text-base font-semibold tracking-tight">{tr(title)}</span>
         </div>
         <LanguageToggle />
+        <NotificationBell state={notifications} className="h-10 w-10" />
         <AccountMenu />
       </div>
 
@@ -101,11 +106,7 @@ export function Topbar({ onOpenMenu }: { onOpenMenu?: () => void }) {
             <Search className="h-4 w-4 text-muted-foreground" />
             <span className="sr-only">{tr("Search")}</span>
           </Button>
-          <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-xl hover:bg-accent">
-            <Bell className="h-4 w-4 text-muted-foreground" />
-            <span className="sr-only">{tr("Notifications")}</span>
-            <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-primary ring-2 ring-background" />
-          </Button>
+          <NotificationBell state={notifications} />
           <AccountMenu />
         </div>
       </div>

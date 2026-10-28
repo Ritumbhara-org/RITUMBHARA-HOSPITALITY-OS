@@ -2,6 +2,8 @@ import { NextResponse, after } from "next/server";
 import { syncBookings } from "@/lib/intellistay/sync";
 import { processAutoCheckinCheckout } from "@/lib/reservations/auto-status";
 import { cronGuard } from "@/lib/auth/cron";
+import { notifyAdmin } from "@/lib/notifications/service";
+import { syncFailed } from "@/lib/notifications/builders";
 
 export const dynamic = 'force-dynamic';
 // For Vercel Cron Jobs, you typically specify maxDuration
@@ -21,6 +23,7 @@ export async function GET(request: Request) {
         const result = await syncBookings();
         if (!result.success) {
           console.warn("Intellistay sync failed:", result.error);
+          await notifyAdmin(syncFailed(result.error));
         }
         
         console.log("Triggering auto check-in/out logic...");
