@@ -185,8 +185,6 @@ const INTENTIONALLY_PUBLIC: Record<string, string> = {
   "app/api/stay/[id]/membership/join/route.ts": "guest portal",
   "app/api/stay/[id]/tickets/route.ts": "guest portal",
   "app/api/whatsapp/webhook/route.ts": "Twilio inbound webhook (out of scope of this change)",
-  "app/api/whatsapp/meta-audit/route.ts": "Read-only Meta audit: 404 unless VERCEL_ENV=preview and ?key matches META_AUDIT_KEY (tests/meta-audit.test.ts)",
-  "app/api/whatsapp/meta-webhook/route.ts": "Meta inbound webhook: verifies X-Hub-Signature-256 itself and fails closed without META_APP_SECRET (tests/meta-whatsapp-route.test.ts)",
   "app/api/sign/[token]/otp/route.ts": "Long Stay e-sign: guest's WhatsApp OTP for the one agreement behind the token",
   "app/api/sign/[token]/verify/route.ts": "Long Stay e-sign: checks that OTP (5 wrong codes lock the link)",
   "app/api/sign/[token]/sign/route.ts": "Long Stay e-sign: records the guest's signature",
