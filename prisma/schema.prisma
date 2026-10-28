@@ -454,6 +454,18 @@ model AdminNotification {
   @@index([groupKey, readAt])
 }
 
+// One row per phone or browser the admin turned phone alerts on for (web push). The OS has a single admin
+// sign-in, so every subscription belongs to that admin. A row is removed when the push service says it is gone.
+model PushSubscription {
+  id         String   @id @default(cuid())
+  endpoint   String   @unique @db.Text
+  p256dh     String
+  auth       String
+  userAgent  String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
 model LocationKnowledge {
   id          String   @id @default(cuid())
   propertyId  String   @unique

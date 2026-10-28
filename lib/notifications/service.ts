@@ -6,6 +6,7 @@
 
 import { prisma } from "@/lib/prisma"
 import { clip, higherSeverity, safeHref, type NotificationDraft } from "./builders"
+import { sendPushToAdmin } from "./push"
 
 if (typeof window !== "undefined") {
   throw new Error("lib/notifications/service is server-only and must not be imported in browser code.")
@@ -31,6 +32,9 @@ export async function notifyAdmin(draft: NotificationDraft): Promise<void> {
     const body = draft.body ? clip(draft.body, 300) : null
     const href = safeHref(draft.href)
     const severity = draft.severity
+    // Also goes to phones that turned alerts on. A repeat about the same thing reuses the tag, so the phone
+    // replaces the earlier alert (and buzzes again) instead of stacking them.
+    const alertPhones = () => sendPushToAdmin({ title, body, href, severity, groupKey: draft.groupKey })
 
     if (draft.groupKey) {
       const existing = await prisma.adminNotification.findFirst({
@@ -49,6 +53,7 @@ export async function notifyAdmin(draft: NotificationDraft): Promise<void> {
             createdAt: new Date(),
           },
         })
+        await alertPhones()
         return
       }
     }
@@ -64,6 +69,7 @@ export async function notifyAdmin(draft: NotificationDraft): Promise<void> {
         propertyId: draft.propertyId ?? null,
       },
     })
+    await alertPhones()
   } catch (err) {
     console.error("[Notifications] could not record", draft.type, err)
   }

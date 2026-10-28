@@ -18,6 +18,7 @@ import { Sidebar } from "./sidebar"
 import { LogoutMenuItem } from "./logout-menu-item"
 import { NotificationBell } from "./notification-bell"
 import { useNotifications } from "./use-notifications"
+import { usePhoneAlerts } from "./use-phone-alerts"
 import { currentNavItem } from "./nav-items"
 import { LanguageToggle } from "@/components/i18n/language-toggle"
 import { useTr } from "@/components/i18n/language-provider"
@@ -74,6 +75,7 @@ export function Topbar({ onOpenMenu }: { onOpenMenu?: () => void }) {
   const title = currentNavItem(pathname)?.name ?? tr("Ritumbhara OS")
   // One poller for the bell; it is drawn in both the phone and the desktop layout below.
   const notifications = useNotifications()
+  const phoneAlerts = usePhoneAlerts()
 
   return (
     <header className="sticky top-0 z-30 shrink-0 border-b border-border/50 bg-background/90 backdrop-blur-xl pt-[env(safe-area-inset-top)] sm:static sm:border-0 sm:bg-transparent sm:backdrop-blur-none sm:pt-0">
@@ -88,7 +90,7 @@ export function Topbar({ onOpenMenu }: { onOpenMenu?: () => void }) {
           <span className="truncate text-base font-semibold tracking-tight">{tr(title)}</span>
         </div>
         <LanguageToggle />
-        <NotificationBell state={notifications} className="h-10 w-10" />
+        <NotificationBell state={notifications} phone={phoneAlerts} className="h-10 w-10" />
         <AccountMenu />
       </div>
 
@@ -106,7 +108,7 @@ export function Topbar({ onOpenMenu }: { onOpenMenu?: () => void }) {
             <Search className="h-4 w-4 text-muted-foreground" />
             <span className="sr-only">{tr("Search")}</span>
           </Button>
-          <NotificationBell state={notifications} />
+          <NotificationBell state={notifications} phone={phoneAlerts} />
           <AccountMenu />
         </div>
       </div>

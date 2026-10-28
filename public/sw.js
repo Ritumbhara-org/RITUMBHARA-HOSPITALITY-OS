@@ -45,3 +45,53 @@ self.addEventListener("fetch", (event) => {
   }
   // Everything else (API, uploads, media, RSC data): straight to the network, never cached.
 })
+
+// Phone alerts (web push). The server sends { title, body, href, severity, tag }; nothing is cached here.
+self.addEventListener("push", (event) => {
+  let data = {}
+  try {
+    data = event.data ? event.data.json() : {}
+  } catch {
+    data = { title: "Ritumbhara OS", body: event.data ? event.data.text() : "" }
+  }
+  const options = {
+    body: data.body || "",
+    icon: "/icons/icon-192.png",
+    badge: "/icons/icon-192.png",
+    data: { href: typeof data.href === "string" ? data.href : "/dashboard" },
+    // Critical alerts stay on screen until tapped. A repeat with the same tag replaces the earlier one and buzzes again.
+    requireInteraction: data.severity === "CRITICAL",
+  }
+  if (data.tag) {
+    options.tag = String(data.tag)
+    options.renotify = true
+  }
+  event.waitUntil(self.registration.showNotification(data.title || "Ritumbhara OS", options))
+})
+
+// Tapping an alert opens the page where the admin can act, reusing the app window if it is already open.
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close()
+  let target = new URL("/dashboard", self.location.origin)
+  try {
+    const wanted = new URL((event.notification.data && event.notification.data.href) || "/dashboard", self.location.origin)
+    if (wanted.origin === self.location.origin) target = wanted
+  } catch {
+    // keep the dashboard
+  }
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(async (windows) => {
+      for (const client of windows) {
+        if (new URL(client.url).origin !== self.location.origin) continue
+        try {
+          await client.focus()
+          if ("navigate" in client) await client.navigate(target.href)
+          return
+        } catch {
+          // fall through to opening a new window
+        }
+      }
+      await self.clients.openWindow(target.href)
+    }),
+  )
+})
