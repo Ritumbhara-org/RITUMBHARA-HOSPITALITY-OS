@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { normalizePhoneNumber } from "@/lib/utils/phone";
 import { CHANNELS, type InboxChannelId } from "./channels";
+import { EARLY_CHECKIN_POLICY } from "./policies";
 import { sendEmailReply, gmailBridgeConfigured, resendConfigured, sendViaGmailBridge } from "./email-send";
 import type {
   ActionResult,
@@ -439,7 +440,8 @@ export async function draftReply(key: string): Promise<ActionResult<{ draft: str
           content:
             `You reply to guests for Ritumbhara Hospitality on ${CHANNELS[thread.conversation.channel].label}. ` +
             "Write a short, warm, professional reply (max 3 sentences). Use only facts from the booking details and conversation. " +
-            "Never invent prices, codes or policies. No placeholders like [Name]. No quotes around the reply." +
+            "Never invent prices, codes or policies. No placeholders like [Name]. No quotes around the reply. " +
+            EARLY_CHECKIN_POLICY +
             (thread.conversation.channel !== "WHATSAPP" ? " Do not share phone numbers, emails or links: OTA rules forbid it before check-in." : ""),
         },
         { role: "user", content: `${booking}\n\nConversation:\n${history}\n\nWrite the next Host reply:` },
