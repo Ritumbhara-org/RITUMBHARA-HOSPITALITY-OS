@@ -1,4 +1,6 @@
 import { prisma } from "@/lib/prisma";
+import { notifyAdmin } from "@/lib/notifications/service";
+import { whatsappMessage } from "@/lib/notifications/builders";
 import { runWithWhatsAppProvider, getMetaSendConfig, metaDisplayNumber } from "./config";
 import type { MetaInboundMessage } from "./parse";
 
@@ -26,6 +28,9 @@ export interface PipelineDeps {
   leadBot: (msg: MetaInboundMessage) => Promise<string[] | null>;
   guestAI: (senderPhone: string, text: string) => Promise<void>;
   send: (toPhone: string, text: string, relatedEntityType?: string) => Promise<boolean>;
+  // Admin bell / phone alert for a guest, lead or unknown number (never for staff commands), same as the Twilio
+  // webhook. Must never throw; optional so a failure or absence never blocks the reply.
+  notify?: (senderPhone: string, text: string) => Promise<void>;
   log?: (event: string, meta?: Record<string, string | number | boolean>) => void;
 }
 
@@ -47,6 +52,16 @@ export async function processMetaInbound(msg: MetaInboundMessage, deps: Pipeline
       await deps.send(msg.senderPhone, staffReply);
       log("staff_replied", meta);
       return "staff";
+    }
+
+    // Not a staff command: a guest or lead wrote in. Show it in the admin's bell, exactly where the Twilio webhook does
+    // (after the staff check, before Guest Messages / lead bot / AI). A notification failure never blocks the reply.
+    if (deps.notify) {
+      try {
+        await deps.notify(msg.senderPhone, msg.text);
+      } catch {
+        log("notify_failed", meta);
+      }
     }
 
     if (!msg.text) {
@@ -131,5 +146,7 @@ export function defaultPipelineDeps(): PipelineDeps {
       const r = await sendWhatsAppMessage(to, "text", text, undefined, relatedEntityType);
       return r.success;
     },
+    // The same admin notification the Twilio webhook sends (notifyAdmin never throws).
+    notify: (phone, text) => notifyAdmin(whatsappMessage({ from: phone, text })),
   };
 }

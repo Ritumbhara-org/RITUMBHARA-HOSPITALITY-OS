@@ -25,6 +25,10 @@ mock.module(mod("lib/prisma.ts"), {
     },
   },
 });
+const adminNotifications: Record<string, unknown>[] = [];
+mock.module(mod("lib/notifications/service.ts"), {
+  namedExports: { notifyAdmin: async (draft: Record<string, unknown>) => { adminNotifications.push(draft); } },
+});
 mock.module("twilio", {
   defaultExport: Object.assign(() => ({ messages: { create: async (p: Record<string, unknown>) => { twilioCalls.push(p); return { sid: "SM1" }; } } }), {
     validateRequest: () => true,
@@ -346,6 +350,51 @@ test("pipeline (default wiring): the inbound row records the Meta message id; th
   assert.equal(logged[0].relatedEntityType, "META_INBOUND");
   assert.equal(logged[0].relatedEntityId, "wamid.DUP");
   assert.equal(logged[0].direction, "INBOUND");
+});
+
+test("pipeline notification: guest/lead messages notify the admin (after the staff check, before routing); staff commands and duplicates do not", async () => {
+  const notified: { phone: string; text: string }[] = [];
+  const notify = async (phone: string, text: string) => { notified.push({ phone, text }); };
+
+  // Guest / lead message: one notification, before Guest Messages / lead bot / AI (same position as Twilio).
+  let p = pipelineDeps({ notify: async (phone: string, text: string) => { p.trace.push("notify"); await notify(phone, text); } });
+  assert.equal(await processMetaInbound(MSG, p.deps), "guest_ai");
+  assert.deepEqual(p.trace, ["inbound", "staff", "notify", "guest", "lead", "ai"]);
+  assert.deepEqual(notified, [{ phone: "+919000000001", text: "Hello" }]);
+
+  // Lead-bot and Guest Messages replies are guest messages too: still notified.
+  notified.length = 0;
+  assert.equal(await processMetaInbound(MSG, pipelineDeps({ notify, leadBot: async () => ["Q1"] }).deps), "lead_bot");
+  assert.equal(await processMetaInbound(MSG, pipelineDeps({ notify, guestMessages: async () => "Passed on." }).deps), "guest_messages");
+  assert.equal(notified.length, 2);
+
+  // Staff command (ACCEPT etc.): no notification, exactly like the Twilio webhook.
+  notified.length = 0;
+  assert.equal(await processMetaInbound({ ...MSG, text: "accept" }, pipelineDeps({ notify, staffAction: async () => "✅ Ticket Acknowledged!" }).deps), "staff");
+  assert.equal(notified.length, 0);
+
+  // Duplicate delivery: no second notification.
+  assert.equal(await processMetaInbound(MSG, pipelineDeps({ notify, logInbound: async () => false }).deps), "duplicate");
+  assert.equal(notified.length, 0);
+});
+
+test("pipeline notification: a failing notifier never blocks the reply flow", async () => {
+  const p = pipelineDeps({ notify: async () => { throw new Error("db down"); } });
+  assert.equal(await processMetaInbound(MSG, p.deps), "guest_ai");
+  assert.deepEqual(p.trace, ["inbound", "staff", "guest", "lead", "ai"]);
+});
+
+test("pipeline notification (default wiring): uses the existing notifyAdmin(whatsappMessage(...)) like the Twilio webhook", async () => {
+  adminNotifications.length = 0;
+  await defaultPipelineDeps().notify("+919000000001", "Hi, is the room free on Friday?");
+  assert.equal(adminNotifications.length, 1);
+  const n = adminNotifications[0];
+  assert.equal(n.type, "WHATSAPP_MESSAGE");
+  assert.equal(n.severity, "ACTION");
+  assert.equal(n.href, "/inbox");
+  assert.equal(n.body, "Hi, is the room free on Friday?");
+  assert.match(String(n.title), /^New WhatsApp message · /);
+  assert.match(String(n.groupKey), /^wa:\d+$/);
 });
 
 test("pipeline: staff photo without caption reaches the staff handler with the stored media URL; otherwise ignored", async () => {
