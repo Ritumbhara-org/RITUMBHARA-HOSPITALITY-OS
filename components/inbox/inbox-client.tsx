@@ -299,7 +299,7 @@ export function InboxClient({
       <div className={`${selected ? "hidden md:flex" : "flex"} mb-3 sm:mb-4 flex-wrap items-center justify-between gap-3`}>
         <div className="min-w-0">
           <h1 className="text-xl font-bold tracking-tight sm:text-3xl">{tr("Inbox")}</h1>
-          <p className="mt-1 hidden text-sm text-muted-foreground sm:block">{tr("Every guest message from WhatsApp, Airbnb, Booking.com, Agoda and email, in one place.")}</p>
+          <p className="mt-1 hidden text-sm text-muted-foreground sm:block">{tr("Every guest message from WhatsApp, Instagram, Airbnb, Booking.com, Agoda and email, in one place.")}</p>
         </div>
         <div className="flex w-full items-center gap-2 sm:w-auto">
           {isRefreshing && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" aria-label={tr("Refreshing")} />}
