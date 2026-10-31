@@ -1,7 +1,7 @@
 # Unified Inbox
 
 One page (`/inbox`) where the team reads and replies to guest messages from every channel:
-WhatsApp, Airbnb, Booking.com, Agoda, Expedia, MakeMyTrip / Goibibo and plain email.
+WhatsApp, Instagram DMs, Airbnb, Booking.com, Agoda, Expedia, MakeMyTrip / Goibibo and plain email.
 
 ## What the team can do
 
@@ -18,6 +18,7 @@ WhatsApp, Airbnb, Booking.com, Agoda, Expedia, MakeMyTrip / Goibibo and plain em
 | Channel | Source | Reply from the OS |
 |---|---|---|
 | WhatsApp | Existing Twilio webhook (`/api/whatsapp/webhook`) | Yes, inside the 24-hour window. Templates stay on the WhatsApp page. |
+| Instagram | Meta's Instagram webhook (`/api/instagram/webhook`) | Yes, within 24 hours of the guest's last message (7 days with the Human Agent permission). Replies sent from the Instagram app also show up in the thread. |
 | Booking.com, Agoda, Expedia | OTA notification emails, sent in by the Gmail bridge (`scripts/gmail-to-inbox.gs`) | Yes, once sending is on (step 3): the reply leaves from the same Gmail account, in the same email thread. |
 | Airbnb | Same | No. Airbnb stopped accepting email replies in October 2023. Draft in the OS, copy, reply in Airbnb. Sending from the OS needs a channel manager with Airbnb's messaging API. |
 | MakeMyTrip / Goibibo | Same, for messages MMT sends by email | Only if the email has a reply address. Guest chat on MMT lives in the Connect app, which has no email or API route. |
@@ -97,3 +98,41 @@ Test one reply per OTA after setup. Each OTA decides whether it accepts replies 
 - `lib/inbox/quick-replies.ts`: saved replies
 - `app/api/inbox/inbound-email/route.ts`: inbound email webhook
 - `app/actions/inbox.ts`, `app/(dashboard)/inbox/page.tsx`, `components/inbox/inbox-client.tsx`: the page
+
+
+## Instagram DMs
+
+Guest DMs to the business Instagram account land in the inbox as their own channel (pink **Instagram** badge),
+and the team replies from the OS. Story replies, story mentions, photos and shared posts show as short labels
+(`[Photo]`, `[Replied to your story] ...`); open Instagram to see the media.
+
+### Setup (once)
+
+1. The Instagram account must be a **Professional** (Business or Creator) account. In the Instagram app:
+   Settings → Messages and story replies → Message controls → Connected tools → turn on **Allow access to messages**.
+2. In [developers.facebook.com](https://developers.facebook.com), use the existing Meta app (or create a Business app) and add
+   the **Instagram** product → **API setup with Instagram login**.
+   - Add the Instagram account and **Generate token**. Copy it as `INSTAGRAM_ACCESS_TOKEN`.
+   - Copy the **Instagram app secret** as `INSTAGRAM_APP_SECRET`.
+   - Pick a long random string as `INSTAGRAM_WEBHOOK_VERIFY_TOKEN`.
+3. Configure webhooks in the same screen:
+   - Callback URL: `https://<os-domain>/api/instagram/webhook`
+   - Verify token: the `INSTAGRAM_WEBHOOK_VERIFY_TOKEN` value
+   - Subscribe to the **messages** field (and **message_echoes** if listed, so replies sent from the Instagram app appear too).
+4. `INSTAGRAM_ACCOUNT_ID`: the account's id as webhooks report it. Easiest way: send the account a test DM after deploying;
+   if the id is wrong or missing, the Vercel log shows `[instagram-webhook] delivery for other account id(s): <id>`. Use that id.
+   (It is also the `user_id` from `GET https://graph.instagram.com/me?fields=user_id,username`.)
+5. Add the four variables in Vercel (Production), run `prisma/sql/2026-10-31_inbox_instagram.sql` once (or `npx prisma db push`), and redeploy.
+6. While the Meta app is in **Development** mode only accounts with a role on the app can DM it. To receive DMs from the public,
+   submit the app for **App Review** with `instagram_business_basic` and `instagram_business_manage_messages`, then switch it to Live.
+
+| Variable | Required | What it is |
+|---|---|---|
+| `INSTAGRAM_ACCESS_TOKEN` | yes | Instagram user token (Instagram Login) or Page token (Facebook Login). Long-lived tokens last 60 days; refresh before expiry. |
+| `INSTAGRAM_ACCOUNT_ID` | yes | Our Instagram account id from webhooks (`entry.id`). |
+| `INSTAGRAM_APP_SECRET` | yes* | Signs the webhook. *Falls back to `META_APP_SECRET`. |
+| `INSTAGRAM_WEBHOOK_VERIFY_TOKEN` | yes* | Webhook handshake. *Falls back to `META_WEBHOOK_VERIFY_TOKEN`. |
+| `INSTAGRAM_API_HOST` | no | `graph.instagram.com` (default) or `graph.facebook.com` for a Facebook-Page-linked setup. |
+| `INSTAGRAM_HUMAN_AGENT` | no | `true` once Meta approves the Human Agent permission: allows replies up to 7 days after the guest's last message. |
+
+Without these settings the webhook refuses everything and Instagram threads say "Reply in the Instagram app".
