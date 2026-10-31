@@ -3,6 +3,8 @@ import { normalizePhoneNumber } from "@/lib/utils/phone";
 import { CHANNELS, type InboxChannelId } from "./channels";
 import { EARLY_CHECKIN_POLICY } from "./policies";
 import { sendEmailReply, gmailBridgeConfigured, resendConfigured, sendViaGmailBridge } from "./email-send";
+import { getInstagramSendConfig } from "@/lib/instagram/config";
+import { describeInstagramError, sendInstagramText } from "@/lib/instagram/send";
 import type {
   ActionResult,
   InboxConversationSummary,
@@ -13,6 +15,25 @@ import type {
 
 const WA_PREFIX = "wa:";
 const WHATSAPP_WINDOW_HOURS = 24;
+// Instagram: free replies within 24 h of the guest's last message; up to 7 days with the HUMAN_AGENT tag.
+const INSTAGRAM_WINDOW_HOURS = 24;
+const INSTAGRAM_HUMAN_AGENT_HOURS = 7 * 24;
+
+/** Whether an Instagram reply can be sent now, and whether it needs the HUMAN_AGENT tag. */
+function instagramReplyState(lastInboundAt: Date | null): { canReply: boolean; useTag: boolean; note: string | null } {
+  const cfg = getInstagramSendConfig();
+  if (!cfg.ok) return { canReply: false, useTag: false, note: "Sending Instagram replies from the OS isn't set up yet. Reply in the Instagram app for now." };
+  const hours = lastInboundAt ? (Date.now() - lastInboundAt.getTime()) / 36e5 : Infinity;
+  if (hours <= INSTAGRAM_WINDOW_HOURS) return { canReply: true, useTag: false, note: null };
+  if (cfg.config.humanAgent && hours <= INSTAGRAM_HUMAN_AGENT_HOURS) return { canReply: true, useTag: true, note: null };
+  return {
+    canReply: false,
+    useTag: false,
+    note: cfg.config.humanAgent
+      ? "Instagram only allows replies within 7 days of the guest's last message. Reply in the Instagram app."
+      : "Instagram only allows replies within 24 hours of the guest's last message. Reply in the Instagram app.",
+  };
+}
 
 const reservationInclude = { unit: true, property: true } as const;
 
@@ -266,6 +287,17 @@ export async function getThread(key: string): Promise<InboxThread | null> {
     ? `https://www.airbnb.com/hosting/thread/${airbnbThread}`
     : CHANNELS[channel].extranetUrl ?? null;
 
+  if (channel === "INSTAGRAM") {
+    const ig = instagramReplyState(c.lastInboundAt);
+    return {
+      conversation,
+      messages,
+      canReply: Boolean(c.replyTo) && ig.canReply,
+      replyNote: c.replyTo ? ig.note : "This Instagram conversation has no guest id to reply to. Reply in the Instagram app.",
+      extranetUrl,
+    };
+  }
+
   let replyNote: string | null = null;
   if (!c.replyTo)
     replyNote =
@@ -311,6 +343,30 @@ export async function sendReply(key: string, body: string, senderId: string | nu
     include: { messages: { where: { direction: "INBOUND" }, orderBy: { createdAt: "desc" }, take: 1 } },
   });
   if (!c) return { success: false, error: "Conversation not found." };
+
+  if (c.channel === "INSTAGRAM") {
+    if (!c.replyTo) return { success: false, error: "No Instagram guest id for this conversation. Reply in the Instagram app." };
+    const ig = instagramReplyState(c.lastInboundAt);
+    const cfg = getInstagramSendConfig();
+    if (!ig.canReply || !cfg.ok) return { success: false, error: ig.note || "Can't reply on Instagram right now." };
+    const result = await sendInstagramText(cfg.config, c.replyTo, text, ig.useTag);
+    if (!result.ok) return { success: false, error: describeInstagramError(result) };
+    const now = new Date();
+    await prisma.$transaction([
+      // Instagram's echo of this message can arrive first; then it is claimed for the team member who sent it.
+      prisma.inboxMessage.upsert({
+        where: { externalMessageId: result.id },
+        create: { conversationId: c.id, direction: "OUTBOUND", body: text, sentById: senderId, status: "SENT", externalMessageId: result.id },
+        update: { sentById: senderId, senderName: null },
+      }),
+      prisma.inboxConversation.update({
+        where: { id: c.id },
+        data: { lastMessageAt: now, lastMessagePreview: text.slice(0, 160), lastReadAt: now },
+      }),
+    ]);
+    return { success: true };
+  }
+
   if (!c.replyTo) return { success: false, error: "No reply address for this conversation. Reply from the extranet." };
 
   // Prefer the Gmail bridge: it replies from the mailbox the OTA knows, in the same thread.
@@ -442,7 +498,8 @@ export async function draftReply(key: string): Promise<ActionResult<{ draft: str
             "Write a short, warm, professional reply (max 3 sentences). Use only facts from the booking details and conversation. " +
             "Never invent prices, codes or policies. No placeholders like [Name]. No quotes around the reply. " +
             EARLY_CHECKIN_POLICY +
-            (thread.conversation.channel !== "WHATSAPP" ? " Do not share phone numbers, emails or links: OTA rules forbid it before check-in." : ""),
+            (thread.conversation.channel === "INSTAGRAM" ? " Keep it under 900 characters." : "") +
+            (thread.conversation.channel !== "WHATSAPP" && thread.conversation.channel !== "INSTAGRAM" ? " Do not share phone numbers, emails or links: OTA rules forbid it before check-in." : ""),
         },
         { role: "user", content: `${booking}\n\nConversation:\n${history}\n\nWrite the next Host reply:` },
       ],
