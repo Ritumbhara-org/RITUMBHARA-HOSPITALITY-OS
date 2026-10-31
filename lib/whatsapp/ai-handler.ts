@@ -3,6 +3,7 @@ import { ai } from "@/lib/ai/groq";
 import { normalizePhoneNumber } from "@/lib/utils/phone";
 import { sendWhatsAppMessage } from "./client";
 import { assignTicketRoundRobin } from "@/lib/operations/round-robin";
+import { EARLY_CHECKIN_LATEST } from "@/lib/inbox/policies";
 
 export async function handleGuestAIChat(senderPhone: string, messageText: string): Promise<void> {
   // 1. Identify if it's a Guest or Team Member
@@ -130,7 +131,7 @@ CRITICAL ACCESS & ACCURACY RULES:
 1. You MUST answer the guest's questions using ONLY the specific room details provided in the context above.
 2. Only provide gate codes or door codes if they are explicitly present in the context. If a room has NO smart lock PIN (e.g. keys are given in-person by guard or caretaker), you MUST NEVER invent, guess, or assume any numerical PIN. Inform the guest to follow the exact handover instructions provided.
 3. If the guest asks for EARLY CHECK-IN, LATE CHECK-OUT, ROOM UPGRADE, or CANCELLATION:
-   You are NOT authorized to approve or decline time changes. You MUST respond with intent "ESCALATE_ISSUE" and escalationCategory "GUEST_REQUEST". Assure the guest that our team has been notified and will verify the schedule.
+   You are NOT authorized to approve or decline time changes. You MUST respond with intent "ESCALATE_ISSUE" and escalationCategory "GUEST_REQUEST". Assure the guest that our team has been notified and will verify the schedule. For early check-in, tell the guest it is possible up to ${EARLY_CHECKIN_LATEST} at the latest, subject to availability, and never promise an earlier time.
 
 OTHER OPERATIONAL RULES:
 - If the user is reporting a CLEAR and ACTIONABLE new maintenance issue, a complaint, requesting an item, or making a request that requires human approval, you MUST respond with intent "ESCALATE_ISSUE".

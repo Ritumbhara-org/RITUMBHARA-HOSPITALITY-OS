@@ -22,7 +22,7 @@ export const QUICK_REPLIES: QuickReply[] = [
   {
     id: "early-checkin",
     label: "Early check-in request",
-    text: "Hi {guest}, we'll do our best to have the room ready early. We'll confirm on the morning of {checkIn} based on availability.",
+    text: "Hi {guest}, early check-in is possible up to 11:30 AM at the latest, subject to availability. We'll confirm on the morning of {checkIn}.",
   },
   {
     id: "late-checkout",
