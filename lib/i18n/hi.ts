@@ -537,7 +537,7 @@ export const hi: Record<string, string> = {
   "e.g. Ritumbhara Jaipur": "जैसे: ऋतुम्भरा जयपुर",
 
   // ---- Inbox
-  "Every guest message from WhatsApp, Airbnb, Booking.com, Agoda and email, in one place.": "व्हाट्सऐप, Airbnb, Booking.com, Agoda और ईमेल के सारे मैसेज एक जगह।",
+  "Every guest message from WhatsApp, Instagram, Airbnb, Booking.com, Agoda and email, in one place.": "व्हाट्सऐप, Instagram, Airbnb, Booking.com, Agoda और ईमेल के सारे मैसेज एक जगह।",
   "Search guest, unit or message": "मेहमान, यूनिट या मैसेज खोजें",
   "Mine": "मेरे",
   "Pick a conversation to read and reply.": "पढ़ने और जवाब देने के लिए बातचीत चुनें।",
