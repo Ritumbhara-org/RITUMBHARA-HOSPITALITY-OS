@@ -2,13 +2,24 @@ import type { MetaSendConfig } from "./config";
 import type { MetaTemplateRef } from "./templates";
 
 // Outbound messages through the Meta WhatsApp Cloud API (Graph API /<phone-number-id>/messages). SERVER-ONLY.
-// Never throws, never logs the token, the recipient number or Meta's error text (which can contain the number).
+// Never throws and never logs the token. On failure Meta's error (code, subcode, type and message) is returned with
+// the message sanitized: no token, and long digit runs such as phone numbers masked to their last 4 digits.
 
 export const META_SEND_TIMEOUT_MS = 10000;
 
 export type MetaSendResult =
   | { ok: true; id: string }
-  | { ok: false; reason: string; status?: number; code?: number };
+  | { ok: false; reason: string; status?: number; code?: number; subcode?: number; type?: string; message?: string };
+
+// Meta's error text, made safe to log: the access token (and anything token-shaped) is removed, and long digit runs
+// (phone numbers, ids) are masked to their last 4 digits. Capped at 300 characters.
+export function sanitizeMetaErrorText(text: unknown, accessToken: string): string {
+  let t = typeof text === "string" ? text : "";
+  if (accessToken) t = t.split(accessToken).join("[redacted]");
+  t = t.replace(/\bBearer\s+\S+/gi, "Bearer [redacted]").replace(/EAA[A-Za-z0-9]{10,}/g, "[redacted]");
+  t = t.replace(/\+?\d{7,}/g, (m) => "…" + m.slice(-4));
+  return t.slice(0, 300);
+}
 
 export interface MetaSendOptions {
   fetchImpl?: typeof fetch;
@@ -42,6 +53,12 @@ async function post(cfg: MetaSendConfig, payload: Record<string, unknown>, opts?
   const code = typeof data?.error?.code === "number" ? data.error.code : undefined;
   const out: MetaSendResult = { ok: false, reason: res.ok ? "bad_response" : "http_" + res.status, status: res.status };
   if (code !== undefined) out.code = code;
+  if (!out.ok && data?.error) {
+    if (typeof data.error.error_subcode === "number") out.subcode = data.error.error_subcode;
+    if (typeof data.error.type === "string") out.type = data.error.type.slice(0, 60);
+    const message = sanitizeMetaErrorText(data.error.message, cfg.accessToken);
+    if (message) out.message = message;
+  }
   return out;
 }
 

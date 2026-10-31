@@ -44,5 +44,13 @@ export function resolveDatabaseUrl(env: Env = process.env): string | undefined {
   if (test === (env.DATABASE_URL || "").trim() || test === (env.DIRECT_URL || "").trim()) {
     throw new PreviewDatabaseIsolationError("Preview deployment refused to start: META_TEST_DATABASE_URL points at the same database as DATABASE_URL.");
   }
-  return test;
+  return withPgBouncer(test);
+}
+
+// The Supabase pooler (PgBouncer, transaction mode) does not support Prisma's prepared statements: without
+// pgbouncer=true queries fail with 42P05 'prepared statement "s0" already exists'. Adds pgbouncer=true to the
+// Preview TEST URL unless a pgbouncer setting is already present. Preview only; never changes any other parameter.
+export function withPgBouncer(url: string): string {
+  if (/[?&]pgbouncer=/i.test(url)) return url;
+  return url + (url.includes("?") ? "&" : "?") + "pgbouncer=true";
 }

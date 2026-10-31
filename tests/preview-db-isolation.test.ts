@@ -22,8 +22,18 @@ test("production and local: unchanged (schema default DATABASE_URL), even if a t
   assert.equal(resolveDatabaseUrl({ VERCEL_ENV: "development", DATABASE_URL: PROD }), undefined);
 });
 
-test("preview: uses the separate test database", () => {
-  assert.equal(resolveDatabaseUrl({ VERCEL_ENV: "preview", DATABASE_URL: PROD, META_TEST_DATABASE_URL: TEST }), TEST);
+test("preview: uses the separate test database, with pgbouncer=true for the Supabase pooler", () => {
+  assert.equal(resolveDatabaseUrl({ VERCEL_ENV: "preview", DATABASE_URL: PROD, META_TEST_DATABASE_URL: TEST }), TEST + "?pgbouncer=true");
+  // Existing query string: appended with &; an existing pgbouncer setting is left exactly as it is.
+  assert.equal(resolveDatabaseUrl({ VERCEL_ENV: "preview", DATABASE_URL: PROD, META_TEST_DATABASE_URL: TEST + "?connection_limit=1" }), TEST + "?connection_limit=1&pgbouncer=true");
+  assert.equal(resolveDatabaseUrl({ VERCEL_ENV: "preview", DATABASE_URL: PROD, META_TEST_DATABASE_URL: TEST + "?pgbouncer=true" }), TEST + "?pgbouncer=true");
+  assert.equal(resolveDatabaseUrl({ VERCEL_ENV: "preview", DATABASE_URL: PROD, META_TEST_DATABASE_URL: TEST + "?pgbouncer=false" }), TEST + "?pgbouncer=false");
+  // Production is still untouched (no URL override at all).
+  assert.equal(resolveDatabaseUrl({ VERCEL_ENV: "production", DATABASE_URL: PROD, META_TEST_DATABASE_URL: TEST }), undefined);
+});
+
+test("preview: the production-URL guard still compares the URL as configured (adding pgbouncer cannot bypass it)", () => {
+  assert.throws(() => resolveDatabaseUrl({ VERCEL_ENV: "preview", DATABASE_URL: PROD, META_TEST_DATABASE_URL: PROD }), PreviewDatabaseIsolationError);
 });
 
 test("preview: fails closed when the test URL is missing, not PostgreSQL, or the same as production", () => {

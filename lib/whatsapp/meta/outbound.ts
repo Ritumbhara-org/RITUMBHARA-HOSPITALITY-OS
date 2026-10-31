@@ -18,7 +18,13 @@ async function defaultLog(data: Record<string, unknown>) {
 }
 
 function describe(r: MetaSendResult): string {
-  return r.ok ? "ok" : r.reason + (r.code !== undefined ? " (meta " + r.code + ")" : "");
+  if (r.ok) return "ok";
+  const parts: string[] = [];
+  if (r.code !== undefined) parts.push("meta " + r.code);
+  if (r.subcode !== undefined) parts.push("subcode " + r.subcode);
+  if (r.type) parts.push(r.type);
+  const detail = parts.length ? " (" + parts.join(", ") + ")" : "";
+  return r.reason + detail + (r.message ? ": " + r.message : "");
 }
 
 // Same signature and return shape as sendWhatsAppMessage in lib/whatsapp/client.ts.
