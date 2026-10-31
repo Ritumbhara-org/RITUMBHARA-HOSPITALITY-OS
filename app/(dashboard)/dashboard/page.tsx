@@ -3,6 +3,12 @@ import { DashboardClient } from "@/components/dashboard/dashboard-client"
 import { requireAdminPage } from "@/lib/auth/guard"
 import { getTranslator } from "@/lib/i18n/server"
 
+// Only the fields the dashboard and its detail panels show. Unit door/Wi-Fi codes and guest ID numbers stay on the server.
+const guestFields = { select: { id: true, name: true, phone: true, email: true } } as const
+const unitFields = { select: { id: true, name: true, type: true, floor: true } } as const
+const propertyFields = { select: { name: true } } as const
+const reservationInclude = { guest: guestFields, unit: unitFields, property: propertyFields } as const
+
 export const dynamic = 'force-dynamic'
 
 export default async function DashboardPage() {
@@ -14,15 +20,19 @@ export default async function DashboardPage() {
   tomorrow.setDate(tomorrow.getDate() + 1)
 
   const [
-    activeGuestsCount,
+    activeStays,
     todayArrivals,
     pendingTickets,
     yesterdayArrivalsCount,
     todayDepartures,
-    unitStatusCounts,
+    units,
     lowInventoryItems
   ] = await Promise.all([
-    prisma.reservation.count({ where: { status: 'CHECKED_IN' } }),
+    prisma.reservation.findMany({
+      where: { status: 'CHECKED_IN' },
+      include: reservationInclude,
+      orderBy: { checkOut: 'asc' }
+    }),
     prisma.reservation.findMany({
       where: {
         checkIn: {
@@ -31,10 +41,7 @@ export default async function DashboardPage() {
         },
         status: 'CONFIRMED'
       },
-      include: {
-        guest: true,
-        unit: true
-      },
+      include: reservationInclude,
       orderBy: { checkIn: 'asc' }
     }),
     prisma.ticket.findMany({
@@ -42,7 +49,9 @@ export default async function DashboardPage() {
         status: { notIn: ['RESOLVED', 'CLOSED'] }
       },
       include: {
-        unit: true
+        unit: { select: { name: true } },
+        property: propertyFields,
+        assignedTo: { select: { name: true } }
       },
       orderBy: { priority: 'asc' }, // Will sort enum correctly depending on definition, fallback to createdAt if needed
       take: 5
@@ -64,32 +73,28 @@ export default async function DashboardPage() {
         },
         status: 'CHECKED_IN'
       },
-      include: {
-        guest: true,
-        unit: true
-      },
+      include: reservationInclude,
       orderBy: { checkOut: 'asc' }
     }),
-    prisma.unit.groupBy({
-      by: ['status'],
-      _count: {
-        id: true
-      }
+    prisma.unit.findMany({
+      select: { id: true, name: true, type: true, floor: true, capacity: true, status: true, property: propertyFields },
+      orderBy: { name: 'asc' }
     }),
     prisma.inventoryItem.findMany({
       where: {
         quantity: { lt: prisma.inventoryItem.fields.minThreshold }
       },
       include: {
-        property: true
+        property: propertyFields
       },
       take: 5
     })
   ])
 
-  // Unit totals come from the one status grouping above (3 fewer database round trips).
-  const countOf = (status: string) => unitStatusCounts.find((u) => u.status === status)?._count.id ?? 0
-  const totalUnits = unitStatusCounts.reduce((sum, u) => sum + u._count.id, 0)
+  // Unit totals come from the one unit list above, which also feeds the unit detail panels.
+  const countOf = (status: string) => units.filter((u) => u.status === status).length
+  const unitStatusCounts = [...new Set(units.map((u) => u.status))].map((status) => ({ status, _count: { id: countOf(status) } }))
+  const totalUnits = units.length
   const availableUnitsCount = countOf('AVAILABLE')
   const dirtyUnitsCount = countOf('DIRTY')
 
@@ -107,12 +112,14 @@ export default async function DashboardPage() {
     arrivalsTrend,
     availableUnits: availableUnitsCount.toString(),
     unitsTrend: tr("{dirty} dirty, {occupied} occupied", { dirty: dirtyUnitsCount, occupied: totalUnits - availableUnitsCount - dirtyUnitsCount }),
-    activeGuests: activeGuestsCount.toString(),
+    activeGuests: activeStays.length.toString(),
     occupancyRate: `${occupancyRate}%`,
     arrivals: todayArrivals,
     pendingOperations: pendingTickets,
     departures: todayDepartures,
     unitStatuses: unitStatusCounts,
+    units,
+    activeStays,
     lowInventory: lowInventoryItems
   }
 
