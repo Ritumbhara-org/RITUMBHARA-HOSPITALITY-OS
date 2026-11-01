@@ -50,16 +50,12 @@ export function GuestsClient({
 
   const getTierBadge = (tier: string) => {
     switch(tier) {
-      case 'DIAMOND':
-        return <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-50 px-2.5 py-1 text-[11px] font-semibold text-rose-700 ring-1 ring-inset ring-rose-700/10 dark:bg-rose-500/10 dark:text-rose-400 dark:ring-rose-500/20"><Star className="h-3 w-3 fill-rose-700 dark:fill-rose-400" /> {tr("Diamond")}</span>
-      case 'PLATINUM':
-        return <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-700 ring-1 ring-inset ring-slate-600/15 dark:bg-slate-500/10 dark:text-slate-300 dark:ring-slate-500/20"><ShieldCheck className="h-3 w-3" /> {tr("Platinum")}</span>
-      case 'GOLD':
-        return <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700 ring-1 ring-inset ring-amber-600/15 dark:bg-amber-500/10 dark:text-amber-400 dark:ring-amber-500/20"><Star className="h-3 w-3" /> {tr("Gold")}</span>
-      case 'STANDARD':
-        return <span className="inline-flex items-center rounded-full bg-slate-50 px-2.5 py-1 text-[11px] font-semibold text-slate-600 ring-1 ring-inset ring-slate-500/10 dark:bg-slate-500/10 dark:text-slate-400 dark:ring-slate-500/20">{tr("Standard")}</span>
+      case 'SUPERSTAR':
+        return <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-50 px-2.5 py-1 text-[11px] font-semibold text-rose-700 ring-1 ring-inset ring-rose-700/10 dark:bg-rose-500/10 dark:text-rose-400 dark:ring-rose-500/20"><Star className="h-3 w-3 fill-rose-700 dark:fill-rose-400" /> {tr("Super Star")}</span>
+      case 'ROCKSTAR':
+        return <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700 ring-1 ring-inset ring-amber-600/15 dark:bg-amber-500/10 dark:text-amber-400 dark:ring-amber-500/20"><ShieldCheck className="h-3 w-3" /> {tr("RockStar")}</span>
       default:
-        return null
+        return <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-50 px-2.5 py-1 text-[11px] font-semibold text-slate-600 ring-1 ring-inset ring-slate-500/10 dark:bg-slate-500/10 dark:text-slate-400 dark:ring-slate-500/20"><Star className="h-3 w-3" /> {tr("Star")}</span>
     }
   }
 
@@ -189,7 +185,7 @@ export function GuestsClient({
                   </div>
                   <div className="space-y-1 leading-none">
                     <Label htmlFor="assignMembership">{tr("Enroll in Loyalty Program")}</Label>
-                    <p className="text-[11px] text-muted-foreground">{tr("Assigns a Standard tier membership to this guest profile.")}</p>
+                    <p className="text-[11px] text-muted-foreground">{tr("Enrols this guest as a Star member of Ritumbhara Rewards.")}</p>
                   </div>
                 </div>
               </div>
@@ -258,10 +254,9 @@ export function GuestsClient({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="ALL">{tr("All Tiers")}</SelectItem>
-              <SelectItem value="STANDARD">{tr("Standard")}</SelectItem>
-              <SelectItem value="GOLD">{tr("Gold")}</SelectItem>
-              <SelectItem value="PLATINUM">{tr("Platinum")}</SelectItem>
-              <SelectItem value="DIAMOND">{tr("Diamond")}</SelectItem>
+              <SelectItem value="STAR">{tr("Star")}</SelectItem>
+              <SelectItem value="ROCKSTAR">{tr("RockStar")}</SelectItem>
+              <SelectItem value="SUPERSTAR">{tr("Super Star")}</SelectItem>
               <SelectItem value="NONE">{tr("No Membership")}</SelectItem>
             </SelectContent>
           </Select>
