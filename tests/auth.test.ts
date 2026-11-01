@@ -256,7 +256,7 @@ test("proxy: signed-out page requests go to /login (keeping where they were goin
 })
 
 test("proxy: signed-out API calls and server-action calls get 401, not data", async () => {
-  for (const p of ["/api/guests", "/api/reservations", "/api/tickets", "/api/team", "/api/units", "/api/properties", "/api/dashboard", "/api/analytics", "/api/seo", "/api/revalidate", "/api/fix-units", "/api/test/intellistay", "/api/unknown"]) {
+  for (const p of ["/api/guests", "/api/reservations", "/api/tickets", "/api/team", "/api/units", "/api/properties", "/api/dashboard", "/api/analytics", "/api/seo", "/api/revalidate", "/api/fix-units", "/api/test/intellistay", "/api/loyalty/export", "/api/unknown"]) {
     assert.equal((await runProxy(p)).status, 401, p)
     assert.equal((await runProxy(p, { method: "POST" })).status, 401, p)
   }
@@ -270,6 +270,7 @@ test("proxy: bypass attempts do not get through", async () => {
   const attempts = [
     "/leads?auth=true", "/leads?admin=1&session=valid", "/leads?next=/login", "/login/../leads", "/stay/../leads",
     "/api/stay/../guests", "//leads", "/leads/", "/stayx", "/stay", "/stay/", "/api/stay", "/api/cronjob", "/loginx", "/login.php/../leads",
+    "/loyalty", "/loyalty/abc", "/memberx", "/api/member", "/api/memberx/otp",
   ]
   for (const p of attempts) assert.equal((await runProxy(p)).passed, false, p)
   for (const bad of ["", "admin", "true", "1", "%7B%7D", validSessionToken(Date.now() - 13 * 3600 * 1000)]) {
@@ -283,7 +284,7 @@ test("proxy: bypass attempts do not get through", async () => {
 
 test("proxy: public guest and machine endpoints stay reachable without a session", async () => {
   // (Cron endpoints are not public: see tests/cron-auth.test.ts.)
-  for (const p of ["/login", "/stay/res_123", "/api/stay/res_123/chat", "/api/stay/res_123/tickets", "/api/stay/res_123/membership/join", "/api/whatsapp/webhook"]) {
+  for (const p of ["/login", "/stay/res_123", "/api/stay/res_123/chat", "/api/stay/res_123/tickets", "/api/stay/res_123/membership/join", "/api/whatsapp/webhook", "/member", "/api/member/otp/request", "/api/member/otp/verify"]) {
     const r = await runProxy(p, { method: p.startsWith("/api/") ? "POST" : "GET" })
     assert.equal(r.passed, true, p)
   }
@@ -308,12 +309,19 @@ test("public path list is exactly the intended set", () => {
   assert.equal(isPublicPath("/stay"), false)
   assert.equal(isPublicPath("/api/whatsapp/webhook/"), true)
   assert.equal(isPublicPath("/api/whatsapp"), false)
+  assert.equal(isPublicPath("/member"), true)
+  assert.equal(isPublicPath("/member/"), true)
+  assert.equal(isPublicPath("/memberx"), false)
+  assert.equal(isPublicPath("/member/../loyalty"), false)
+  assert.equal(isPublicPath("/api/member"), false)
+  assert.equal(isPublicPath("/loyalty"), false)
+  assert.equal(isPublicPath("/api/loyalty/export"), false)
 })
 
 // ---------- every admin server action and API route refuses unauthenticated calls ----------
 
-const ADMIN_ACTION_FILES = ["units", "operations", "guests", "locations", "inventory", "whatsapp", "reservations", "team", "inbox"]
-const PUBLIC_ACTIONS = new Set(["membership.ts:joinMembership", "membership.ts:redeemPoints"]) // guest portal
+const ADMIN_ACTION_FILES = ["units", "operations", "guests", "locations", "inventory", "whatsapp", "reservations", "team", "inbox", "loyalty"]
+const PUBLIC_ACTIONS = new Set(["membership.ts:joinMembership"]) // guest portal: enrol only, never credits or redeems points
 
 test("every server action file is either admin-guarded or an approved public guest action", () => {
   for (const f of fs.readdirSync(path.join(root, "app/actions"))) {
@@ -341,12 +349,12 @@ test("signed out: every admin server action throws before touching the database"
       await assert.rejects((impl as (...a: unknown[]) => Promise<unknown>)(fd, fd, fd), (err: unknown) => err instanceof Error && err.name === "UnauthorizedError", name + "." + fn)
     }
   }
-  assert.ok(called >= 33, "checked " + called + " actions") // 24 OS actions + 9 Inbox actions
+  assert.ok(called >= 43, "checked " + called + " actions") // 24 OS actions + 9 Inbox actions + 10 Loyalty actions
   assert.deepEqual(prismaTouches, [])
 })
 
 test("signed out: every admin API route answers 401 before touching the database", async () => {
-  const routes = ["analytics", "dashboard", "fix-units", "guests", "properties", "reservations", "revalidate", "seo", "team", "test/intellistay", "tickets", "units"]
+  const routes = ["analytics", "dashboard", "fix-units", "guests", "loyalty/export", "properties", "reservations", "revalidate", "seo", "team", "test/intellistay", "tickets", "units"]
   let called = 0
   for (const r of routes) {
     const m = (await import(mod("app/api/" + r + "/route.ts"))) as Record<string, unknown>
@@ -360,7 +368,7 @@ test("signed out: every admin API route answers 401 before touching the database
       assert.deepEqual(await res.json(), { success: false, error: "unauthorized" })
     }
   }
-  assert.equal(called, 19)
+  assert.equal(called, 20)
   assert.deepEqual(prismaTouches, [])
 })
 
