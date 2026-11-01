@@ -15,6 +15,7 @@ import { resolveWhatsAppProvider, getMetaSendConfig, metaDisplayNumber } from "@
 import { sendMetaTemplate, sendMetaText } from "@/lib/whatsapp/meta/send"
 import { metaTemplateFor, orderedParams } from "@/lib/whatsapp/meta/templates"
 import { isTwilioSendBlocked, TWILIO_BLOCKED_MESSAGE } from "@/lib/twilio/preview-guard"
+import { metaOtpTemplateName, twilioSidFor } from "./template-ids"
 
 export type LoyaltyMessageKind =
   | "POINTS_CREDITED"
@@ -79,15 +80,7 @@ export function renderMessage(kind: LoyaltyMessageKind, vars: Vars): { body: str
   return { body: t.text(vars), positional }
 }
 
-function twilioSidFor(kind: LoyaltyMessageKind, env = process.env): string | undefined {
-  try {
-    const map = JSON.parse(env.LOYALTY_WA_TEMPLATES || "{}")
-    const sid = map && typeof map === "object" ? map[kind] : undefined
-    return typeof sid === "string" && /^HX[0-9a-f]{32}$/i.test(sid) ? sid : undefined
-  } catch {
-    return undefined
-  }
-}
+
 
 export type DeliveryResult = { ok: true; status: "SENT" | "SANDBOX" } | { ok: false; error: string }
 
@@ -123,7 +116,7 @@ export const whatsappTransport: LoyaltyTransport = async (msg) => {
       await logMessage(msg, metaDisplayNumber(), "FAILED", false)
       return { ok: false, error: "WhatsApp (Meta) isn't set up: " + cfg.missing.join(", ") }
     }
-    const tpl = metaTemplateFor(templateName(msg.kind))
+    const tpl = metaTemplateFor(msg.kind === "OTP" ? metaOtpTemplateName() : templateName(msg.kind))
     let r = tpl ? await sendMetaTemplate(cfg.config, msg.to, tpl, orderedParams(msg.positional)) : null
     if (!r || !r.ok) r = await sendMetaText(cfg.config, msg.to, msg.body)
     await logMessage(msg, cfg.config.displayNumber, r.ok ? "DELIVERED" : "FAILED", !!tpl && r.ok)

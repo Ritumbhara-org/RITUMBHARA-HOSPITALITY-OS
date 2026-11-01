@@ -118,3 +118,11 @@ test("dates, phones and payment checks", () => {
   assert.equal(isReservationPaid({ paymentStatus: "Pending", paidAmount: 0, totalAmount: 100 }), false)
   assert.equal(isReservationPaid({ paymentStatus: null, paidAmount: null, totalAmount: 100 }), true) // booked in the OS
 })
+
+test("loyalty OTPs use the approved OTP template unless a dedicated one is configured", async () => {
+  const { twilioSidFor, APPROVED_OTP_TEMPLATE_SID } = await import("../lib/loyalty/template-ids")
+  assert.equal(twilioSidFor("OTP", {}), APPROVED_OTP_TEMPLATE_SID)
+  assert.equal(twilioSidFor("OTP", { LONG_STAY_OTP_TEMPLATE_SID: "HX" + "a".repeat(32) }), "HX" + "a".repeat(32))
+  assert.equal(twilioSidFor("OTP", { LOYALTY_WA_TEMPLATES: JSON.stringify({ OTP: "HX" + "b".repeat(32) }) }), "HX" + "b".repeat(32))
+  assert.equal(twilioSidFor("POINTS_CREDITED", {}), undefined)
+})
