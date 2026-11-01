@@ -1,37 +1,21 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { joinMembership } from "@/app/actions/membership";
 
+// Guest portal: enrol the guest of this reservation as a Star member. No points are credited here; they are earned
+// after check-out (lib/loyalty/earning.ts).
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  let code: string | undefined;
   try {
-    const { id } = await params;
-    const reservation = await prisma.reservation.findUnique({
-      where: { id },
-      include: { guest: { include: { membership: true } } }
-    });
-
-    if (!reservation) {
-      return NextResponse.json({ error: "Reservation not found" }, { status: 404 });
-    }
-
-    if (reservation.guest.membership) {
-      return NextResponse.json({ error: "Already a member" }, { status: 400 });
-    }
-
-    // Assign points based on the current booking amount
-    // E.g., 1 point per ₹1000 spent
-    const earnedPoints = Math.floor(reservation.totalAmount / 10);
-
-    const membership = await prisma.membership.create({
-      data: {
-        guestId: reservation.guestId,
-        tier: "SILVER",
-        points: earnedPoints, // They immediately earn points for this stay!
-      }
-    });
-
-    return NextResponse.json({ success: true, membership });
-  } catch (error: any) {
-    console.error("[Membership Join Error]", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    const body = await request.json();
+    if (body && typeof body.referralCode === "string") code = body.referralCode;
+  } catch {
+    // no body
   }
+  const res = await joinMembership(id, code);
+  if (!res.success) {
+    const status = res.error === "Booking not found." ? 404 : 400;
+    return NextResponse.json({ error: res.error }, { status });
+  }
+  return NextResponse.json({ success: true, membershipNumber: res.membershipNumber, warning: res.warning });
 }
