@@ -192,6 +192,11 @@ const INTENTIONALLY_PUBLIC: Record<string, string> = {
   "app/api/sign/[token]/verify/route.ts": "Long Stay e-sign: checks that OTP (5 wrong codes lock the link)",
   "app/api/sign/[token]/sign/route.ts": "Long Stay e-sign: records the guest's signature",
   "app/api/sign/[token]/pdf/route.ts": "Long Stay e-sign: the guest's own signed PDF",
+  "app/api/member/otp/request/route.ts": "Member portal: sends a WhatsApp sign-in code (rate-limited per number and IP)",
+  "app/api/member/otp/verify/route.ts": "Member portal: checks that code (3 wrong tries lock it) and sets the member session",
+  "app/api/member/logout/route.ts": "Member portal: clears the member session cookie",
+  "app/api/member/profile/route.ts": "Member portal: the signed-in member's own name/dates (401 without a member session)",
+  "app/api/member/referral/route.ts": "Member portal: the signed-in member adds a referral code (401 without a member session)",
 }
 
 // Machine-only routes that check their own secret first (no admin session). See tests/inbox-auth.test.ts.
