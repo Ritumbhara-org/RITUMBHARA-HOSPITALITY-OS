@@ -101,6 +101,7 @@ model Property {
   agentActionLogs  AgentActionLog[]
   inboxConversations InboxConversation[]
   longStayBookings LongStayBooking[]
+  pointTransactions PointTransaction[]
 }
 
 model Unit {
@@ -165,6 +166,12 @@ model Reservation {
   source                   String
   totalAmount              Float
   bookingNotes             String?
+  // Loyalty inputs. sourceDetail is the PMS's own source name (e.g. "Airbnb", "Walk-In"); source stays as before.
+  sourceDetail             String?
+  taxAmount                Float    @default(0)
+  refundedAmount           Float    @default(0)
+  paidAmount               Float?
+  paymentStatus            String?
   createdAt                DateTime @default(now())
   updatedAt                DateTime @updatedAt
 
@@ -172,6 +179,7 @@ model Reservation {
   unit     Unit     @relation(fields: [unitId], references: [id])
   property Property @relation(fields: [propertyId], references: [id])
   inboxConversations InboxConversation[]
+  pointTransactions  PointTransaction[]
 
   @@index([propertyId])
   @@index([guestId])
@@ -387,32 +395,216 @@ model InventoryItem {
   @@index([propertyId])
 }
 
-model Membership {
-  id           String    @id @default(cuid())
-  guestId      String    @unique
-  tier         String    @default("SILVER")
-  points       Int       @default(0)
-  referralCode String    @unique @default(cuid())
-  referredBy   String?
-  joinedAt     DateTime  @default(now())
-  expiresAt    DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+// ---------- Membership & Loyalty (lib/loyalty) ----------
+// One membership per normalized mobile number, so the same guest booking through several channels (each of which
+// may create its own Guest row) always earns into one account. guestId is the primary linked guest record.
 
-  guest Guest @relation(fields: [guestId], references: [id])
-  transactions PointTransaction[]
+model Membership {
+  id                String    @id @default(cuid())
+  guestId           String?   @unique
+  phone             String?   @unique            // normalized E.164; the member's identity and OTP destination
+  name              String?
+  membershipNumber  String?   @unique            // e.g. RBM-100042, shown to the member
+  tier              String    @default("STAR")   // STAR | ROCKSTAR | SUPERSTAR (computed; see tierOverride)
+  tierOverride      String?                      // admin-set tier, wins until tierOverrideUntil
+  tierOverrideUntil DateTime?
+  qualifyingSpend   Float     @default(0)        // cached rolling 6-month eligible spend
+  tierEvaluatedAt   DateTime?
+  points            Int       @default(0)        // cached available balance; the ledger is the source of truth
+  referralCode      String    @unique @default(cuid())
+  referredBy        String?
+  birthday          DateTime? @db.Date
+  anniversary       DateTime? @db.Date
+  joinedAt          DateTime  @default(now())
+  expiresAt         DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  guest          Guest?               @relation(fields: [guestId], references: [id])
+  transactions   PointTransaction[]
+  tierHistory    MemberTierHistory[]
+  redemptions    Redemption[]
+  referralsMade  Referral[]           @relation("Referrer")
+  referredVia    Referral?            @relation("Referee")
+  eventRewards   LoyaltyEventReward[]
+  notifications  LoyaltyNotification[]
+
+  @@index([tier])
+  @@index([points])
 }
 
+// Immutable points ledger. Rows are only ever inserted (a database trigger refuses UPDATE and DELETE).
+// Credits (amount > 0) carry their own expiresAt; debits (amount < 0) are matched to credits through
+// PointAllocation, oldest-expiring first, so redemption and expiry are exact per batch.
 model PointTransaction {
-  id           String     @id @default(cuid())
-  membershipId String
-  amount       Int        // Positive for earn, negative for redeem
-  type         String     // "JOIN_BONUS", "REFERRAL_BONUS", "REDEMPTION"
-  description  String
-  createdAt    DateTime   @default(now())
+  id                String    @id @default(cuid())
+  membershipId      String
+  amount            Int                          // > 0 credit, < 0 debit
+  type              String                       // EARN_BOOKING | BOOKING_ADJUSTMENT | BOOKING_REVERSAL | BONUS_BIRTHDAY | BONUS_ANNIVERSARY | BONUS_REFERRAL | ADJUSTMENT | REDEMPTION | EXPIRY (+ legacy JOIN_BONUS, REFERRAL_BONUS)
+  description       String
+  idempotencyKey    String?   @unique
+  expiresAt         DateTime?                    // credits only
+  reservationId     String?
+  propertyId        String?
+  channel           String?                      // DIRECT | OTA (booking earnings)
+  tier              String?                      // tier applied when the booking completed
+  channelMultiplier Int?
+  tierMultiplier    Int?
+  eligibleAmount    Float?
+  calculation       Json?
+  relatedId         String?                      // redemption / referral / credit this row belongs to
+  actor             String?                      // admin username for manual rows, SYSTEM otherwise
+  reason            String?
+  createdAt         DateTime  @default(now())
 
-  membership   Membership @relation(fields: [membershipId], references: [id])
-  @@index([membershipId])
+  membership     Membership        @relation(fields: [membershipId], references: [id])
+  reservation    Reservation?      @relation(fields: [reservationId], references: [id], onDelete: SetNull)
+  property       Property?         @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+  allocatedTo    PointAllocation[] @relation("AllocationDebit")
+  allocatedFrom  PointAllocation[] @relation("AllocationCredit")
+
+  @@index([membershipId, createdAt])
+  @@index([membershipId, expiresAt])
+  @@index([reservationId])
+  @@index([type])
+}
+
+// Which credit batch a debit consumed, and how much. Also insert-only.
+model PointAllocation {
+  id        String   @id @default(cuid())
+  debitId   String
+  creditId  String
+  points    Int
+  createdAt DateTime @default(now())
+
+  debit  PointTransaction @relation("AllocationDebit", fields: [debitId], references: [id])
+  credit PointTransaction @relation("AllocationCredit", fields: [creditId], references: [id])
+
+  @@unique([debitId, creditId])
+  @@index([creditId])
+}
+
+model MemberTierHistory {
+  id              String   @id @default(cuid())
+  membershipId    String
+  fromTier        String?
+  toTier          String
+  reason          String                         // AUTO_UPGRADE | AUTO_DOWNGRADE | MANUAL | ENROLLED | OVERRIDE_ENDED
+  qualifyingSpend Float    @default(0)
+  actor           String   @default("SYSTEM")
+  note            String?
+  createdAt       DateTime @default(now())
+
+  membership Membership @relation(fields: [membershipId], references: [id])
+
+  @@index([membershipId, createdAt])
+}
+
+model Redemption {
+  id             String    @id @default(cuid())
+  reference      String    @unique                // RDM-XXXXXXXX shown to staff and member
+  membershipId   String
+  points         Int
+  status         String    @default("PENDING_OTP") // PENDING_OTP | COMPLETED | FAILED | EXPIRED | CANCELLED
+  reservationId  String?
+  propertyId     String?
+  note           String?
+  adminId        String
+  transactionId  String?   @unique
+  failureReason  String?
+  createdAt      DateTime  @default(now())
+  completedAt    DateTime?
+
+  membership Membership @relation(fields: [membershipId], references: [id])
+  otps       LoyaltyOtp[]
+
+  @@index([membershipId, createdAt])
+  @@index([status])
+}
+
+// One-time codes for member sign-in and for redemption approval. Only a keyed hash of the code is stored.
+model LoyaltyOtp {
+  id           String    @id @default(cuid())
+  purpose      String                            // LOGIN | REDEMPTION
+  phone        String
+  redemptionId String?
+  codeHash     String
+  expiresAt    DateTime
+  attempts     Int       @default(0)
+  consumedAt   DateTime?
+  lockedAt     DateTime?
+  ip           String?
+  createdAt    DateTime  @default(now())
+
+  redemption Redemption? @relation(fields: [redemptionId], references: [id], onDelete: Cascade)
+
+  @@index([phone, purpose, createdAt])
+  @@index([redemptionId])
+}
+
+model Referral {
+  id                      String    @id @default(cuid())
+  referrerId              String
+  refereeId               String    @unique       // a member can be referred only once
+  code                    String
+  status                  String    @default("PENDING") // PENDING | REWARDED | REJECTED
+  qualifyingReservationId String?   @unique
+  rewardedAt              DateTime?
+  rejectReason            String?
+  createdAt               DateTime  @default(now())
+
+  referrer Membership @relation("Referrer", fields: [referrerId], references: [id])
+  referee  Membership @relation("Referee", fields: [refereeId], references: [id])
+
+  @@index([referrerId])
+  @@index([status])
+}
+
+// Birthday / anniversary bonus, once per member, kind and calendar year.
+model LoyaltyEventReward {
+  id            String   @id @default(cuid())
+  membershipId  String
+  kind          String                           // BIRTHDAY | ANNIVERSARY
+  year          Int
+  transactionId String   @unique
+  createdAt     DateTime @default(now())
+
+  membership Membership @relation(fields: [membershipId], references: [id])
+
+  @@unique([membershipId, kind, year])
+}
+
+model LoyaltyNotification {
+  id           String    @id @default(cuid())
+  membershipId String?
+  kind         String                            // POINTS_CREDITED | BIRTHDAY_BONUS | ... (lib/loyalty/notify.ts)
+  dedupeKey    String    @unique
+  to           String
+  body         String    @db.Text
+  variables    Json      @default("{}")
+  status       String    @default("PENDING")     // PENDING | SENT | FAILED
+  attempts     Int       @default(0)
+  lastError    String?
+  sentAt       DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  membership Membership? @relation(fields: [membershipId], references: [id], onDelete: SetNull)
+
+  @@index([status, attempts])
+  @@index([membershipId, createdAt])
+}
+
+model LoyaltyAuditLog {
+  id           String   @id @default(cuid())
+  actor        String
+  action       String                            // POINTS_ADJUSTED | TIER_CHANGED | DATES_EDITED | REDEMPTION_* | REFUND_RECORDED | REFERRAL_APPLIED
+  membershipId String?
+  details      Json     @default("{}")
+  createdAt    DateTime @default(now())
+
+  @@index([membershipId, createdAt])
+  @@index([action])
 }
 
 enum SyncStatus {
