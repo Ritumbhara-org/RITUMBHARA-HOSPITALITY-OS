@@ -4,11 +4,50 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { format } from "date-fns"
-import { CalendarClock, Crown, Download, Search, Users, Wallet } from "lucide-react"
+import { CalendarClock, Copy, Crown, Download, MessageCircle, Search, Share2, UserPlus, Users, Wallet } from "lucide-react"
+import { toast } from "sonner"
 import { useTr } from "@/components/i18n/language-provider"
 import type { MemberFilters, MemberRow } from "@/lib/loyalty/queries"
 import { formatInr, formatPoints, TIERS, TIER_INFO } from "@/lib/loyalty/rules"
 import { TierBadge } from "./tier-badge"
+
+const JOIN_MESSAGE = "Join Ritumbhara Rewards for free: earn points on every stay (double when you book direct), plus birthday and anniversary bonuses. Sign up with your mobile number here:"
+
+// A public sign-up link staff can send to anyone, booked or not. New numbers become Star members on sign-in.
+function JoinLinkCard({ link }: { link: string }) {
+  const tr = useTr()
+  const text = `${JOIN_MESSAGE} ${link}`
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(link)
+      toast.success(tr("Join link copied"))
+    } catch {
+      toast.error(tr("Couldn't copy. Select the link and copy it."))
+    }
+  }
+  const share = async () => {
+    if (navigator.share) await navigator.share({ title: "Ritumbhara Rewards", text: JOIN_MESSAGE, url: link }).catch(() => {})
+    else copy()
+  }
+  const btn = "inline-flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition"
+  return (
+    <div className="rounded-2xl border border-border/60 bg-card p-4 shadow-sm flex flex-col gap-3 sm:flex-row sm:items-center">
+      <div className="flex items-start gap-3 min-w-0 flex-1">
+        <span className="rounded-xl bg-primary/10 p-2 text-primary"><UserPlus className="h-5 w-5" /></span>
+        <div className="min-w-0">
+          <p className="font-semibold">{tr("Invite new members")}</p>
+          <p className="text-xs text-muted-foreground">{tr("Share this link with anyone. They sign up with their mobile number and a WhatsApp code; no booking needed.")}</p>
+          <p className="mt-1 truncate font-mono text-sm select-all">{link || "…"}</p>
+        </div>
+      </div>
+      <div className="flex gap-2 shrink-0">
+        <button onClick={copy} disabled={!link} className={btn + " border border-border/60 bg-background hover:bg-muted"}><Copy className="h-4 w-4" /> {tr("Copy")}</button>
+        <a href={link ? "https://wa.me/?text=" + encodeURIComponent(text) : undefined} target="_blank" rel="noopener noreferrer" className={btn + " bg-[#25D366] text-white hover:bg-[#1ebe5a]"}><MessageCircle className="h-4 w-4" /> WhatsApp</a>
+        <button onClick={share} disabled={!link} className={btn + " bg-primary text-primary-foreground hover:bg-primary/90"}><Share2 className="h-4 w-4" /> {tr("Share")}</button>
+      </div>
+    </div>
+  )
+}
 
 interface Overview {
   counts: Record<string, number>
@@ -19,8 +58,8 @@ interface Overview {
 
 const field = "h-10 rounded-xl border border-border/60 bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
 
-export function LoyaltyList({ rows, total, page, pageSize, filters, overview, locations }: {
-  rows: MemberRow[]; total: number; page: number; pageSize: number; filters: MemberFilters; overview: Overview; locations: { id: string; name: string }[]
+export function LoyaltyList({ rows, total, page, pageSize, filters, overview, locations, joinUrl }: {
+  rows: MemberRow[]; total: number; page: number; pageSize: number; filters: MemberFilters; overview: Overview; locations: { id: string; name: string }[]; joinUrl: string
 }) {
   const tr = useTr()
   const router = useRouter()
@@ -61,6 +100,8 @@ export function LoyaltyList({ rows, total, page, pageSize, filters, overview, lo
           </a>
         </div>
       </div>
+
+      <JoinLinkCard link={joinUrl} />
 
       <div className="grid gap-2.5 sm:gap-4 grid-cols-2 lg:grid-cols-4">
         {cards.map((c) => (

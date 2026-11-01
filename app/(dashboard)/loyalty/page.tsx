@@ -1,3 +1,4 @@
+import { headers } from "next/headers"
 import { prisma } from "@/lib/prisma"
 import { requireAdminPage } from "@/lib/auth/guard"
 import { listMembers, loyaltyOverview, type MemberFilters } from "@/lib/loyalty/queries"
@@ -22,5 +23,10 @@ export default async function LoyaltyPage({ searchParams }: { searchParams: Prom
     loyaltyOverview(),
     prisma.property.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
   ])
-  return <LoyaltyList rows={rows} total={total} page={page} pageSize={pageSize} filters={filters} overview={overview} locations={locations} />
+  // Public sign-up link staff can share: NEXT_PUBLIC_APP_URL, else this deployment's own address.
+  const h = await headers()
+  const host = h.get("x-forwarded-host") || h.get("host") || ""
+  const base = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/+$/, "") || (host ? `${h.get("x-forwarded-proto") || "https"}://${host}` : "")
+  const joinUrl = base + "/member"
+  return <LoyaltyList joinUrl={joinUrl} rows={rows} total={total} page={page} pageSize={pageSize} filters={filters} overview={overview} locations={locations} />
 }
