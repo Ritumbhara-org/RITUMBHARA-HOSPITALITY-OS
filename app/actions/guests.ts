@@ -28,15 +28,12 @@ export async function createGuest(formData: FormData) {
         phone,
         idType: idType || null,
         idNumber: idNumber || null,
-        membership: assignMembership ? {
-          create: {
-            tier: "STANDARD",
-            points: 0,
-            joinedAt: new Date()
-          }
-        } : undefined
       }
     })
+    if (assignMembership) {
+      const { ensureMembership } = await import("@/lib/loyalty/members")
+      await ensureMembership({ phone: guest.phone, name: guest.name, guestId: guest.id })
+    }
 
     revalidatePath("/guests")
     revalidatePath("/reservations")
