@@ -33,6 +33,16 @@ export const OS_TEMPLATE_DEFAULTS: Record<string, { name: string; kind?: MetaTem
   long_stay_sign_link: { name: "long_stay_sign_link" },
   long_stay_otp: { name: "long_stay_otp", kind: "authentication" },
   long_stay_signed: { name: "long_stay_signed" },
+  // Membership & Loyalty (lib/loyalty/notify.ts)
+  loyalty_points_credited: { name: "loyalty_points_credited" },
+  loyalty_birthday_bonus: { name: "loyalty_birthday_bonus" },
+  loyalty_anniversary_bonus: { name: "loyalty_anniversary_bonus" },
+  loyalty_referral_bonus: { name: "loyalty_referral_bonus" },
+  loyalty_tier_upgrade: { name: "loyalty_tier_upgrade" },
+  loyalty_points_expiring: { name: "loyalty_points_expiring" },
+  loyalty_points_expired: { name: "loyalty_points_expired" },
+  loyalty_otp: { name: "loyalty_otp", kind: "authentication" },
+  loyalty_redemption_success: { name: "loyalty_redemption_success" },
 };
 
 const NAME = /^[a-z0-9_]{1,512}$/;
