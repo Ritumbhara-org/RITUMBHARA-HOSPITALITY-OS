@@ -126,7 +126,7 @@ test("code scan: every Twilio client creation is in a guarded sender, after the 
   for (const d of ["app", "lib", "components"]) walk(path.join(root, d));
   const creators = files.filter((f) => /\btwilio\s*\(|api\.twilio\.com|\.messages\.create\s*\(/.test(fs.readFileSync(f, "utf8")));
   const rel = creators.map((f) => path.relative(root, f)).sort();
-  assert.deepEqual(rel, ["lib/long-stay/server.ts", "lib/whatsapp/client.ts"]);
+  assert.deepEqual(rel, ["lib/long-stay/server.ts", "lib/loyalty/notify.ts", "lib/whatsapp/client.ts"]);
   for (const f of creators) {
     const src = fs.readFileSync(f, "utf8");
     const guardAt = src.indexOf("if (isTwilioSendBlocked())");

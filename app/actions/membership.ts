@@ -1,178 +1,38 @@
 "use server";
 
+// Guest portal (/stay/<reservationId>) membership action. Public by design: it can only enrol the guest of that one
+// reservation (by their booking mobile number) and optionally attach a referral code. It never credits or redeems
+// points — points come only from completed stays and bonuses, and redemption needs staff plus the member's OTP.
+
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { LoyaltyError } from "@/lib/loyalty/ledger";
+import { applyReferral, ensureMembership } from "@/lib/loyalty/members";
 
-export async function joinMembership(guestId: string, referralCode?: string) {
+export async function joinMembership(reservationId: string, referralCode?: string) {
   try {
-    // Check if already a member
-    const existing = await prisma.membership.findUnique({ where: { guestId } });
-    if (existing) {
+    if (typeof reservationId !== "string" || !/^[a-z0-9]{10,40}$/i.test(reservationId)) return { success: false, error: "Booking not found." };
+    const reservation = await prisma.reservation.findUnique({ where: { id: reservationId }, include: { guest: true } });
+    if (!reservation) return { success: false, error: "Booking not found." };
+    const existed = await prisma.membership.findFirst({ where: { OR: [{ phone: reservation.guest.phone }, { guestId: reservation.guestId }] } });
+    const membership = existed ?? (await ensureMembership({ phone: reservation.guest.phone, name: reservation.guest.name, guestId: reservation.guestId }));
+    if (!membership) return { success: false, error: "Your booking has no valid mobile number. Please ask the front desk to update it." };
+    let warning: string | undefined;
+    if (referralCode && referralCode.trim()) {
+      try {
+        await applyReferral(membership.id, referralCode, "GUEST_PORTAL");
+      } catch (e) {
+        if (!(e instanceof LoyaltyError)) throw e;
+        if (existed) return { success: false, error: e.message };
+        warning = e.message; // joined, but the code couldn't be used
+      }
+    } else if (existed) {
       return { success: false, error: "Already a member." };
     }
-
-    let referredByCode = null;
-    let referrerMembership = null;
-
-    // Validate referral code if provided
-    if (referralCode && referralCode.trim() !== "") {
-      referrerMembership = await prisma.membership.findUnique({
-        where: { referralCode: referralCode.trim() }
-      });
-
-      if (!referrerMembership) {
-        return { success: false, error: "Invalid referral code." };
-      }
-      if (referrerMembership.guestId === guestId) {
-        return { success: false, error: "You cannot refer yourself." };
-      }
-      referredByCode = referrerMembership.referralCode;
-    }
-
-    // Determine initial points: 100 base + 10 if referred
-    const joinBonus = 100;
-    const refereeBonus = referredByCode ? 10 : 0;
-    const totalStartingPoints = joinBonus + refereeBonus;
-
-    // Create the membership
-    const membership = await prisma.membership.create({
-      data: {
-        guestId,
-        points: totalStartingPoints,
-        referredBy: referredByCode,
-        transactions: {
-          create: [
-            {
-              amount: joinBonus,
-              type: "JOIN_BONUS",
-              description: "Welcome to Ritumbhara Rewards!"
-            },
-            ...(refereeBonus > 0 ? [{
-              amount: refereeBonus,
-              type: "REFERRAL_BONUS",
-              description: "Bonus for using a referral code!"
-            }] : [])
-          ]
-        }
-      }
-    });
-
-    // If referred, give referrer 20 points
-    if (referrerMembership) {
-      await prisma.membership.update({
-        where: { id: referrerMembership.id },
-        data: {
-          points: { increment: 20 },
-          transactions: {
-            create: {
-              amount: 20,
-              type: "REFERRAL_BONUS",
-              description: `Referral bonus for inviting a new member!`
-            }
-          }
-        }
-      });
-    }
-
-    revalidatePath(`/stay`);
-    return { success: true, membership };
-  } catch (error: any) {
+    revalidatePath(`/stay/${reservationId}`);
+    return { success: true, membershipNumber: membership.membershipNumber, warning };
+  } catch (error) {
     console.error("[Join Membership Error]", error);
-    return { success: false, error: error.message || "Failed to join membership." };
-  }
-}
-
-export async function redeemPoints(reservationId: string, pointsToRedeem: number) {
-  try {
-    if (pointsToRedeem <= 0) {
-      return { success: false, error: "Points must be greater than zero." };
-    }
-
-    const reservation = await prisma.reservation.findUnique({
-      where: { id: reservationId },
-      include: { guest: { include: { membership: true } }, unit: { include: { property: true } } }
-    });
-
-    if (!reservation) {
-      return { success: false, error: "Reservation not found." };
-    }
-
-    if (reservation.source === "OTA" || reservation.source === "INTELLISTAY") {
-      // NOTE: Intellistay defaults to Walk-In or OTA now based on sync logic.
-      // If the source explicitly string-matches 'OTA', block it.
-      if (reservation.source.toUpperCase().includes("OTA")) {
-         return { success: false, error: "Points can only be redeemed for Walk-In bookings." };
-      }
-    }
-
-    const membership = reservation.guest.membership;
-    if (!membership) {
-      return { success: false, error: "Not a member." };
-    }
-
-    if (membership.points < pointsToRedeem) {
-      return { success: false, error: "Insufficient points balance." };
-    }
-
-    // Max redeem logic: 10% of totalAmount. (2 Points = 1 Rupee)
-    const maxRupees = reservation.totalAmount * 0.10;
-    const maxPoints = maxRupees * 2;
-
-    if (pointsToRedeem > maxPoints) {
-      return { success: false, error: `You can only redeem up to ${Math.floor(maxPoints)} points (10% of booking amount).` };
-    }
-
-    const rupeeDiscount = pointsToRedeem / 2;
-
-    // Deduct points
-    await prisma.membership.update({
-      where: { id: membership.id },
-      data: {
-        points: { decrement: pointsToRedeem },
-        transactions: {
-          create: {
-            amount: -pointsToRedeem,
-            type: "REDEMPTION",
-            description: `Redeemed ₹${rupeeDiscount} for Booking #${reservation.id.slice(-6).toUpperCase()}`
-          }
-        }
-      }
-    });
-
-    // Notify Front Desk via WhatsApp (simulated using event bus or direct twilio API)
-    // We will emit an event or create a ticket for Front Desk so they deduct it.
-    // For now, we will create a High priority ticket for the front desk.
-    
-    await prisma.ticket.create({
-      data: {
-        propertyId: reservation.propertyId,
-        unitId: reservation.unitId,
-        guestId: reservation.guestId,
-        reporterId: reservation.guestId,
-        reporterType: "GUEST",
-        category: "GUEST_REQUEST",
-        subcategory: "POINTS_REDEMPTION",
-        description: `URGENT: Guest ${reservation.guest.name} has redeemed ${pointsToRedeem} points (₹${rupeeDiscount} value).\nPlease deduct ₹${rupeeDiscount} from their total walk-in booking amount.`,
-        priority: "HIGH",
-        status: "OPEN",
-        slaDeadline: new Date(Date.now() + 1000 * 60 * 60) // 1 hour
-      }
-    });
-
-    // Notify Front Desk via WhatsApp
-    const { eventBus } = await import('@/lib/events/bus');
-    await eventBus.emit('POINTS_REDEEMED', {
-      guestId: reservation.guestId,
-      propertyId: reservation.propertyId,
-      reservationId: reservation.id,
-      pointsRedeemed: pointsToRedeem,
-      rupeeDiscount: rupeeDiscount
-    });
-
-    revalidatePath(`/stay`);
-    return { success: true, discount: rupeeDiscount };
-  } catch (error: any) {
-    console.error("[Redeem Points Error]", error);
-    return { success: false, error: error.message || "Failed to redeem points." };
+    return { success: false, error: "Failed to join membership." };
   }
 }

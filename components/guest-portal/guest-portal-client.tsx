@@ -47,7 +47,7 @@ export function GuestPortalClient({ reservation, whatsappNumber }: { reservation
         method: "POST"
       });
       if (res.ok) {
-        toast.success("Welcome to Ritumbhara Rewards! You've earned points for this stay.");
+        toast.success("Welcome to Ritumbhara Rewards! Points for this stay are added after check-out.");
         router.refresh();
       } else {
         toast.error("Failed to join membership. Please try again.");
@@ -338,13 +338,13 @@ export function GuestPortalClient({ reservation, whatsappNumber }: { reservation
               <div className="relative z-10">
                 <div className="flex items-center gap-2 mb-2">
                   <Crown className="w-5 h-5 text-yellow-400" />
-                  <span className="font-bold tracking-widest uppercase text-yellow-400 text-sm">{membership.tier} MEMBER</span>
+                  <span className="font-bold tracking-widest uppercase text-yellow-400 text-sm">{membership.tier === "SUPERSTAR" ? "Super Star" : membership.tier === "ROCKSTAR" ? "RockStar" : "Star"} Member</span>
                 </div>
                 <div className="flex items-end gap-3 mb-1">
                   <p className="text-4xl font-bold">{membership.points} <span className="text-lg font-medium text-gray-400">pts</span></p>
-                  <p className="text-sm font-medium text-emerald-400 mb-2">≈ ₹{Math.floor(membership.points / 2)} Value</p>
+                  <p className="text-sm font-medium text-emerald-400 mb-2">≈ ₹{Math.max(0, membership.points)} Value</p>
                 </div>
-                <p className="text-sm text-gray-300 mb-6">Redeem points for discounts on walk-in bookings.</p>
+                <p className="text-sm text-gray-300 mb-6">Earn 5 points per ₹100 on every stay — double when you book direct. 1 point = ₹1.</p>
                 
                 {/* Referral Code Box */}
                 <div className="bg-white/10 rounded-xl p-4 flex flex-col gap-2 backdrop-blur-sm border border-white/10 mb-6">
@@ -363,56 +363,14 @@ export function GuestPortalClient({ reservation, whatsappNumber }: { reservation
                       <Copy className="w-4 h-4" />
                     </button>
                   </div>
-                  <p className="text-xs text-gray-300">Share this code! They get 110 pts, you get 20 pts.</p>
+                  <p className="text-xs text-gray-300">Share this code. You both get 100 points after their first completed stay.</p>
                 </div>
 
-                {/* Redeem Section */}
-                {reservation.source !== "OTA" ? (
-                  <div className="bg-white/5 rounded-xl p-4 border border-white/10 mb-6">
-                    <h4 className="font-semibold text-sm mb-2">Redeem Points (Max 10% of booking)</h4>
-                    <form 
-                      onSubmit={async (e) => {
-                        e.preventDefault();
-                        const form = new FormData(e.currentTarget);
-                        const pts = parseInt(form.get("points") as string);
-                        if (!pts || pts <= 0) return;
-                        
-                        setIsJoining(true);
-                        const { redeemPoints } = await import("@/app/actions/membership");
-                        const res = await redeemPoints(reservation.id, pts);
-                        setIsJoining(false);
-                        
-                        if (res.success) {
-                          toast.success(`Redeemed! ₹${res.discount} has been deducted from your bill.`);
-                          router.refresh();
-                        } else {
-                          toast.error(res.error);
-                        }
-                      }}
-                      className="flex gap-2"
-                    >
-                      <input 
-                        type="number" 
-                        name="points" 
-                        placeholder="Points" 
-                        max={membership.points}
-                        className="bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-sm w-24 outline-none focus:border-rose-400"
-                        required
-                      />
-                      <button 
-                        type="submit"
-                        disabled={isJoining || membership.points <= 0}
-                        className="flex-1 bg-rose-600 hover:bg-rose-700 text-white font-semibold py-2 rounded-lg text-sm disabled:opacity-50 transition-colors"
-                      >
-                        {isJoining ? "Processing..." : "Redeem Now"}
-                      </button>
-                    </form>
-                  </div>
-                ) : (
-                  <div className="bg-white/5 rounded-xl p-3 border border-white/10 mb-6 text-sm text-gray-300 text-center">
-                    Points redemption is only available for Direct Walk-in bookings.
-                  </div>
-                )}
+                {/* Redemption is staff-initiated and confirmed with a WhatsApp code (Ritumbhara OS). */}
+                <div className="bg-white/5 rounded-xl p-4 border border-white/10 mb-6 text-sm text-gray-300">
+                  To use your points, ask the front desk. We&apos;ll send a code to your WhatsApp to confirm the redemption.
+                  <a href="/member" className="mt-3 flex items-center justify-center rounded-lg bg-white/10 hover:bg-white/20 py-2 font-semibold text-white transition-colors">Open my membership</a>
+                </div>
 
                 {/* Transaction History */}
                 <div>
@@ -448,7 +406,7 @@ export function GuestPortalClient({ reservation, whatsappNumber }: { reservation
                   </div>
                   <div>
                     <h4 className="font-bold text-gray-900 mb-1">Join Ritumbhara Rewards</h4>
-                    <p className="text-sm text-gray-600">Get 100 bonus points instantly, earn on referrals, and redeem for discounts!</p>
+                    <p className="text-sm text-gray-600">Free to join. Earn points on every stay (double when you book direct), plus birthday, anniversary and referral bonuses.</p>
                   </div>
                 </div>
 
@@ -459,10 +417,11 @@ export function GuestPortalClient({ reservation, whatsappNumber }: { reservation
                     const form = new FormData(e.currentTarget);
                     const refCode = form.get("referralCode") as string;
                     const { joinMembership } = await import("@/app/actions/membership");
-                    const res = await joinMembership(reservation.guest.id, refCode);
+                    const res = await joinMembership(reservation.id, refCode);
                     setIsJoining(false);
                     if (res.success) {
-                      toast.success("Welcome to Ritumbhara Rewards! 🎉");
+                      toast.success("Welcome to Ritumbhara Rewards!");
+                      if (res.warning) toast.error(res.warning);
                       router.refresh();
                     } else {
                       toast.error(res.error || "Failed to join.");

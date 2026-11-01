@@ -40,12 +40,15 @@ export function GuestProfileClient({ guest, totalSpend, totalStays }: { guest: a
           <h2 className="text-xl font-bold">{guest.name}</h2>
           
           {guest.membership ? (
+            <>
             <div className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-violet-50 text-violet-700 dark:bg-violet-500/10 dark:text-violet-400 border border-violet-200/60 dark:border-violet-500/20 text-xs font-semibold">
               <svg className="h-3 w-3 fill-violet-700 dark:fill-violet-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
                 <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clipRule="evenodd" />
               </svg>
-              {guest.membership.tier} MEMBER
+              {guest.membership.tier === "SUPERSTAR" ? "SUPER STAR" : guest.membership.tier} MEMBER
             </div>
+            <a href={`/loyalty/${guest.membership.id}`} className="mt-2 text-xs font-semibold text-primary hover:underline">{tr("View loyalty profile")}</a>
+            </>
           ) : (
             <span className="text-xs text-muted-foreground italic mt-2">{tr("No Membership")}</span>
           )}

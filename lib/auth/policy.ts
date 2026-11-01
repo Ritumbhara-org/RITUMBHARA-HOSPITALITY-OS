@@ -7,6 +7,8 @@
 //   /api/whatsapp/webhook  - Twilio's inbound webhook (machine-to-machine)
 //   /sign/<token>          - a guest e-signs their Long Stay agreement (shows only that one agreement)
 //   /api/sign/<token>/...  - that signing page's OTP, sign and signed-PDF endpoints (same one agreement only)
+//   /member                - the loyalty member portal (WhatsApp OTP sign-in; shows only the signed-in member's own data)
+//   /api/member/...        - that portal's OTP, logout, profile and referral endpoints (member session checked inside)
 //
 // Machine-only (no admin session, but a server-side secret is required):
 //   /api/cron/...          - scheduled jobs; need "Authorization: Bearer <CRON_SECRET>" (lib/auth/cron.ts),
@@ -22,8 +24,8 @@
 //   /api/instagram/webhook     - Meta's Instagram DM webhook (machine-to-machine; verifies X-Hub-Signature-256 itself and
 //                            refuses everything when no Instagram/Meta app secret and verify token are set)
 //   /api/whatsapp/meta-audit   - read-only Meta audit; 404 everywhere except Preview with a matching META_AUDIT_KEY
-const PUBLIC_EXACT = new Set(["/login", "/api/whatsapp/webhook", "/api/whatsapp/meta-webhook", "/api/whatsapp/meta-audit", "/api/instagram/webhook"])
-const PUBLIC_PREFIXES = ["/stay/", "/api/stay/", "/sign/", "/api/sign/"]
+const PUBLIC_EXACT = new Set(["/login", "/member", "/api/whatsapp/webhook", "/api/whatsapp/meta-webhook", "/api/whatsapp/meta-audit", "/api/instagram/webhook"])
+const PUBLIC_PREFIXES = ["/stay/", "/api/stay/", "/sign/", "/api/sign/", "/api/member/"]
 const CRON_PREFIX = "/api/cron/"
 // Machine endpoints that authenticate themselves with their own secret (no admin session needed or used).
 const SELF_AUTHENTICATED_MACHINE_PATHS = new Set(["/api/inbox/inbound-email"])
