@@ -28,8 +28,8 @@ export default async function GuestsPage() {
   
   // Calculate VIPs (let's say Platinum or Diamond tier, or highest spenders)
   const vipCount = guests.filter(g => 
-    g.membership?.tier === 'PLATINUM' || 
-    g.membership?.tier === 'DIAMOND'
+    g.membership?.tier === 'ROCKSTAR' ||
+    g.membership?.tier === 'SUPERSTAR'
   ).length
 
   // Calculate active stays right now
