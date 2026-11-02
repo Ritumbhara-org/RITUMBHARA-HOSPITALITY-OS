@@ -8,6 +8,7 @@ import {
   MessageSquare,
   Inbox,
   Globe,
+  SearchCheck,
   ShieldCheck,
   Package,
   LineChart,
@@ -40,6 +41,7 @@ export const navigation: NavItem[] = [
   { name: "Inbox", href: "/inbox", icon: Inbox },
   { name: "WhatsApp", href: "/whatsapp", icon: MessageSquare },
   { name: "SEO Tools", href: "/seo", icon: Globe },
+  { name: "Website Audit", href: "/seo-audit", icon: SearchCheck },
 ]
 
 // The four sections staff open most on a phone get a tab in the bottom bar; everything else is under "More".
