@@ -88,10 +88,15 @@ model Property {
   googleMapsUrl String?
   wifiNetwork   String?
   wifiPassword  String?
+  // Which system owns this property's reservations. INTELLISTAY (default): the IntelliStay sync, unchanged.
+  // NATIVE: the OS calendar + Channex. A property is switched by hand, never automatically.
+  pmsMode   PmsMode  @default(INTELLISTAY)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   units            Unit[]
+  roomTypes        RoomType[]
+  channelConnections ChannelConnection[]
   reservations     Reservation[]
   teamMembers      TeamMember[]
   tickets          Ticket[]
@@ -124,7 +129,10 @@ model Unit {
   createdAt         DateTime   @default(now())
   updatedAt         DateTime   @updatedAt
 
+  roomTypeId        String?
+
   property          Property           @relation(fields: [propertyId], references: [id])
+  roomType          RoomType?          @relation(fields: [roomTypeId], references: [id])
   reservations      Reservation[]
   tickets           Ticket[]
   housekeepingTasks HousekeepingTask[]
@@ -132,6 +140,7 @@ model Unit {
 
   @@index([propertyId])
   @@index([status])
+  @@index([roomTypeId])
 }
 
 model Guest {
@@ -172,12 +181,24 @@ model Reservation {
   refundedAmount           Float    @default(0)
   paidAmount               Float?
   paymentStatus            String?
+  // Native PMS / Channex fields. Null on IntelliStay reservations.
+  channexBookingId         String?
+  otaName                  String?
+  otaReservationCode       String?
+  nightlyRates             Json?
+  roomTypeId               String?
+  // True when an OTA booking arrived and no room was free: it is kept, flagged, never dropped.
+  overbooked               Boolean  @default(false)
+  // Set when an OTA sent a modification that a human must reconcile.
+  reviewNote               String?
   createdAt                DateTime @default(now())
   updatedAt                DateTime @updatedAt
 
   guest    Guest    @relation(fields: [guestId], references: [id])
   unit     Unit     @relation(fields: [unitId], references: [id])
   property Property @relation(fields: [propertyId], references: [id])
+  roomType RoomType? @relation(fields: [roomTypeId], references: [id])
+  invoices Invoice[]
   inboxConversations InboxConversation[]
   pointTransactions  PointTransaction[]
 
@@ -187,6 +208,8 @@ model Reservation {
   @@index([status])
   @@index([checkIn])
   @@index([checkOut])
+  @@index([channexBookingId])
+  @@index([roomTypeId])
 }
 
 model TeamMember {
@@ -799,4 +822,145 @@ model LongStayAgreement {
 
   @@index([bookingId])
   @@index([status])
+}
+
+
+// ---------------------------------------------------------------------------
+// Native PMS + Channex (phase 1). All additive; IntelliStay properties are unaffected.
+// ---------------------------------------------------------------------------
+
+enum PmsMode {
+  INTELLISTAY
+  NATIVE
+}
+
+// Channex sells room types with a count of rooms, not individual rooms.
+model RoomType {
+  id               String   @id @default(cuid())
+  propertyId       String
+  title            String
+  countOfRooms     Int
+  occAdults        Int      @default(2)
+  occChildren      Int      @default(0)
+  occInfants       Int      @default(0)
+  defaultOccupancy Int      @default(2)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  property     Property      @relation(fields: [propertyId], references: [id])
+  units        Unit[]
+  ratePlans    RatePlan[]
+  reservations Reservation[]
+
+  @@unique([propertyId, title])
+  @@index([propertyId])
+}
+
+model RatePlan {
+  id         String   @id @default(cuid())
+  roomTypeId String
+  title      String
+  currency   String   @default("INR")
+  // Rupees. The price used for any date without a RateCell override.
+  baseRate   Float
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  roomType  RoomType   @relation(fields: [roomTypeId], references: [id])
+  rateCells RateCell[]
+
+  @@unique([roomTypeId, title])
+  @@index([roomTypeId])
+}
+
+// A per-date override of a rate plan. A null field means "no override, use the plan default / leave as is".
+model RateCell {
+  id                String   @id @default(cuid())
+  ratePlanId        String
+  // Plain calendar date YYYY-MM-DD in the property's time zone.
+  date              String   @db.VarChar(10)
+  rate              Float?
+  minStay           Int?
+  stopSell          Boolean?
+  closedToArrival   Boolean?
+  closedToDeparture Boolean?
+  // Set when the cell changed locally and has not been pushed to Channex yet.
+  pushedAt          DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  ratePlan RatePlan @relation(fields: [ratePlanId], references: [id], onDelete: Cascade)
+
+  @@unique([ratePlanId, date])
+  @@index([date])
+}
+
+// Local id <-> Channex UUID. kind: property | room_type | rate_plan | booking | channel.
+// Booking keys for multi-room bookings use "<bookingId>#<n>" for rooms after the first.
+model ChannexMapping {
+  id        String   @id @default(cuid())
+  kind      String
+  localId   String
+  channexId String
+  createdAt DateTime @default(now())
+
+  @@unique([kind, localId])
+  @@index([kind, channexId])
+}
+
+// Audit and dedupe log of every revision pulled from Channex.
+model ChannexRevision {
+  id         String    @id @default(cuid())
+  revisionId String    @unique
+  bookingId  String
+  status     String
+  outcome    String?
+  error      String?
+  receivedAt DateTime  @default(now())
+  appliedAt  DateTime?
+
+  @@index([bookingId])
+}
+
+// An OTA listing connected to a property through Channex.
+model ChannelConnection {
+  id               String   @id @default(cuid())
+  propertyId       String
+  // Channex channel code, e.g. BookingCom, Airbnb.
+  otaCode          String
+  // The OTA's own property id (e.g. Booking.com extranet hotel id).
+  otaHotelId       String
+  channexChannelId String?
+  // INACTIVE (created, not live) | ACTIVE | ERROR
+  status           String   @default("INACTIVE")
+  lastError        String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  property Property @relation(fields: [propertyId], references: [id])
+
+  @@unique([propertyId, otaCode, otaHotelId])
+  @@index([propertyId])
+}
+
+model Invoice {
+  id            String   @id @default(cuid())
+  reservationId String
+  // Sequential per financial year, e.g. RTB/2026-27/0001. Numbering rules need accountant sign-off.
+  number        String   @unique
+  issuedAt      DateTime @default(now())
+  billToName    String
+  billToGstin   String?
+  placeOfSupply String?
+  // Rupees.
+  taxableAmount Float
+  taxAmount     Float
+  totalAmount   Float
+  // [{ label, ratePercent, amount }]
+  taxLines      Json     @default("[]")
+  createdAt     DateTime @default(now())
+
+  reservation Reservation @relation(fields: [reservationId], references: [id])
+
+  @@index([reservationId])
 }
