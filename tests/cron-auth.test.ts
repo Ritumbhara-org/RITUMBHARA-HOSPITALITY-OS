@@ -201,6 +201,7 @@ const INTENTIONALLY_PUBLIC: Record<string, string> = {
 
 // Machine-only routes that check their own secret first (no admin session). See tests/inbox-auth.test.ts.
 const SELF_AUTHENTICATED_MACHINE: Record<string, RegExp> = {
+  "app/api/channex/webhook/route.ts": /^\s*const auth = checkWebhookSecret\([^\r\n]*\)\s*\r?\n\s*if \(auth === "unconfigured"\) return NextResponse\.json\([^\r\n]*status: 503[^\r\n]*\)\s*\r?\n\s*if \(auth === "unauthorized"\) return NextResponse\.json\([^\r\n]*status: 401/,
   "app/api/inbox/inbound-email/route.ts": /^\s*if \(!process\.env\.INBOX_WEBHOOK_SECRET\) \{[\s\S]{0,160}status: 503[\s\S]{0,40}\}\s*\r?\n\s*if \(!authorized\(request\)\) \{[\s\S]{0,120}status: 401/,
 }
 

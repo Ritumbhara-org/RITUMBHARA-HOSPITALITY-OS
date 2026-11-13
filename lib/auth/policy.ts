@@ -13,6 +13,8 @@
 // Machine-only (no admin session, but a server-side secret is required):
 //   /api/cron/...          - scheduled jobs; need "Authorization: Bearer <CRON_SECRET>" (lib/auth/cron.ts),
 //                            refused outright when CRON_SECRET is not configured
+//   /api/channex/webhook   - Channex booking notifications; the route requires header x-channex-secret = CHANNEX_WEBHOOK_SECRET
+//                            and refuses every request when it is not configured
 //   /api/inbox/inbound-email - inbound OTA/guest emails for the unified inbox; the route itself requires
 //                            INBOX_WEBHOOK_SECRET and refuses every request when it is not configured
 
@@ -24,7 +26,7 @@
 //   /api/instagram/webhook     - Meta's Instagram DM webhook (machine-to-machine; verifies X-Hub-Signature-256 itself and
 //                            refuses everything when no Instagram/Meta app secret and verify token are set)
 //   /api/whatsapp/meta-audit   - read-only Meta audit; 404 everywhere except Preview with a matching META_AUDIT_KEY
-const PUBLIC_EXACT = new Set(["/login", "/member", "/api/whatsapp/webhook", "/api/whatsapp/meta-webhook", "/api/whatsapp/meta-audit", "/api/instagram/webhook"])
+const PUBLIC_EXACT = new Set(["/login", "/member", "/api/whatsapp/webhook", "/api/whatsapp/meta-webhook", "/api/whatsapp/meta-audit", "/api/instagram/webhook", "/api/channex/webhook"])
 const PUBLIC_PREFIXES = ["/stay/", "/api/stay/", "/sign/", "/api/sign/", "/api/member/"]
 const CRON_PREFIX = "/api/cron/"
 // Machine endpoints that authenticate themselves with their own secret (no admin session needed or used).
