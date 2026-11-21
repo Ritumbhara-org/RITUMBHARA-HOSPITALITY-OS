@@ -130,6 +130,8 @@ model Unit {
   tickets           Ticket[]
   housekeepingTasks HousekeepingTask[]
   hkTurnovers       HkTurnover[]
+  hkExemptions      HkExemption[]
+  hkStayRatings     HkStayRating[]
   longStayBookings  LongStayBooking[]
 
   @@index([propertyId])
@@ -853,8 +855,11 @@ model HkUser {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
-  assignments HkAssignment[]
-  turnovers   HkTurnover[]
+  assignments    HkAssignment[]
+  turnovers      HkTurnover[]
+  exemptions     HkExemption[]
+  stayRatings    HkStayRating[]
+  bonusDecisions HkBonusDecision[]
 }
 
 model HkAssignment {
@@ -919,6 +924,8 @@ model HkTurnover {
   checkOutLat       Float?
   checkOutLng       Float?
   checkOutAccuracyM Float?
+  reviewNote        String?          @db.Text
+  reviewedAt        DateTime?
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
 
@@ -954,4 +961,61 @@ model HkSubmission {
 
   @@index([turnoverId])
   @@index([areaId])
+}
+
+enum HkExemptionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// "Guest already present": the housekeeper could not turn the unit over today.
+model HkExemption {
+  id           String            @id @default(cuid())
+  unitId       String
+  hkUserId     String
+  day          DateTime // start of the day (IST) the exemption is for
+  reason       String            @db.Text
+  status       HkExemptionStatus @default(PENDING)
+  decisionNote String?           @db.Text
+  decidedAt    DateTime?
+  createdAt    DateTime          @default(now())
+
+  unit   Unit   @relation(fields: [unitId], references: [id])
+  hkUser HkUser @relation(fields: [hkUserId], references: [id])
+
+  @@index([status])
+  @@index([hkUserId, day])
+  @@index([unitId, day])
+}
+
+// A guest review score entered by the admin for a stay the housekeeper cleaned for.
+model HkStayRating {
+  id        String   @id @default(cuid())
+  unitId    String
+  hkUserId  String
+  month     String // "YYYY-MM" the stay counts toward
+  rating    Int // 1 to 5
+  note      String?
+  createdAt DateTime @default(now())
+
+  unit   Unit   @relation(fields: [unitId], references: [id])
+  hkUser HkUser @relation(fields: [hkUserId], references: [id])
+
+  @@index([hkUserId, month])
+}
+
+// Admin override of the computed monthly bonus (genuine accident, etc.). The reason is required.
+model HkBonusDecision {
+  id        String   @id @default(cuid())
+  hkUserId  String
+  month     String
+  awarded   Boolean
+  reason    String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  hkUser HkUser @relation(fields: [hkUserId], references: [id])
+
+  @@unique([hkUserId, month])
 }

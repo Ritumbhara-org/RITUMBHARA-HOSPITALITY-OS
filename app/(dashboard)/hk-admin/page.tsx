@@ -64,7 +64,6 @@ export default async function HkAdminHome() {
             </div>
           ))}
         </div>
-        <p className="text-xs text-muted-foreground">Review, approval, exemptions and the monthly tracker come in the next steps.</p>
       </section>
     </div>
   )

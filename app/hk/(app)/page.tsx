@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma"
 import { requireHk } from "@/lib/hk/session"
 import { startOfDayIST } from "@/lib/hk/time"
+import { ExemptionButton } from "@/components/hk/exemption-button"
 import { StartTurnoverButton } from "@/components/hk/start-turnover-button"
 import Link from "next/link"
 
@@ -24,7 +25,7 @@ export default async function HkHomePage() {
   })
   const propertyIds = assignments.map((a) => a.location.propertyId)
 
-  const [units, turnovers] = await Promise.all([
+  const [units, turnovers, exemptions] = await Promise.all([
     prisma.unit.findMany({
       where: { propertyId: { in: propertyIds } },
       orderBy: [{ floor: "asc" }, { name: "asc" }],
@@ -33,7 +34,12 @@ export default async function HkHomePage() {
     prisma.hkTurnover.findMany({
       where: { hkUserId: hk.id, checkInAt: { gte: startOfDayIST() } },
       orderBy: { checkInAt: "desc" },
-      select: { id: true, unitId: true, status: true },
+      select: { id: true, unitId: true, status: true, reviewNote: true },
+    }),
+    prisma.hkExemption.findMany({
+      where: { hkUserId: hk.id, day: startOfDayIST() },
+      orderBy: { createdAt: "desc" },
+      select: { unitId: true, status: true, decisionNote: true },
     }),
   ])
 
@@ -54,21 +60,31 @@ export default async function HkHomePage() {
                 const mine = turnovers.filter((t) => t.unitId === u.id)
                 const open = mine.find((t) => t.status === "IN_PROGRESS")
                 const latest = mine[0]
+                const ex = exemptions.find((x) => x.unitId === u.id)
+                const exempt = ex?.status === "APPROVED"
                 return (
-                  <div key={u.id} className="flex items-center justify-between gap-3 p-3">
+                  <div key={u.id} className="flex flex-wrap items-center justify-between gap-3 p-3">
                     <div>
                       <p className="text-sm font-medium">{u.name}</p>
                       <p className="text-xs text-muted-foreground">
                         {u.type}
                         {latest ? ` · Today: ${STATUS_LABEL[latest.status] ?? latest.status}` : ""}
+                        {ex ? ` · Guest present: ${ex.status === "PENDING" ? "waiting for manager" : ex.status === "APPROVED" ? "approved" : "not approved"}` : ""}
                       </p>
+                      {latest?.status === "REJECTED" && latest.reviewNote && <p className="text-xs text-red-600">Manager: {latest.reviewNote}</p>}
+                      {ex?.status === "REJECTED" && ex.decisionNote && <p className="text-xs text-red-600">Manager: {ex.decisionNote}</p>}
                     </div>
-                    {open ? (
+                    {exempt ? (
+                      <span className="text-xs text-muted-foreground">Excused today</span>
+                    ) : open ? (
                       <Link href={`/hk/turnover/${open.id}`} className="text-sm underline">
                         Continue
                       </Link>
                     ) : (
-                      <StartTurnoverButton locationId={location.id} unitId={u.id} resume={false} />
+                      <div className="flex gap-2">
+                        <StartTurnoverButton locationId={location.id} unitId={u.id} resume={false} />
+                        {(!ex || ex.status === "REJECTED") && <ExemptionButton locationId={location.id} unitId={u.id} />}
+                      </div>
                     )}
                   </div>
                 )

@@ -5,6 +5,9 @@ export default async function HkAdminLayout({ children }: { children: React.Reac
   await requireAdminPage("/hk-admin")
   const links = [
     { href: "/hk-admin", label: "Overview" },
+    { href: "/hk-admin/review", label: "Review" },
+    { href: "/hk-admin/exemptions", label: "Guest present" },
+    { href: "/hk-admin/tracker", label: "Tracker" },
     { href: "/hk-admin/locations", label: "Locations" },
     { href: "/hk-admin/housekeepers", label: "Housekeepers" },
     { href: "/hk-admin/checklists", label: "Checklists" },

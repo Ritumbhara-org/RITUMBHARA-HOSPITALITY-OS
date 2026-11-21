@@ -358,7 +358,7 @@ test("signed out: every admin server action throws before touching the database"
       await assert.rejects((impl as (...a: unknown[]) => Promise<unknown>)(fd, fd, fd), (err: unknown) => err instanceof Error && err.name === "UnauthorizedError", name + "." + fn)
     }
   }
-  assert.ok(called >= 54, "checked " + called + " actions") // 24 OS actions + 9 Inbox actions + 10 Loyalty actions
+  assert.ok(called >= 61, "checked " + called + " actions") // 24 OS actions + 9 Inbox actions + 10 Loyalty actions
   assert.deepEqual(prismaTouches, [])
 })
 

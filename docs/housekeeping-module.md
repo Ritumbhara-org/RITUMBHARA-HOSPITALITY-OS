@@ -6,7 +6,7 @@ Design: see the project doc `housekeeping-checklist-design`.
 
 ## Status
 
-Built: steps 1 to 3 (login and access, checklists, housekeeper capture flow).
+Built: login and access, checklists, housekeeper capture flow, admin review, guest-already-present exemptions, monthly tracker with strict bonus rule, stay reviews and admin overrides.
 Not built yet: admin review and approval, daily and monthly tracker, guest-present exemptions, stay ratings and bonus.
 
 ## Where things live
@@ -49,3 +49,10 @@ Not built yet: admin review and approval, daily and monthly tracker, guest-prese
 - Location can be faked on a phone. It is recorded as a signal for the reviewer, not as proof.
 - Uploads retry on a weak network, but there is no offline queue yet. The phone needs a connection to finish an upload.
 - No PWA install prompt yet.
+
+## Review, exemptions and bonus
+
+- `/hk-admin/review`: submitted turnovers with every photo and video. Approve, reject (reason required) or send back for a redo (reopens it for the housekeeper).
+- Guest already present: the housekeeper taps "Guest present" on a unit and gives a reason. The admin approves or rejects at `/hk-admin/exemptions`. Approved means excused for that unit and day.
+- `/hk-admin/tracker?month=YYYY-MM`: per housekeeper turnover counts, reviews and the bonus result. Rule (`lib/hk/bonus.ts`, tested): any rejected turnover, or any review below 5 stars, fails the whole month; stays with no review do not count against them; unreviewed turnovers keep the month pending. Admin enters guest review scores by hand; an override needs a reason and is shown on the tracker. A warning shows checkouts (from reservations) with no turnover or exemption logged. It does not fail the bonus by itself.
+- Not built yet: offline upload queue, private media storage, automatic import of Airbnb review scores.

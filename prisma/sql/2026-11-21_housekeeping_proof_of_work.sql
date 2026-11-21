@@ -1,6 +1,6 @@
 -- Housekeeping proof-of-work module (HK sign-in, locations, checklists, turnovers, media submissions).
--- Same result as `npx prisma db push` for this change. Purely additive: new enums and new tables only,
--- no existing table is altered. Safe to run more than once. Run it BEFORE deploying the code.
+-- Same result as `npx prisma db push` for this change. Purely additive: new enums, new tables and two new
+-- nullable columns on HkTurnover (itself new in this release). Safe to run more than once. Run it BEFORE deploying the code.
 
 BEGIN;
 
@@ -134,5 +134,60 @@ DO $$ BEGIN ALTER TABLE "HkTurnover" ADD CONSTRAINT "HkTurnover_hkUserId_fkey" F
 DO $$ BEGIN ALTER TABLE "HkTurnover" ADD CONSTRAINT "HkTurnover_templateId_fkey" FOREIGN KEY ("templateId") REFERENCES "HkChecklistTemplate"("id") ON DELETE RESTRICT ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN ALTER TABLE "HkSubmission" ADD CONSTRAINT "HkSubmission_turnoverId_fkey" FOREIGN KEY ("turnoverId") REFERENCES "HkTurnover"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN ALTER TABLE "HkSubmission" ADD CONSTRAINT "HkSubmission_areaId_fkey" FOREIGN KEY ("areaId") REFERENCES "HkChecklistArea"("id") ON DELETE RESTRICT ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- ---------- Review, exemptions, ratings, bonus decisions ----------
+ALTER TABLE "HkTurnover" ADD COLUMN IF NOT EXISTS "reviewNote" TEXT;
+ALTER TABLE "HkTurnover" ADD COLUMN IF NOT EXISTS "reviewedAt" TIMESTAMP(3);
+
+DO $$ BEGIN
+  CREATE TYPE "HkExemptionStatus" AS ENUM ('PENDING', 'APPROVED', 'REJECTED');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+CREATE TABLE IF NOT EXISTS "HkExemption" (
+  "id" TEXT NOT NULL,
+  "unitId" TEXT NOT NULL,
+  "hkUserId" TEXT NOT NULL,
+  "day" TIMESTAMP(3) NOT NULL,
+  "reason" TEXT NOT NULL,
+  "status" "HkExemptionStatus" NOT NULL DEFAULT 'PENDING',
+  "decisionNote" TEXT,
+  "decidedAt" TIMESTAMP(3),
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "HkExemption_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "HkStayRating" (
+  "id" TEXT NOT NULL,
+  "unitId" TEXT NOT NULL,
+  "hkUserId" TEXT NOT NULL,
+  "month" TEXT NOT NULL,
+  "rating" INTEGER NOT NULL,
+  "note" TEXT,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "HkStayRating_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "HkBonusDecision" (
+  "id" TEXT NOT NULL,
+  "hkUserId" TEXT NOT NULL,
+  "month" TEXT NOT NULL,
+  "awarded" BOOLEAN NOT NULL,
+  "reason" TEXT NOT NULL,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMP(3) NOT NULL,
+  CONSTRAINT "HkBonusDecision_pkey" PRIMARY KEY ("id")
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS "HkBonusDecision_hkUserId_month_key" ON "HkBonusDecision"("hkUserId", "month");
+CREATE INDEX IF NOT EXISTS "HkExemption_status_idx" ON "HkExemption"("status");
+CREATE INDEX IF NOT EXISTS "HkExemption_hkUserId_day_idx" ON "HkExemption"("hkUserId", "day");
+CREATE INDEX IF NOT EXISTS "HkExemption_unitId_day_idx" ON "HkExemption"("unitId", "day");
+CREATE INDEX IF NOT EXISTS "HkStayRating_hkUserId_month_idx" ON "HkStayRating"("hkUserId", "month");
+
+DO $$ BEGIN ALTER TABLE "HkExemption" ADD CONSTRAINT "HkExemption_unitId_fkey" FOREIGN KEY ("unitId") REFERENCES "Unit"("id") ON DELETE RESTRICT ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN ALTER TABLE "HkExemption" ADD CONSTRAINT "HkExemption_hkUserId_fkey" FOREIGN KEY ("hkUserId") REFERENCES "HkUser"("id") ON DELETE RESTRICT ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN ALTER TABLE "HkStayRating" ADD CONSTRAINT "HkStayRating_unitId_fkey" FOREIGN KEY ("unitId") REFERENCES "Unit"("id") ON DELETE RESTRICT ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN ALTER TABLE "HkStayRating" ADD CONSTRAINT "HkStayRating_hkUserId_fkey" FOREIGN KEY ("hkUserId") REFERENCES "HkUser"("id") ON DELETE RESTRICT ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN ALTER TABLE "HkBonusDecision" ADD CONSTRAINT "HkBonusDecision_hkUserId_fkey" FOREIGN KEY ("hkUserId") REFERENCES "HkUser"("id") ON DELETE RESTRICT ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 COMMIT;

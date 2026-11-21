@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma"
 import { assertHk } from "@/lib/hk/session"
 import { checkGeofence, type GeofenceResult } from "@/lib/hk/geo"
 import { isCaptureTimeValid, missingRequirements, pickTemplate } from "@/lib/hk/checklist"
+import { startOfDayIST } from "@/lib/hk/time"
 import { MAX_IMAGE_BYTES, MAX_VIDEO_BYTES, MAX_VIDEO_SECONDS, isOwnedMediaUrl, kindFromMime, proofPrefix } from "@/lib/hk/media"
 
 type Fix = { lat: number; lng: number; accuracyM?: number | null }
@@ -211,5 +212,35 @@ export async function finishTurnover(turnoverId: string, rawFix: Fix): Promise<R
     return { success: true }
   } catch (e) {
     return fail(e, "Could not submit.")
+  }
+}
+
+// ── Guest already present ────────────────────────────────────
+
+export async function raiseExemption(locationId: string, unitId: string, reason: string): Promise<Result> {
+  try {
+    const hk = await assertHk()
+    const text = String(reason ?? "").trim()
+    if (text.length < 3) throw new Error("Say why you could not clean the unit.")
+    if (text.length > 500) throw new Error("Keep the reason under 500 characters.")
+
+    const assignment = await prisma.hkAssignment.findUnique({
+      where: { hkUserId_locationId: { hkUserId: hk.id, locationId } },
+      include: { location: true },
+    })
+    if (!assignment || !assignment.location.isActive) throw new Error("You are not assigned to this location.")
+    const unit = await prisma.unit.findFirst({ where: { id: unitId, propertyId: assignment.location.propertyId }, select: { id: true } })
+    if (!unit) throw new Error("This unit is not at this location.")
+
+    const day = startOfDayIST()
+    const existing = await prisma.hkExemption.findFirst({ where: { hkUserId: hk.id, unitId, day, status: { in: ["PENDING", "APPROVED"] } }, select: { id: true } })
+    if (existing) throw new Error("You already raised this for today.")
+
+    await prisma.hkExemption.create({ data: { hkUserId: hk.id, unitId, day, reason: text } })
+    revalidatePath("/hk")
+    revalidatePath("/hk-admin", "layout")
+    return { success: true }
+  } catch (e) {
+    return fail(e, "Could not send the request.")
   }
 }
