@@ -315,12 +315,21 @@ test("public path list is exactly the intended set", () => {
   assert.equal(isPublicPath("/member/../loyalty"), false)
   assert.equal(isPublicPath("/api/member"), false)
   assert.equal(isPublicPath("/loyalty"), false)
+  assert.equal(isPublicPath("/hk"), true)
+  assert.equal(isPublicPath("/hk/login"), true)
+  assert.equal(isPublicPath("/hk/turnover/abc"), true)
+  assert.equal(isPublicPath("/api/hk/upload"), true)
+  assert.equal(isPublicPath("/hk-admin"), false)
+  assert.equal(isPublicPath("/hk-admin/locations"), false)
+  assert.equal(isPublicPath("/hkx"), false)
+  assert.equal(isPublicPath("/api/hk"), false)
   assert.equal(isPublicPath("/api/loyalty/export"), false)
 })
 
 // ---------- every admin server action and API route refuses unauthenticated calls ----------
 
-const ADMIN_ACTION_FILES = ["units", "operations", "guests", "locations", "inventory", "whatsapp", "reservations", "team", "inbox", "loyalty"]
+const ADMIN_ACTION_FILES = ["units", "operations", "guests", "locations", "inventory", "whatsapp", "reservations", "team", "inbox", "loyalty", "hk-admin"]
+const SELF_AUTH_ACTION_FILES = new Set(["auth.ts", "hk-auth.ts", "hk.ts"]) // admin login; housekeeper login/logout; actions guarded by the HK session (tests/hk-auth.test.ts)
 const PUBLIC_ACTIONS = new Set(["membership.ts:joinMembership"]) // guest portal: enrol only, never credits or redeems points
 
 test("every server action file is either admin-guarded or an approved public guest action", () => {
@@ -329,7 +338,7 @@ test("every server action file is either admin-guarded or an approved public gue
     const fns = Array.from(src.matchAll(/^export async function (\w+)/gm)).map((m) => m[1])
     for (const fn of fns) {
       const key = f + ":" + fn
-      if (PUBLIC_ACTIONS.has(key) || f === "auth.ts") continue
+      if (PUBLIC_ACTIONS.has(key) || SELF_AUTH_ACTION_FILES.has(f)) continue
       const body = src.slice(src.indexOf("export async function " + fn))
       const firstLines = body.split("\n").slice(0, 14).join("\n")
       assert.match(firstLines, /await requireAdmin\(\)|await getAdminSession\(\)/, key + " has no admin check at the top")
@@ -349,7 +358,7 @@ test("signed out: every admin server action throws before touching the database"
       await assert.rejects((impl as (...a: unknown[]) => Promise<unknown>)(fd, fd, fd), (err: unknown) => err instanceof Error && err.name === "UnauthorizedError", name + "." + fn)
     }
   }
-  assert.ok(called >= 43, "checked " + called + " actions") // 24 OS actions + 9 Inbox actions + 10 Loyalty actions
+  assert.ok(called >= 61, "checked " + called + " actions") // 24 OS actions + 9 Inbox actions + 10 Loyalty actions
   assert.deepEqual(prismaTouches, [])
 })
 
