@@ -96,6 +96,7 @@ model Property {
   teamMembers      TeamMember[]
   tickets          Ticket[]
   housekeepingTasks HousekeepingTask[]
+  hkLocations      HkLocation[]
   inventoryItems   InventoryItem[]
   knowledgeBase    LocationKnowledge?
   agentActionLogs  AgentActionLog[]
@@ -125,6 +126,7 @@ model Unit {
   reservations      Reservation[]
   tickets           Ticket[]
   housekeepingTasks HousekeepingTask[]
+  hkTurnovers       HkTurnover[]
 
   @@index([propertyId])
   @@index([status])
@@ -384,4 +386,157 @@ model AgentActionLog {
   @@index([agentName])
   @@index([actionType])
   @@index([propertyId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Housekeeping proof-of-work module (attendance + bonus)
+// Separate from HousekeepingTask above: that is the WhatsApp task flow,
+// this is the video/geofence checklist flow with its own login.
+// ─────────────────────────────────────────────────────────────
+
+enum HkTurnoverStatus {
+  IN_PROGRESS
+  SUBMITTED
+  APPROVED
+  REJECTED
+  EXEMPT
+}
+
+enum HkMediaKind {
+  PHOTO
+  VIDEO
+}
+
+model HkLocation {
+  id         String   @id @default(cuid())
+  propertyId String
+  name       String
+  latitude   Float
+  longitude  Float
+  radiusM    Int      @default(150)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  property    Property              @relation(fields: [propertyId], references: [id])
+  assignments HkAssignment[]
+  templates   HkChecklistTemplate[]
+  turnovers   HkTurnover[]
+
+  @@index([propertyId])
+}
+
+model HkUser {
+  id             String    @id @default(cuid())
+  name           String
+  mobile         String    @unique // E.164, e.g. +919876543210
+  pinHash        String
+  failedAttempts Int       @default(0)
+  lockedUntil    DateTime?
+  isActive       Boolean   @default(true)
+  lastLoginAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  assignments HkAssignment[]
+  turnovers   HkTurnover[]
+}
+
+model HkAssignment {
+  id         String   @id @default(cuid())
+  hkUserId   String
+  locationId String
+  createdAt  DateTime @default(now())
+
+  hkUser   HkUser     @relation(fields: [hkUserId], references: [id], onDelete: Cascade)
+  location HkLocation @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@unique([hkUserId, locationId])
+  @@index([locationId])
+}
+
+model HkChecklistTemplate {
+  id         String   @id @default(cuid())
+  locationId String
+  title      String
+  unitType   String? // matches Unit.type, e.g. "Studio"; null = any unit at the location
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  location  HkLocation        @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  areas     HkChecklistArea[]
+  turnovers HkTurnover[]
+
+  @@index([locationId])
+}
+
+model HkChecklistArea {
+  id             String   @id @default(cuid())
+  templateId     String
+  title          String
+  sortOrder      Int      @default(0)
+  instructions   String?  @db.Text
+  minPhotos      Int      @default(1)
+  requiresVideo  Boolean  @default(true)
+  referenceMedia Json     @default("[]") // [{ url, kind: "PHOTO" | "VIDEO" }]
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  template    HkChecklistTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  submissions HkSubmission[]
+
+  @@index([templateId])
+}
+
+model HkTurnover {
+  id                String           @id @default(cuid())
+  unitId            String
+  locationId        String
+  hkUserId          String
+  templateId        String
+  status            HkTurnoverStatus @default(IN_PROGRESS)
+  checkInAt         DateTime         @default(now())
+  checkInLat        Float
+  checkInLng        Float
+  checkInAccuracyM  Float?
+  checkOutAt        DateTime?
+  checkOutLat       Float?
+  checkOutLng       Float?
+  checkOutAccuracyM Float?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  unit        Unit                @relation(fields: [unitId], references: [id])
+  location    HkLocation          @relation(fields: [locationId], references: [id])
+  hkUser      HkUser              @relation(fields: [hkUserId], references: [id])
+  template    HkChecklistTemplate @relation(fields: [templateId], references: [id])
+  submissions HkSubmission[]
+
+  @@index([hkUserId, checkInAt])
+  @@index([locationId, checkInAt])
+  @@index([unitId])
+  @@index([status])
+}
+
+model HkSubmission {
+  id               String      @id @default(cuid())
+  turnoverId       String
+  areaId           String
+  kind             HkMediaKind
+  mediaUrl         String
+  mimeType         String?
+  sizeBytes        Int?
+  durationSec      Int?
+  capturedAtClient DateTime
+  receivedAt       DateTime    @default(now())
+  latitude         Float?
+  longitude        Float?
+  accuracyM        Float?
+
+  turnover HkTurnover      @relation(fields: [turnoverId], references: [id], onDelete: Cascade)
+  area     HkChecklistArea @relation(fields: [areaId], references: [id])
+
+  @@index([turnoverId])
+  @@index([areaId])
 }
