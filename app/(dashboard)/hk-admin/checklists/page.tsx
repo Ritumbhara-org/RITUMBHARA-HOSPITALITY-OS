@@ -92,7 +92,7 @@ export default async function ChecklistsPage({
                           <p className="text-xs text-muted-foreground">
                             {a.minPhotos} photo(s){a.requiresVideo ? " + video" : ""}
                           </p>
-                          {a.instructions && <p className="mt-1 text-xs">{a.instructions}</p>}
+                          {a.instructions && <p className="mt-1 whitespace-pre-line text-xs">{a.instructions}</p>}
                         </div>
                         <div className="flex items-end gap-2">
                           <ActionForm

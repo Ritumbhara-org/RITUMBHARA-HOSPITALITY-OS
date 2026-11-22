@@ -79,7 +79,7 @@ export function TurnoverRunner({
               </span>
             </div>
 
-            {a.instructions && <p className="text-sm">{a.instructions}</p>}
+            {a.instructions && <p className="whitespace-pre-line text-sm">{a.instructions}</p>}
 
             {a.referenceMedia.length > 0 && (
               <div>
