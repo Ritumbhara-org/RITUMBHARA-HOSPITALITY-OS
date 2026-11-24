@@ -17,13 +17,13 @@ export function ExemptionButton({ locationId, unitId }: { locationId: string; un
   if (!open) {
     return (
       <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
-        Guest present
+        गेस्ट मौजूद है
       </Button>
     )
   }
   return (
     <div className="w-full space-y-2 pt-2">
-      <Textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={2} maxLength={500} placeholder="e.g. Guest is still inside, checkout is late" />
+      <Textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={2} maxLength={500} placeholder="जैसे: गेस्ट अभी अंदर है, चेकआउट देर से है" />
       <div className="flex gap-2">
         <Button
           size="sm"
@@ -32,7 +32,7 @@ export function ExemptionButton({ locationId, unitId }: { locationId: string; un
             start(async () => {
               const res = await raiseExemption(locationId, unitId, reason)
               if (res.success) {
-                toast.success("Sent to your manager")
+                toast.success("मैनेजर को भेज दिया गया")
                 setOpen(false)
                 setReason("")
                 router.refresh()
@@ -40,9 +40,9 @@ export function ExemptionButton({ locationId, unitId }: { locationId: string; un
             })
           }
         >
-          {pending ? "Sending..." : "Send request"}
+          {pending ? "भेज रहे हैं..." : "रिक्वेस्ट भेजें"}
         </Button>
-        <Button size="sm" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+        <Button size="sm" variant="outline" onClick={() => setOpen(false)}>रद्द करें</Button>
       </div>
     </div>
   )

@@ -39,14 +39,14 @@ export function TurnoverRunner({
       const fix = await getFix()
       const res = await finishTurnover(turnoverId, fix)
       if (res.success) {
-        toast.success("Submitted for review")
+        toast.success("जांच के लिए जमा हो गया")
         router.replace("/hk")
         router.refresh()
       } else {
         toast.error(res.error)
       }
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not submit.")
+      toast.error(e instanceof Error ? e.message : "जमा नहीं हो सका।")
     } finally {
       setBusy(false)
     }
@@ -70,12 +70,12 @@ export function TurnoverRunner({
               <div>
                 <h2 className="font-semibold">{a.title}</h2>
                 <p className="text-xs text-muted-foreground">
-                  Photos {photos.length}/{a.minPhotos}
-                  {a.requiresVideo ? ` · Video ${hasVideo ? "done" : "needed"}` : ""}
+                  फ़ोटो {photos.length}/{a.minPhotos}
+                  {a.requiresVideo ? ` · वीडियो ${hasVideo ? "हो गया" : "चाहिए"}` : ""}
                 </p>
               </div>
               <span className={`rounded-full px-2 py-0.5 text-xs ${done ? "bg-green-100 text-green-800" : "bg-amber-100 text-amber-800"}`}>
-                {done ? "Done" : "To do"}
+                {done ? "हो गया" : "बाकी"}
               </span>
             </div>
 
@@ -83,7 +83,7 @@ export function TurnoverRunner({
 
             {a.referenceMedia.length > 0 && (
               <div>
-                <p className="mb-1 text-xs font-medium text-muted-foreground">How it should look</p>
+                <p className="mb-1 text-xs font-medium text-muted-foreground">ऐसा दिखना चाहिए</p>
                 <div className="flex gap-2 overflow-x-auto">
                   {a.referenceMedia.map((m) =>
                     m.kind === "PHOTO" ? (
@@ -99,7 +99,7 @@ export function TurnoverRunner({
 
             {a.submissions.length > 0 && (
               <div>
-                <p className="mb-1 text-xs font-medium text-muted-foreground">Your proof</p>
+                <p className="mb-1 text-xs font-medium text-muted-foreground">आपका प्रमाण</p>
                 <div className="flex gap-2 overflow-x-auto">
                   {a.submissions.map((s) => (
                     <div key={s.id} className="shrink-0 space-y-1">
@@ -111,7 +111,7 @@ export function TurnoverRunner({
                       )}
                       {!readOnly && (
                         <button className="text-xs text-red-600 underline" onClick={() => remove(s.id)}>
-                          Remove
+                          हटाएं
                         </button>
                       )}
                     </div>
@@ -132,7 +132,7 @@ export function TurnoverRunner({
 
       {!readOnly && (
         <Button className="w-full" onClick={submit} disabled={busy}>
-          {busy ? "Checking location..." : "Finish and submit"}
+          {busy ? "लोकेशन जांच रहे हैं..." : "पूरा करें और जमा करें"}
         </Button>
       )}
     </div>

@@ -72,7 +72,7 @@ export function LiveCapture({
 
   async function openCamera() {
     if (!navigator.mediaDevices?.getUserMedia) {
-      toast.error("Camera is not available here. Open this page in Chrome or Safari.")
+      toast.error("यहां कैमरा उपलब्ध नहीं है। इस पेज को Chrome (एंड्रॉयड) या Safari (आईफ़ोन) में खोलें।")
       return
     }
     try {
@@ -82,7 +82,7 @@ export function LiveCapture({
       })
       setPhase("preview")
     } catch {
-      toast.error("Camera is blocked. Allow camera access for this site in your browser settings.")
+      toast.error("कैमरा बंद है। ब्राउज़र की सेटिंग में इस साइट के लिए कैमरा चालू करें।")
     }
   }
 
@@ -110,13 +110,13 @@ export function LiveCapture({
         fix,
       })
       if (res.success) {
-        toast.success(mode === "VIDEO" ? "Video saved" : "Photo saved")
+        toast.success(mode === "VIDEO" ? "वीडियो सेव हो गया" : "फ़ोटो सेव हो गई")
         router.refresh()
       } else {
         toast.error(res.error)
       }
     } catch (e) {
-      toast.error(e instanceof Error ? `Upload failed: ${e.message}` : "Upload failed. Check your network and try again.")
+      toast.error(e instanceof Error ? `अपलोड नहीं हुआ: ${e.message}` : "अपलोड नहीं हुआ। नेटवर्क जांचें और दोबारा कोशिश करें।")
     } finally {
       setPhase("idle")
     }
@@ -137,7 +137,7 @@ export function LiveCapture({
     if (!stream) return
     const mimeType = pickVideoMime()
     if (typeof MediaRecorder === "undefined" || !mimeType) {
-      toast.error("This browser cannot record video. Use an updated Chrome or Safari.")
+      toast.error("इस ब्राउज़र में वीडियो रिकॉर्ड नहीं हो सकता। Chrome या Safari का नया वर्शन इस्तेमाल करें।")
       return
     }
     mimeRef.current = mimeType.split(";")[0]
@@ -168,12 +168,12 @@ export function LiveCapture({
   if (phase === "idle") {
     return (
       <Button variant="outline" size="sm" onClick={openCamera}>
-        {mode === "VIDEO" ? "Record video" : "Take photo"}
+        {mode === "VIDEO" ? "वीडियो बनाएं" : "फ़ोटो लें"}
       </Button>
     )
   }
 
-  if (phase === "uploading") return <p className="text-sm text-muted-foreground">Uploading, please wait...</p>
+  if (phase === "uploading") return <p className="text-sm text-muted-foreground">अपलोड हो रहा है, कृपया रुकें...</p>
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-black">
@@ -181,22 +181,22 @@ export function LiveCapture({
       <div className="flex items-center justify-center gap-3 p-4">
         {mode === "PHOTO" && (
           <>
-            <Button variant="outline" onClick={cancel}>Cancel</Button>
-            <Button onClick={takePhoto}>Capture</Button>
+            <Button variant="outline" onClick={cancel}>रद्द करें</Button>
+            <Button onClick={takePhoto}>फ़ोटो खींचें</Button>
           </>
         )}
         {mode === "VIDEO" && phase === "preview" && (
           <>
-            <Button variant="outline" onClick={cancel}>Cancel</Button>
-            <Button onClick={startRecording}>Start recording</Button>
+            <Button variant="outline" onClick={cancel}>रद्द करें</Button>
+            <Button onClick={startRecording}>रिकॉर्डिंग शुरू करें</Button>
           </>
         )}
         {mode === "VIDEO" && phase === "recording" && (
           <>
             <span className="text-sm text-white">
-              Recording {seconds}s / {MAX_RECORD_SECONDS}s
+              रिकॉर्डिंग {seconds}s / {MAX_RECORD_SECONDS}s
             </span>
-            <Button variant="destructive" onClick={stopRecording}>Stop and save</Button>
+            <Button variant="destructive" onClick={stopRecording}>रोकें और सेव करें</Button>
           </>
         )}
       </div>
