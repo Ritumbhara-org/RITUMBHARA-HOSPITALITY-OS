@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { systemWhatsAppNumber } from "@/lib/whatsapp/meta/config";
 import { notFound } from "next/navigation";
 import { GuestPortalClient } from "@/components/guest-portal/guest-portal-client";
 
@@ -34,7 +35,8 @@ export default async function StayPage({ params }: { params: Promise<{ id: strin
     notFound();
   }
 
-  const whatsappNumber = process.env.TWILIO_WHATSAPP_NUMBER?.replace('+', '') || '';
+  // The number guests message: Meta's when Meta is the active provider, else Twilio's.
+  const whatsappNumber = systemWhatsAppNumber().replace('+', '');
 
   return <GuestPortalClient reservation={reservation} whatsappNumber={whatsappNumber} />;
 }

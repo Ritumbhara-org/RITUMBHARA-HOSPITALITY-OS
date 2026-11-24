@@ -153,7 +153,7 @@ export async function getBroadcastCampaigns(propertyId: string) {
     }
     const c = campaignsMap.get(campaignName);
     c.sentCount++;
-    if (b.status === 'DELIVERED' || b.status === 'SANDBOX_DELIVERED') c.deliveredCount++;
+    if (b.status === 'DELIVERED' || b.status === 'READ' || b.status === 'SANDBOX_DELIVERED') c.deliveredCount++;
     if (b.status === 'FAILED') c.failedCount++;
   }
   

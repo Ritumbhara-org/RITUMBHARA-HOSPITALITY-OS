@@ -14,7 +14,7 @@ const logged: Record<string, unknown>[] = [];
 const twilioCalls: Record<string, unknown>[] = [];
 let twilioClientsCreated = 0;
 mock.module(mod("lib/prisma.ts"), {
-  namedExports: { prisma: { whatsAppMessage: { create: async (a: { data: Record<string, unknown> }) => { logged.push(a.data); return {}; } } } },
+  namedExports: { prisma: { whatsAppMessage: { create: async (a: { data: Record<string, unknown> }) => { logged.push(a.data); return {}; }, findFirst: async () => ({ createdAt: new Date() }) } } },
 });
 mock.module("twilio", {
   defaultExport: Object.assign(() => { twilioClientsCreated++; return { messages: { create: async (p: Record<string, unknown>) => { twilioCalls.push(p); return { sid: "SM1" }; } } }; }, { validateRequest: () => true }),
@@ -82,7 +82,7 @@ test("Preview + Meta conversation: the Meta path is unaffected by the Twilio gua
   try {
     const r = await withEnv({ VERCEL: "1", VERCEL_ENV: "preview", ...TWILIO_ENV, META_WA_ACCESS_TOKEN: "t", META_WA_PHONE_NUMBER_ID: "1234567890" }, () =>
       runWithWhatsAppProvider("meta", () => sendWhatsAppMessage("+919000000001", "text", "Hello")));
-    assert.deepEqual(r, { success: true, status: "DELIVERED" });
+    assert.deepEqual(r, { success: true, status: "SENT" });
   } finally {
     globalThis.fetch = realFetch;
   }

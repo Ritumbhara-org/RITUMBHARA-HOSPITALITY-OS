@@ -14,6 +14,8 @@ import { normalizePhoneNumber } from "@/lib/utils/phone"
 import { resolveWhatsAppProvider, getMetaSendConfig, metaDisplayNumber } from "@/lib/whatsapp/meta/config"
 import { sendMetaTemplate, sendMetaText } from "@/lib/whatsapp/meta/send"
 import { metaTemplateFor, orderedParams } from "@/lib/whatsapp/meta/templates"
+import { isCustomerServiceWindowOpen } from "@/lib/whatsapp/meta/window"
+import { META_ACCEPTED_STATUS } from "@/lib/whatsapp/meta/outbound"
 import { isTwilioSendBlocked, TWILIO_BLOCKED_MESSAGE } from "@/lib/twilio/preview-guard"
 import { metaOtpTemplateName, twilioSidFor } from "./template-ids"
 
@@ -96,12 +98,13 @@ export interface DeliveryInput {
 // Provider abstraction. Tests (and a future provider) replace this through setLoyaltyTransport.
 export type LoyaltyTransport = (msg: DeliveryInput) => Promise<DeliveryResult>
 
-async function logMessage(msg: DeliveryInput, from: string, status: string, isTemplate: boolean) {
+async function logMessage(msg: DeliveryInput, from: string, status: string, isTemplate: boolean, providerMessageId?: string) {
   try {
     await prisma.whatsAppMessage.create({
       data: {
         direction: "OUTBOUND", from, to: msg.to, messageType: isTemplate ? "template" : "text", content: msg.logBody,
         templateName: isTemplate ? templateName(msg.kind) : null, status, relatedEntityType: "LOYALTY", relatedEntityId: msg.relatedId ?? null,
+        ...(providerMessageId ? { providerMessageId } : {}),
       },
     })
   } catch (e) {
@@ -118,8 +121,9 @@ export const whatsappTransport: LoyaltyTransport = async (msg) => {
     }
     const tpl = metaTemplateFor(msg.kind === "OTP" ? metaOtpTemplateName() : templateName(msg.kind))
     let r = tpl ? await sendMetaTemplate(cfg.config, msg.to, tpl, orderedParams(msg.positional)) : null
-    if (!r || !r.ok) r = await sendMetaText(cfg.config, msg.to, msg.body)
-    await logMessage(msg, cfg.config.displayNumber, r.ok ? "DELIVERED" : "FAILED", !!tpl && r.ok)
+    // The plain-text fallback is only deliverable inside the 24-hour window (templates are not restricted).
+    if (!r || !r.ok) r = (await isCustomerServiceWindowOpen(msg.to)) ? await sendMetaText(cfg.config, msg.to, msg.body) : { ok: false as const, reason: "window_closed" }
+    await logMessage(msg, cfg.config.displayNumber, r.ok ? META_ACCEPTED_STATUS : "FAILED", !!tpl && r.ok, r.ok ? r.id : undefined)
     return r.ok ? { ok: true, status: "SENT" } : { ok: false, error: "Meta send failed: " + r.reason }
   }
 

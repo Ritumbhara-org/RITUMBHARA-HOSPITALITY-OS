@@ -1,7 +1,8 @@
 import { NextResponse, after } from "next/server";
 import { getMetaWebhookConfig, metaPhoneNumberId } from "@/lib/whatsapp/meta/config";
 import { verifyMetaSignature } from "@/lib/whatsapp/meta/signature";
-import { parseMetaWebhook } from "@/lib/whatsapp/meta/parse";
+import { parseMetaStatuses, parseMetaWebhook } from "@/lib/whatsapp/meta/parse";
+import { applyMetaStatuses } from "@/lib/whatsapp/meta/statuses";
 import { defaultPipelineDeps, processMetaInbound } from "@/lib/whatsapp/meta/pipeline";
 
 // Meta WhatsApp Cloud API webhook. Runs ALONGSIDE the Twilio webhook (/api/whatsapp/webhook), which is unchanged.
@@ -9,7 +10,8 @@ import { defaultPipelineDeps, processMetaInbound } from "@/lib/whatsapp/meta/pip
 //   GET  - Meta's subscription handshake (hub.verify_token must match, hub.challenge is echoed).
 //   POST - X-Hub-Signature-256 is verified over the raw body BEFORE anything is parsed. Meta gets 200 at once and
 //          the messages are processed after the response (Meta retries slow or failed deliveries; retried message
-//          ids are skipped). Delivery-status events are ignored.
+//          ids are skipped). Delivery-status events (sent / delivered / read / failed) update the matching outbound
+//          message row, also after the response.
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60; // the website guest assistant can take up to ~25 s
@@ -67,7 +69,17 @@ export async function POST(req: Request) {
     return new Response("OK", { status: 200, headers: { "Cache-Control": "no-store" } });
   }
   const messages = parseMetaWebhook(body, ownId).filter((m) => firstSighting(m.id));
+  const statuses = parseMetaStatuses(body, ownId);
 
+  if (statuses.length) {
+    after(async () => {
+      try {
+        await applyMetaStatuses(statuses);
+      } catch (err) {
+        console.error("[meta-webhook] status_processing_failed", err instanceof Error ? err.name : "unknown");
+      }
+    });
+  }
   if (messages.length) {
     after(async () => {
       const deps = defaultPipelineDeps();

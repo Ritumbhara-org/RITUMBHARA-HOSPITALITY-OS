@@ -1,5 +1,6 @@
 // Parses a Meta WhatsApp Cloud API webhook body into the inbound messages the OS cares about.
-// Delivery-status events ("statuses") are ignored. Only messages addressed to our own phone number id are kept.
+// Inbound messages and delivery-status events ("statuses": sent / delivered / read / failed) are parsed separately.
+// Only events for our own phone number id are kept.
 
 export interface MetaInboundMessage {
   id: string; // wamid.… (used for de-duplication)
@@ -61,6 +62,51 @@ export function parseMetaWebhook(body: unknown, ownPhoneNumberId?: string): Meta
           mediaId,
           profileName: str(contact?.profile?.name).slice(0, 100) || null,
           timestamp: Number(m.timestamp) || 0,
+        });
+      }
+    }
+  }
+  return out;
+}
+
+export type MetaDeliveryState = "sent" | "delivered" | "read" | "failed";
+
+export interface MetaStatusEvent {
+  id: string; // wamid of OUR outbound message
+  status: MetaDeliveryState;
+  recipientDigits: string; // recipient, digits only (never logged in full)
+  timestamp: number; // seconds
+  errorCode: number | null; // set on "failed"
+  errorTitle: string | null;
+}
+
+const STATES = new Set(["sent", "delivered", "read", "failed"]);
+
+// Delivery-status events for messages sent from our own phone number id.
+export function parseMetaStatuses(body: unknown, ownPhoneNumberId?: string): MetaStatusEvent[] {
+  const out: MetaStatusEvent[] = [];
+  if (!body || typeof body !== "object" || (body as any).object !== "whatsapp_business_account") return out;
+  const entries = Array.isArray((body as any).entry) ? (body as any).entry : [];
+  for (const entry of entries) {
+    const changes = Array.isArray(entry?.changes) ? entry.changes : [];
+    for (const change of changes) {
+      if (change?.field !== "messages") continue;
+      const value = change.value || {};
+      const phoneNumberId = str(value.metadata?.phone_number_id);
+      if (ownPhoneNumberId && phoneNumberId !== ownPhoneNumberId) continue;
+      const statuses = Array.isArray(value.statuses) ? value.statuses : [];
+      for (const st of statuses) {
+        const id = str(st?.id);
+        const status = str(st?.status);
+        if (!id || !STATES.has(status)) continue;
+        const err = Array.isArray(st?.errors) ? st.errors[0] : null;
+        out.push({
+          id,
+          status: status as MetaDeliveryState,
+          recipientDigits: str(st?.recipient_id).replace(/\D/g, ""),
+          timestamp: Number(st?.timestamp) || 0,
+          errorCode: err && typeof err.code === "number" ? err.code : null,
+          errorTitle: err ? str(err.title || err.message).slice(0, 120) || null : null,
         });
       }
     }
