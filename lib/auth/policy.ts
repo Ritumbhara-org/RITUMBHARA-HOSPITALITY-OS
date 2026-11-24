@@ -9,6 +9,9 @@
 //   /api/sign/<token>/...  - that signing page's OTP, sign and signed-PDF endpoints (same one agreement only)
 //   /member                - the loyalty member portal (WhatsApp OTP sign-in; shows only the signed-in member's own data)
 //   /api/member/...        - that portal's OTP, logout, profile and referral endpoints (member session checked inside)
+//   /hk, /hk/...           - the housekeeper app (mobile + PIN sign-in, its own signed cookie; every page and action checks it)
+//   /api/hk/...            - housekeeper media upload (checks the HK or admin session itself)
+//   (/hk-admin is the admin side and stays protected.)
 //
 // Machine-only (no admin session, but a server-side secret is required):
 //   /api/cron/...          - scheduled jobs; need "Authorization: Bearer <CRON_SECRET>" (lib/auth/cron.ts),
@@ -28,6 +31,8 @@
 //   /api/whatsapp/meta-audit   - read-only Meta audit; 404 everywhere except Preview with a matching META_AUDIT_KEY
 const PUBLIC_EXACT = new Set(["/login", "/member", "/api/whatsapp/webhook", "/api/whatsapp/meta-webhook", "/api/whatsapp/meta-audit", "/api/instagram/webhook", "/api/channex/webhook"])
 const PUBLIC_PREFIXES = ["/stay/", "/api/stay/", "/sign/", "/api/sign/", "/api/member/"]
+const PUBLIC_EXACT = new Set(["/login", "/member", "/hk", "/api/whatsapp/webhook", "/api/whatsapp/meta-webhook", "/api/whatsapp/meta-audit", "/api/instagram/webhook"])
+const PUBLIC_PREFIXES = ["/stay/", "/api/stay/", "/sign/", "/api/sign/", "/api/member/", "/hk/", "/api/hk/"]
 const CRON_PREFIX = "/api/cron/"
 // Machine endpoints that authenticate themselves with their own secret (no admin session needed or used).
 const SELF_AUTHENTICATED_MACHINE_PATHS = new Set(["/api/inbox/inbound-email"])

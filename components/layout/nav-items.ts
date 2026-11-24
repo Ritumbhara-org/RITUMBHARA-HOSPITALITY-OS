@@ -15,6 +15,7 @@ import {
   Target,
   CalendarRange,
   Crown,
+  SprayCan,
   type LucideIcon,
 } from "lucide-react"
 
@@ -37,6 +38,7 @@ export const navigation: NavItem[] = [
   { name: "Units", href: "/units", icon: BedDouble },
   { name: "Operations", href: "/operations", icon: Wrench },
   { name: "Inventory", href: "/inventory", icon: Package },
+  { name: "Housekeeping", href: "/hk-admin", icon: SprayCan },
   { name: "Team", href: "/team", icon: ShieldCheck },
   { name: "Inbox", href: "/inbox", icon: Inbox },
   { name: "WhatsApp", href: "/whatsapp", icon: MessageSquare },

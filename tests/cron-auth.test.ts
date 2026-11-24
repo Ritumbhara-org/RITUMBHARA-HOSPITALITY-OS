@@ -196,6 +196,7 @@ const INTENTIONALLY_PUBLIC: Record<string, string> = {
   "app/api/member/otp/verify/route.ts": "Member portal: checks that code (3 wrong tries lock it) and sets the member session",
   "app/api/member/logout/route.ts": "Member portal: clears the member session cookie",
   "app/api/member/profile/route.ts": "Member portal: the signed-in member's own name/dates (401 without a member session)",
+  "app/api/hk/upload/route.ts": "Housekeeping media upload: needs an HK session (own folder) or an admin session (reference folder), checked inside before any token is issued (tests/hk-auth.test.ts)",
   "app/api/member/referral/route.ts": "Member portal: the signed-in member adds a referral code (401 without a member session)",
 }
 
