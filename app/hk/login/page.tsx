@@ -1,6 +1,8 @@
 import { HkLoginForm } from "@/components/hk/login-form"
 
-export const metadata = { title: "Housekeeping sign in" }
+import { HK_MANIFEST_PATH } from "@/lib/pwa/manifest"
+
+export const metadata = { title: "Housekeeping sign in", manifest: HK_MANIFEST_PATH }
 
 export default function HkLoginPage() {
   return (
