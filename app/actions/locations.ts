@@ -1,9 +1,11 @@
 "use server"
 
+import { requireAdmin } from "@/lib/auth/guard"
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 
 export async function createLocation(formData: FormData) {
+  await requireAdmin()
   try {
     const name = formData.get("name") as string
     const city = formData.get("city") as string
@@ -39,6 +41,7 @@ export async function createLocation(formData: FormData) {
 }
 
 export async function updateLocation(id: string, formData: FormData) {
+  await requireAdmin()
   try {
     const name = formData.get("name") as string
     const city = formData.get("city") as string
@@ -71,6 +74,7 @@ export async function updateLocation(id: string, formData: FormData) {
 }
 
 export async function deleteLocation(id: string) {
+  await requireAdmin()
   try {
     await prisma.property.delete({
       where: { id }

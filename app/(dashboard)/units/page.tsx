@@ -1,9 +1,11 @@
 import { prisma } from "@/lib/prisma"
 import { UnitsClient } from "@/components/units/units-client"
+import { requireAdminPage } from "@/lib/auth/guard"
 
 export const revalidate = 15
 
 export default async function UnitsPage() {
+  await requireAdminPage("/units")
   const units = await prisma.unit.findMany({
     include: {
       property: true,

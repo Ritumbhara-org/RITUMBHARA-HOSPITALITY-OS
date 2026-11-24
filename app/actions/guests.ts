@@ -1,10 +1,12 @@
 "use server"
 
+import { requireAdmin } from "@/lib/auth/guard"
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { normalizePhoneNumber } from "@/lib/utils/phone"
 
 export async function createGuest(formData: FormData) {
+  await requireAdmin()
   try {
     const name = formData.get("name") as string
     const email = formData.get("email") as string
@@ -26,15 +28,12 @@ export async function createGuest(formData: FormData) {
         phone,
         idType: idType || null,
         idNumber: idNumber || null,
-        membership: assignMembership ? {
-          create: {
-            tier: "STANDARD",
-            points: 0,
-            joinedAt: new Date()
-          }
-        } : undefined
       }
     })
+    if (assignMembership) {
+      const { ensureMembership } = await import("@/lib/loyalty/members")
+      await ensureMembership({ phone: guest.phone, name: guest.name, guestId: guest.id })
+    }
 
     revalidatePath("/guests")
     revalidatePath("/reservations")
@@ -46,6 +45,7 @@ export async function createGuest(formData: FormData) {
 }
 
 export async function updateGuest(guestId: string, formData: FormData) {
+  await requireAdmin()
   try {
     const name = formData.get("name") as string
     const email = formData.get("email") as string

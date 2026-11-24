@@ -1,2 +1,6 @@
 {
+  "regions": ["hnd1"],
+  "crons": [
+    { "path": "/api/cron/loyalty", "schedule": "35 3 * * *" }
+  ]
 }

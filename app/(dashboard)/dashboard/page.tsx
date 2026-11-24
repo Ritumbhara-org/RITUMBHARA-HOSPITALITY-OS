@@ -1,30 +1,38 @@
 import { prisma } from "@/lib/prisma"
 import { DashboardClient } from "@/components/dashboard/dashboard-client"
+import { requireAdminPage } from "@/lib/auth/guard"
+import { getTranslator } from "@/lib/i18n/server"
+
+// Only the fields the dashboard and its detail panels show. Unit door/Wi-Fi codes and guest ID numbers stay on the server.
+const guestFields = { select: { id: true, name: true, phone: true, email: true } } as const
+const unitFields = { select: { id: true, name: true, type: true, floor: true } } as const
+const propertyFields = { select: { name: true } } as const
+const reservationInclude = { guest: guestFields, unit: unitFields, property: propertyFields } as const
 
 export const dynamic = 'force-dynamic'
 
 export default async function DashboardPage() {
+  await requireAdminPage("/dashboard")
+  const tr = await getTranslator()
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   const tomorrow = new Date(today)
   tomorrow.setDate(tomorrow.getDate() + 1)
 
   const [
-    totalUnits,
-    availableUnitsCount,
-    dirtyUnitsCount,
-    activeGuestsCount,
+    activeStays,
     todayArrivals,
     pendingTickets,
     yesterdayArrivalsCount,
     todayDepartures,
-    unitStatusCounts,
+    units,
     lowInventoryItems
   ] = await Promise.all([
-    prisma.unit.count(),
-    prisma.unit.count({ where: { status: 'AVAILABLE' } }),
-    prisma.unit.count({ where: { status: 'DIRTY' } }),
-    prisma.reservation.count({ where: { status: 'CHECKED_IN' } }),
+    prisma.reservation.findMany({
+      where: { status: 'CHECKED_IN' },
+      include: reservationInclude,
+      orderBy: { checkOut: 'asc' }
+    }),
     prisma.reservation.findMany({
       where: {
         checkIn: {
@@ -33,10 +41,7 @@ export default async function DashboardPage() {
         },
         status: 'CONFIRMED'
       },
-      include: {
-        guest: true,
-        unit: true
-      },
+      include: reservationInclude,
       orderBy: { checkIn: 'asc' }
     }),
     prisma.ticket.findMany({
@@ -44,7 +49,9 @@ export default async function DashboardPage() {
         status: { notIn: ['RESOLVED', 'CLOSED'] }
       },
       include: {
-        unit: true
+        unit: { select: { name: true } },
+        property: propertyFields,
+        assignedTo: { select: { name: true } }
       },
       orderBy: { priority: 'asc' }, // Will sort enum correctly depending on definition, fallback to createdAt if needed
       take: 5
@@ -66,28 +73,30 @@ export default async function DashboardPage() {
         },
         status: 'CHECKED_IN'
       },
-      include: {
-        guest: true,
-        unit: true
-      },
+      include: reservationInclude,
       orderBy: { checkOut: 'asc' }
     }),
-    prisma.unit.groupBy({
-      by: ['status'],
-      _count: {
-        id: true
-      }
+    prisma.unit.findMany({
+      select: { id: true, name: true, type: true, floor: true, capacity: true, status: true, property: propertyFields },
+      orderBy: { name: 'asc' }
     }),
     prisma.inventoryItem.findMany({
       where: {
         quantity: { lt: prisma.inventoryItem.fields.minThreshold }
       },
       include: {
-        property: true
+        property: propertyFields
       },
       take: 5
     })
   ])
+
+  // Unit totals come from the one unit list above, which also feeds the unit detail panels.
+  const countOf = (status: string) => units.filter((u) => u.status === status).length
+  const unitStatusCounts = [...new Set(units.map((u) => u.status))].map((status) => ({ status, _count: { id: countOf(status) } }))
+  const totalUnits = units.length
+  const availableUnitsCount = countOf('AVAILABLE')
+  const dirtyUnitsCount = countOf('DIRTY')
 
   // Calculate stats
   const occupancyRate = totalUnits > 0 
@@ -95,20 +104,22 @@ export default async function DashboardPage() {
     : 0
 
   const arrivalsTrend = todayArrivals.length >= yesterdayArrivalsCount
-    ? `+${todayArrivals.length - yesterdayArrivalsCount} from yesterday`
-    : `${todayArrivals.length - yesterdayArrivalsCount} from yesterday`
+    ? tr("{n} from yesterday", { n: `+${todayArrivals.length - yesterdayArrivalsCount}` })
+    : tr("{n} from yesterday", { n: todayArrivals.length - yesterdayArrivalsCount })
 
   const dashboardData = {
     todayArrivals: todayArrivals.length.toString(),
     arrivalsTrend,
     availableUnits: availableUnitsCount.toString(),
-    unitsTrend: `${dirtyUnitsCount} dirty, ${totalUnits - availableUnitsCount - dirtyUnitsCount} occupied`,
-    activeGuests: activeGuestsCount.toString(),
+    unitsTrend: tr("{dirty} dirty, {occupied} occupied", { dirty: dirtyUnitsCount, occupied: totalUnits - availableUnitsCount - dirtyUnitsCount }),
+    activeGuests: activeStays.length.toString(),
     occupancyRate: `${occupancyRate}%`,
     arrivals: todayArrivals,
     pendingOperations: pendingTickets,
     departures: todayDepartures,
     unitStatuses: unitStatusCounts,
+    units,
+    activeStays,
     lowInventory: lowInventoryItems
   }
 

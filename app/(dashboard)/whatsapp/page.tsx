@@ -4,12 +4,14 @@ import { getWhatsAppConversations, getBroadcastCampaigns } from "@/app/actions/w
 import { WhatsAppClient } from "@/components/whatsapp/whatsapp-client"
 
 import { prisma } from "@/lib/prisma"
+import { requireAdminPage } from "@/lib/auth/guard"
 
 export default async function WhatsAppPage({
   searchParams,
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }) {
+  await requireAdminPage("/whatsapp")
   const cookieStore = await cookies()
   const token = cookieStore.get("auth-token")
 
@@ -32,15 +34,14 @@ export default async function WhatsAppPage({
   });
 
   const resolvedParams = await searchParams;
-  const activePropertyId = resolvedParams?.propertyId as string 
-    || (user?.role === 'ADMIN' ? 'ALL' : user?.propertyId) 
-    || properties[0]?.id;
+  // Defaults to all locations; a location picked in the selector comes through the URL.
+  const activePropertyId = (resolvedParams?.propertyId as string) || 'ALL';
 
   const threads = await getWhatsAppConversations()
   const broadcasts = await getBroadcastCampaigns(activePropertyId)
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] flex-col">
+    <div className="flex min-h-0 flex-1 flex-col md:h-[calc(100dvh-4rem)] md:flex-none">
       <WhatsAppClient 
         initialThreads={threads} 
         initialBroadcasts={broadcasts}

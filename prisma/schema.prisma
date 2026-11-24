@@ -100,6 +100,9 @@ model Property {
   inventoryItems   InventoryItem[]
   knowledgeBase    LocationKnowledge?
   agentActionLogs  AgentActionLog[]
+  inboxConversations InboxConversation[]
+  longStayBookings LongStayBooking[]
+  pointTransactions PointTransaction[]
 }
 
 model Unit {
@@ -127,6 +130,9 @@ model Unit {
   tickets           Ticket[]
   housekeepingTasks HousekeepingTask[]
   hkTurnovers       HkTurnover[]
+  hkExemptions      HkExemption[]
+  hkStayRatings     HkStayRating[]
+  longStayBookings  LongStayBooking[]
 
   @@index([propertyId])
   @@index([status])
@@ -146,6 +152,7 @@ model Guest {
   reservations Reservation[]
   tickets      Ticket[]
   membership   Membership?
+  inboxConversations InboxConversation[]
 
   @@index([phone])
   @@index([email])
@@ -163,12 +170,20 @@ model Reservation {
   source                   String
   totalAmount              Float
   bookingNotes             String?
+  // Loyalty inputs. sourceDetail is the PMS's own source name (e.g. "Airbnb", "Walk-In"); source stays as before.
+  sourceDetail             String?
+  taxAmount                Float    @default(0)
+  refundedAmount           Float    @default(0)
+  paidAmount               Float?
+  paymentStatus            String?
   createdAt                DateTime @default(now())
   updatedAt                DateTime @updatedAt
 
   guest    Guest    @relation(fields: [guestId], references: [id])
   unit     Unit     @relation(fields: [unitId], references: [id])
   property Property @relation(fields: [propertyId], references: [id])
+  inboxConversations InboxConversation[]
+  pointTransactions  PointTransaction[]
 
   @@index([propertyId])
   @@index([guestId])
@@ -193,6 +208,8 @@ model TeamMember {
   property          Property           @relation(fields: [propertyId], references: [id])
   assignedTickets   Ticket[]           @relation("AssignedTickets")
   housekeepingTasks HousekeepingTask[] @relation("AssignedTasks")
+  inboxConversations InboxConversation[] @relation("InboxAssignee")
+  inboxMessagesSent  InboxMessage[]      @relation("InboxSender")
 
   @@index([propertyId])
   @@index([isActive])
@@ -294,6 +311,76 @@ model WhatsAppMessage {
   @@index([to])
 }
 
+enum InboxChannel {
+  WHATSAPP
+  AIRBNB
+  BOOKING_COM
+  AGODA
+  EXPEDIA
+  MAKEMYTRIP
+  INSTAGRAM
+  EMAIL
+}
+
+enum InboxConversationStatus {
+  OPEN
+  CLOSED
+}
+
+// One guest conversation in the unified inbox, whatever channel it came from.
+// WhatsApp threads keep their messages in WhatsAppMessage and use this row only
+// for team state (assignee, status, read). Other channels store messages in InboxMessage.
+model InboxConversation {
+  id                 String                  @id @default(cuid())
+  channel            InboxChannel
+  externalThreadId   String                  // phone for WhatsApp, OTA reservation code or email thread key otherwise
+  subject            String?
+  guestName          String?
+  guestContact       String?
+  replyTo            String?                 // OTA relay / email address replies are sent to
+  propertyId         String?
+  reservationId      String?
+  guestId            String?
+  assigneeId         String?
+  status             InboxConversationStatus @default(OPEN)
+  lastMessageAt      DateTime                @default(now())
+  lastMessagePreview String?
+  lastInboundAt      DateTime?
+  lastReadAt         DateTime?
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
+
+  property    Property?      @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+  reservation Reservation?   @relation(fields: [reservationId], references: [id], onDelete: SetNull)
+  guest       Guest?         @relation(fields: [guestId], references: [id], onDelete: SetNull)
+  assignee    TeamMember?    @relation("InboxAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  messages    InboxMessage[]
+
+  @@unique([channel, externalThreadId])
+  @@index([status])
+  @@index([lastMessageAt])
+  @@index([assigneeId])
+  @@index([reservationId])
+}
+
+model InboxMessage {
+  id                String           @id @default(cuid())
+  conversationId    String
+  direction         MessageDirection
+  body              String           @db.Text
+  senderName        String?
+  sentById          String?
+  externalMessageId String?          @unique
+  status            String           @default("RECEIVED")
+  raw               Json?
+  createdAt         DateTime         @default(now())
+
+  conversation InboxConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sentBy       TeamMember?       @relation("InboxSender", fields: [sentById], references: [id], onDelete: SetNull)
+
+  @@index([conversationId, createdAt])
+}
+
 model InventoryItem {
   id           String   @id @default(cuid())
   propertyId   String
@@ -312,32 +399,216 @@ model InventoryItem {
   @@index([propertyId])
 }
 
-model Membership {
-  id           String    @id @default(cuid())
-  guestId      String    @unique
-  tier         String    @default("SILVER")
-  points       Int       @default(0)
-  referralCode String    @unique @default(cuid())
-  referredBy   String?
-  joinedAt     DateTime  @default(now())
-  expiresAt    DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+// ---------- Membership & Loyalty (lib/loyalty) ----------
+// One membership per normalized mobile number, so the same guest booking through several channels (each of which
+// may create its own Guest row) always earns into one account. guestId is the primary linked guest record.
 
-  guest Guest @relation(fields: [guestId], references: [id])
-  transactions PointTransaction[]
+model Membership {
+  id                String    @id @default(cuid())
+  guestId           String?   @unique
+  phone             String?   @unique            // normalized E.164; the member's identity and OTP destination
+  name              String?
+  membershipNumber  String?   @unique            // e.g. RBM-100042, shown to the member
+  tier              String    @default("STAR")   // STAR | ROCKSTAR | SUPERSTAR (computed; see tierOverride)
+  tierOverride      String?                      // admin-set tier, wins until tierOverrideUntil
+  tierOverrideUntil DateTime?
+  qualifyingSpend   Float     @default(0)        // cached rolling 6-month eligible spend
+  tierEvaluatedAt   DateTime?
+  points            Int       @default(0)        // cached available balance; the ledger is the source of truth
+  referralCode      String    @unique @default(cuid())
+  referredBy        String?
+  birthday          DateTime? @db.Date
+  anniversary       DateTime? @db.Date
+  joinedAt          DateTime  @default(now())
+  expiresAt         DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  guest          Guest?               @relation(fields: [guestId], references: [id])
+  transactions   PointTransaction[]
+  tierHistory    MemberTierHistory[]
+  redemptions    Redemption[]
+  referralsMade  Referral[]           @relation("Referrer")
+  referredVia    Referral?            @relation("Referee")
+  eventRewards   LoyaltyEventReward[]
+  notifications  LoyaltyNotification[]
+
+  @@index([tier])
+  @@index([points])
 }
 
+// Immutable points ledger. Rows are only ever inserted (a database trigger refuses UPDATE and DELETE).
+// Credits (amount > 0) carry their own expiresAt; debits (amount < 0) are matched to credits through
+// PointAllocation, oldest-expiring first, so redemption and expiry are exact per batch.
 model PointTransaction {
-  id           String     @id @default(cuid())
-  membershipId String
-  amount       Int        // Positive for earn, negative for redeem
-  type         String     // "JOIN_BONUS", "REFERRAL_BONUS", "REDEMPTION"
-  description  String
-  createdAt    DateTime   @default(now())
+  id                String    @id @default(cuid())
+  membershipId      String
+  amount            Int                          // > 0 credit, < 0 debit
+  type              String                       // EARN_BOOKING | BOOKING_ADJUSTMENT | BOOKING_REVERSAL | BONUS_BIRTHDAY | BONUS_ANNIVERSARY | BONUS_REFERRAL | ADJUSTMENT | REDEMPTION | EXPIRY (+ legacy JOIN_BONUS, REFERRAL_BONUS)
+  description       String
+  idempotencyKey    String?   @unique
+  expiresAt         DateTime?                    // credits only
+  reservationId     String?
+  propertyId        String?
+  channel           String?                      // DIRECT | OTA (booking earnings)
+  tier              String?                      // tier applied when the booking completed
+  channelMultiplier Int?
+  tierMultiplier    Int?
+  eligibleAmount    Float?
+  calculation       Json?
+  relatedId         String?                      // redemption / referral / credit this row belongs to
+  actor             String?                      // admin username for manual rows, SYSTEM otherwise
+  reason            String?
+  createdAt         DateTime  @default(now())
 
-  membership   Membership @relation(fields: [membershipId], references: [id])
-  @@index([membershipId])
+  membership     Membership        @relation(fields: [membershipId], references: [id])
+  reservation    Reservation?      @relation(fields: [reservationId], references: [id], onDelete: SetNull)
+  property       Property?         @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+  allocatedTo    PointAllocation[] @relation("AllocationDebit")
+  allocatedFrom  PointAllocation[] @relation("AllocationCredit")
+
+  @@index([membershipId, createdAt])
+  @@index([membershipId, expiresAt])
+  @@index([reservationId])
+  @@index([type])
+}
+
+// Which credit batch a debit consumed, and how much. Also insert-only.
+model PointAllocation {
+  id        String   @id @default(cuid())
+  debitId   String
+  creditId  String
+  points    Int
+  createdAt DateTime @default(now())
+
+  debit  PointTransaction @relation("AllocationDebit", fields: [debitId], references: [id])
+  credit PointTransaction @relation("AllocationCredit", fields: [creditId], references: [id])
+
+  @@unique([debitId, creditId])
+  @@index([creditId])
+}
+
+model MemberTierHistory {
+  id              String   @id @default(cuid())
+  membershipId    String
+  fromTier        String?
+  toTier          String
+  reason          String                         // AUTO_UPGRADE | AUTO_DOWNGRADE | MANUAL | ENROLLED | OVERRIDE_ENDED
+  qualifyingSpend Float    @default(0)
+  actor           String   @default("SYSTEM")
+  note            String?
+  createdAt       DateTime @default(now())
+
+  membership Membership @relation(fields: [membershipId], references: [id])
+
+  @@index([membershipId, createdAt])
+}
+
+model Redemption {
+  id             String    @id @default(cuid())
+  reference      String    @unique                // RDM-XXXXXXXX shown to staff and member
+  membershipId   String
+  points         Int
+  status         String    @default("PENDING_OTP") // PENDING_OTP | COMPLETED | FAILED | EXPIRED | CANCELLED
+  reservationId  String?
+  propertyId     String?
+  note           String?
+  adminId        String
+  transactionId  String?   @unique
+  failureReason  String?
+  createdAt      DateTime  @default(now())
+  completedAt    DateTime?
+
+  membership Membership @relation(fields: [membershipId], references: [id])
+  otps       LoyaltyOtp[]
+
+  @@index([membershipId, createdAt])
+  @@index([status])
+}
+
+// One-time codes for member sign-in and for redemption approval. Only a keyed hash of the code is stored.
+model LoyaltyOtp {
+  id           String    @id @default(cuid())
+  purpose      String                            // LOGIN | REDEMPTION
+  phone        String
+  redemptionId String?
+  codeHash     String
+  expiresAt    DateTime
+  attempts     Int       @default(0)
+  consumedAt   DateTime?
+  lockedAt     DateTime?
+  ip           String?
+  createdAt    DateTime  @default(now())
+
+  redemption Redemption? @relation(fields: [redemptionId], references: [id], onDelete: Cascade)
+
+  @@index([phone, purpose, createdAt])
+  @@index([redemptionId])
+}
+
+model Referral {
+  id                      String    @id @default(cuid())
+  referrerId              String
+  refereeId               String    @unique       // a member can be referred only once
+  code                    String
+  status                  String    @default("PENDING") // PENDING | REWARDED | REJECTED
+  qualifyingReservationId String?   @unique
+  rewardedAt              DateTime?
+  rejectReason            String?
+  createdAt               DateTime  @default(now())
+
+  referrer Membership @relation("Referrer", fields: [referrerId], references: [id])
+  referee  Membership @relation("Referee", fields: [refereeId], references: [id])
+
+  @@index([referrerId])
+  @@index([status])
+}
+
+// Birthday / anniversary bonus, once per member, kind and calendar year.
+model LoyaltyEventReward {
+  id            String   @id @default(cuid())
+  membershipId  String
+  kind          String                           // BIRTHDAY | ANNIVERSARY
+  year          Int
+  transactionId String   @unique
+  createdAt     DateTime @default(now())
+
+  membership Membership @relation(fields: [membershipId], references: [id])
+
+  @@unique([membershipId, kind, year])
+}
+
+model LoyaltyNotification {
+  id           String    @id @default(cuid())
+  membershipId String?
+  kind         String                            // POINTS_CREDITED | BIRTHDAY_BONUS | ... (lib/loyalty/notify.ts)
+  dedupeKey    String    @unique
+  to           String
+  body         String    @db.Text
+  variables    Json      @default("{}")
+  status       String    @default("PENDING")     // PENDING | SENT | FAILED
+  attempts     Int       @default(0)
+  lastError    String?
+  sentAt       DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  membership Membership? @relation(fields: [membershipId], references: [id], onDelete: SetNull)
+
+  @@index([status, attempts])
+  @@index([membershipId, createdAt])
+}
+
+model LoyaltyAuditLog {
+  id           String   @id @default(cuid())
+  actor        String
+  action       String                            // POINTS_ADJUSTED | TIER_CHANGED | DATES_EDITED | REDEMPTION_* | REFUND_RECORDED | REFERRAL_APPLIED
+  membershipId String?
+  details      Json     @default("{}")
+  createdAt    DateTime @default(now())
+
+  @@index([membershipId, createdAt])
+  @@index([action])
 }
 
 enum SyncStatus {
@@ -356,6 +627,40 @@ model SyncLog {
   recordsCreated   Int        @default(0)
   error           String?
   source          String      @default("INTELLISTAY")
+}
+
+// The admin's notification feed (the bell in the top bar): new guest messages, bookings, tickets and failures
+// that someone needs to look at. One shared feed, because the OS has a single admin sign-in.
+// Repeated events about the same thing (e.g. several WhatsApp messages from one guest) collapse into one
+// unread row via groupKey, with `count` showing how many.
+model AdminNotification {
+  id         String    @id @default(cuid())
+  type       String                       // e.g. WHATSAPP_MESSAGE, OTA_MESSAGE, BOOKING_CREATED, TICKET_CREATED, SLA_BREACHED
+  severity   String    @default("INFO")   // INFO | ACTION | CRITICAL
+  title      String
+  body       String?   @db.Text
+  href       String?                      // where "take action" leads, always a path inside the OS
+  groupKey   String?
+  count      Int       @default(1)
+  propertyId String?
+  readAt     DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([readAt, createdAt])
+  @@index([groupKey, readAt])
+}
+
+// One row per phone or browser the admin turned phone alerts on for (web push). The OS has a single admin
+// sign-in, so every subscription belongs to that admin. A row is removed when the push service says it is gone.
+model PushSubscription {
+  id         String   @id @default(cuid())
+  endpoint   String   @unique @db.Text
+  p256dh     String
+  auth       String
+  userAgent  String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
 
 model LocationKnowledge {
@@ -386,6 +691,118 @@ model AgentActionLog {
   @@index([agentName])
   @@index([actionType])
   @@index([propertyId])
+}
+
+// ---------- Long Stays: monthly / extended bookings made directly by the team ----------
+
+enum LongStayStatus {
+  UPCOMING
+  CHECKED_IN
+  CHECKED_OUT
+  CANCELLED
+}
+
+enum LongStayInclusion {
+  UNIT_ONLY
+  UNIT_ELECTRICITY
+  UNIT_ELECTRICITY_MAINTENANCE
+  ALL_INCLUSIVE
+}
+
+enum LongStayRateType {
+  PER_NIGHT
+  PER_MONTH
+}
+
+enum LongStayAgreementStatus {
+  SENT
+  VIEWED
+  SIGNED
+  VOIDED
+}
+
+model LongStayBooking {
+  id                String             @id @default(cuid())
+  status            LongStayStatus     @default(UPCOMING)
+  guestName         String
+  contactNumber     String
+  altContactNumber  String?
+  email             String?
+  occupants         Int                @default(1)
+  emergencyContact  String?
+  idType            String
+  idNumber          String
+  propertyId        String
+  unitId            String?
+  propertyType      String
+  checkIn           DateTime           @db.Date
+  checkOut          DateTime           @db.Date
+  nights            Int
+  inclusion         LongStayInclusion
+  rateType          LongStayRateType   @default(PER_MONTH)
+  rate              Float              @default(0)
+  totalAmount       Float              @default(0)
+  advancePaid       Float              @default(0)
+  paymentMode       String?
+  securityDeposit   Float              @default(0)
+  depositMode       String?
+  depositTerms      String             @db.Text
+  termsAccepted     Boolean            @default(false)
+  depositDeduction  Float              @default(0)
+  deductionReason   String?
+  depositRefundedOn DateTime?          @db.Date
+  idDocuments       String[]           @default([])
+  checkInMedia      String[]           @default([])
+  checkOutMedia     String[]           @default([])
+  notes             String?            @db.Text
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  property   Property            @relation(fields: [propertyId], references: [id])
+  unit       Unit?               @relation(fields: [unitId], references: [id], onDelete: SetNull)
+  agreements LongStayAgreement[]
+
+  @@index([propertyId])
+  @@index([unitId])
+  @@index([status])
+  @@index([checkIn])
+}
+
+// One e-sign request for a booking. Only a hash of the link token and of the OTP is stored.
+model LongStayAgreement {
+  id              String                  @id @default(cuid())
+  bookingId       String
+  status          LongStayAgreementStatus @default(SENT)
+  tokenHash       String                  @unique
+  snapshot        Json
+  snapshotHash    String
+  sentVia         String                  @default("LINK")
+  sentAt          DateTime                @default(now())
+  expiresAt       DateTime
+  viewedAt        DateTime?
+  otpHash         String?
+  otpExpiresAt    DateTime?
+  otpAttempts     Int                     @default(0)
+  otpSendCount    Int                     @default(0)
+  otpLastSentAt   DateTime?
+  lockedAt        DateTime?
+  phoneVerified   String?
+  phoneVerifiedAt DateTime?
+  signedAt        DateTime?
+  signerName      String?
+  signaturePath   String?
+  signerIp        String?
+  signerUserAgent String?
+  pdfPath         String?
+  voidedAt        DateTime?
+  voidReason      String?
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+
+  booking LongStayBooking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([bookingId])
+  @@index([status])
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -438,8 +855,11 @@ model HkUser {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
-  assignments HkAssignment[]
-  turnovers   HkTurnover[]
+  assignments    HkAssignment[]
+  turnovers      HkTurnover[]
+  exemptions     HkExemption[]
+  stayRatings    HkStayRating[]
+  bonusDecisions HkBonusDecision[]
 }
 
 model HkAssignment {
@@ -504,6 +924,8 @@ model HkTurnover {
   checkOutLat       Float?
   checkOutLng       Float?
   checkOutAccuracyM Float?
+  reviewNote        String?          @db.Text
+  reviewedAt        DateTime?
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
 
@@ -539,4 +961,61 @@ model HkSubmission {
 
   @@index([turnoverId])
   @@index([areaId])
+}
+
+enum HkExemptionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// "Guest already present": the housekeeper could not turn the unit over today.
+model HkExemption {
+  id           String            @id @default(cuid())
+  unitId       String
+  hkUserId     String
+  day          DateTime // start of the day (IST) the exemption is for
+  reason       String            @db.Text
+  status       HkExemptionStatus @default(PENDING)
+  decisionNote String?           @db.Text
+  decidedAt    DateTime?
+  createdAt    DateTime          @default(now())
+
+  unit   Unit   @relation(fields: [unitId], references: [id])
+  hkUser HkUser @relation(fields: [hkUserId], references: [id])
+
+  @@index([status])
+  @@index([hkUserId, day])
+  @@index([unitId, day])
+}
+
+// A guest review score entered by the admin for a stay the housekeeper cleaned for.
+model HkStayRating {
+  id        String   @id @default(cuid())
+  unitId    String
+  hkUserId  String
+  month     String // "YYYY-MM" the stay counts toward
+  rating    Int // 1 to 5
+  note      String?
+  createdAt DateTime @default(now())
+
+  unit   Unit   @relation(fields: [unitId], references: [id])
+  hkUser HkUser @relation(fields: [hkUserId], references: [id])
+
+  @@index([hkUserId, month])
+}
+
+// Admin override of the computed monthly bonus (genuine accident, etc.). The reason is required.
+model HkBonusDecision {
+  id        String   @id @default(cuid())
+  hkUserId  String
+  month     String
+  awarded   Boolean
+  reason    String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  hkUser HkUser @relation(fields: [hkUserId], references: [id])
+
+  @@unique([hkUserId, month])
 }

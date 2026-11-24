@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { prisma } from "@/lib/prisma"
+import { adminApiGuard } from "@/lib/auth/guard";
 
 const CreateGuestSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -12,6 +13,8 @@ const CreateGuestSchema = z.object({
 
 // GET /api/guests — list all guests
 export async function GET(req: NextRequest) {
+  const denied = await adminApiGuard()
+  if (denied) return denied
   try {
     const { searchParams } = new URL(req.url)
     const search = searchParams.get("search")
@@ -49,6 +52,8 @@ export async function GET(req: NextRequest) {
 
 // POST /api/guests — create a guest
 export async function POST(req: NextRequest) {
+  const denied = await adminApiGuard()
+  if (denied) return denied
   try {
     const body = await req.json()
     const parsed = CreateGuestSchema.safeParse(body)

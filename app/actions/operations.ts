@@ -1,5 +1,6 @@
 "use server"
 
+import { requireAdmin } from "@/lib/auth/guard"
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { TicketCategory, TicketPriority, ReporterType, TicketStatus } from "@prisma/client"
@@ -8,6 +9,7 @@ import { assignTicketRoundRobin } from "@/lib/operations/round-robin"
 import { sendWhatsAppMessage } from "@/lib/whatsapp/client"
 
 export async function createTicket(formData: FormData) {
+  await requireAdmin()
   try {
     const title = formData.get("title") as string 
     const description = formData.get("description") as string
@@ -111,6 +113,7 @@ export async function createTicket(formData: FormData) {
 }
 
 export async function assignTicket(ticketId: string, teamMemberId: string) {
+  await requireAdmin()
   try {
     // In real app, actorId is from session
     const actor = await prisma.teamMember.findFirst({ where: { role: "MANAGER" } })
@@ -154,6 +157,7 @@ export async function assignTicket(ticketId: string, teamMemberId: string) {
 }
 
 export async function updateTicketStatus(ticketId: string, newStatus: TicketStatus, notes?: string) {
+  await requireAdmin()
   try {
     // In real app, actorId is from session
     const actor = await prisma.teamMember.findFirst()

@@ -8,6 +8,7 @@ import { InventoryItem, Property } from "@prisma/client"
 import { addInventoryItem, updateInventoryQuantity } from "@/app/actions/inventory"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
+import { useTr } from "@/components/i18n/language-provider"
 
 interface InventoryClientProps {
   initialItems: InventoryItem[]
@@ -17,6 +18,7 @@ interface InventoryClientProps {
 }
 
 export function InventoryClient({ initialItems, activePropertyId, properties, reporterId }: InventoryClientProps) {
+  const tr = useTr()
   const router = useRouter()
   const searchParams = useSearchParams()
   const [items, setItems] = useState<InventoryItem[]>(initialItems)
@@ -34,6 +36,9 @@ export function InventoryClient({ initialItems, activePropertyId, properties, re
     item.name.toLowerCase().includes(search.toLowerCase()) ||
     item.category.toLowerCase().includes(search.toLowerCase())
   )
+
+  const showingAll = activePropertyId === "ALL"
+  const locationName = (id: string) => properties.find(p => p.id === id)?.name ?? ""
 
   const lowStockCount = items.filter(i => i.quantity < i.minThreshold).length
   const healthyCount = items.length - lowStockCount
@@ -53,14 +58,14 @@ export function InventoryClient({ initialItems, activePropertyId, properties, re
       setItems(items.map(item => item.id === itemId ? updated : item))
       
       if (updated.quantity < updated.minThreshold && items.find(i => i.id === itemId)!.quantity >= updated.minThreshold) {
-        toast.error("Low Stock Alert!", {
-          description: `An automatic high-priority ticket was created for ${updated.name}.`
+        toast.error(tr("Low Stock Alert!"), {
+          description: tr("An automatic high-priority ticket was created for {item}.", { item: updated.name })
         })
       } else {
-        toast.success("Stock updated successfully")
+        toast.success(tr("Stock updated successfully"))
       }
     } catch (error: any) {
-      toast.error("Failed to update stock", { description: error.message })
+      toast.error(tr("Failed to update stock"), { description: error.message })
     } finally {
       setUpdatingId(null)
     }
@@ -72,7 +77,8 @@ export function InventoryClient({ initialItems, activePropertyId, properties, re
     const formData = new FormData(e.currentTarget)
     try {
       const newItem = await addInventoryItem({
-        propertyId: activePropertyId,
+        // With all locations showing, the form asks which location the item belongs to.
+        propertyId: showingAll ? (formData.get("propertyId") as string) : activePropertyId,
         name: formData.get("name") as string,
         category: formData.get("category") as string,
         quantity: parseInt(formData.get("quantity") as string),
@@ -82,9 +88,9 @@ export function InventoryClient({ initialItems, activePropertyId, properties, re
       })
       setItems([...items, newItem].sort((a, b) => a.category.localeCompare(b.category)))
       setIsAdding(false)
-      toast.success("Item added successfully")
+      toast.success(tr("Item added successfully"))
     } catch (error: any) {
-      toast.error("Failed to add item", { description: error.message })
+      toast.error(tr("Failed to add item"), { description: error.message })
     } finally {
       setIsLoading(false)
     }
@@ -94,20 +100,21 @@ export function InventoryClient({ initialItems, activePropertyId, properties, re
     <div className="flex flex-col gap-6 pb-4">
       
       {/* Property Selector Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl border bg-card/60 shadow-sm backdrop-blur-sm">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 p-4 sm:p-5 rounded-2xl border bg-card/60 shadow-sm backdrop-blur-sm">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="h-10 w-10 shrink-0 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
             <MapPin className="h-5 w-5" />
           </div>
-          <div>
-            <h3 className="text-sm font-medium text-muted-foreground">Select Location</h3>
+          <div className="min-w-0 flex-1">
+            <h3 className="text-sm font-medium text-muted-foreground">{tr("Select Location")}</h3>
             <Select value={activePropertyId} onValueChange={handlePropertyChange}>
-              <SelectTrigger className="w-[240px] h-9 border-none bg-transparent hover:bg-muted/50 focus:ring-0 px-2 -ml-2 rounded-lg font-bold text-lg">
-                <SelectValue placeholder="Select property...">
-                  {properties.find(p => p.id === activePropertyId)?.name}
+              <SelectTrigger className="w-auto min-w-0 max-w-full sm:min-w-[240px] h-9 border-none bg-transparent hover:bg-muted/50 focus:ring-0 px-2 -ml-2 rounded-lg font-bold text-lg">
+                <SelectValue placeholder={tr("Select property...")}>
+                  {showingAll ? tr("All locations") : locationName(activePropertyId)}
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="ALL" className="font-medium">{tr("All locations")}</SelectItem>
                 {properties.map(p => (
                   <SelectItem key={p.id} value={p.id} className="font-medium">
                     {p.name}
@@ -123,31 +130,31 @@ export function InventoryClient({ initialItems, activePropertyId, properties, re
           className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm shadow-primary/20 transition-all duration-200 hover:bg-primary/90 hover:shadow-md active:scale-[0.98]"
         >
           <Plus className="h-4 w-4" />
-          New Item
+          {tr("New Item")}
         </button>
       </div>
 
       {/* Metrics Row */}
-      <div className="grid shrink-0 gap-4 sm:grid-cols-3">
+      <div className="grid shrink-0 grid-cols-3 gap-2.5 sm:gap-4">
         {[
           { label: "Total Items", value: items.length, icon: Box, color: "bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400" },
           { label: "Healthy Stock", value: healthyCount, icon: CheckCircle2, color: "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400" },
           { label: "Low Stock Alerts", value: lowStockCount, icon: AlertTriangle, color: "bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400" },
         ].map((stat, i) => (
           <motion.div
-            key={stat.label}
+            key={tr(stat.label)}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35, delay: i * 0.05 }}
-            className="group rounded-2xl border bg-card p-4 shadow-sm transition-all duration-300 hover:shadow-md hover:border-border/80"
+            className="group rounded-2xl border bg-card min-w-0 p-3 sm:p-4 shadow-sm transition-all duration-300 hover:shadow-md hover:border-border/80"
           >
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-sm font-medium text-muted-foreground">{stat.label}</p>
-              <div className={`rounded-xl p-2 ${stat.color} transition-transform duration-300 group-hover:scale-110`}>
+            <div className="flex items-start justify-between gap-2 mb-1.5 sm:mb-3">
+              <p className="text-xs sm:text-sm leading-snug font-medium text-muted-foreground">{tr(stat.label)}</p>
+              <div className={`hidden sm:block shrink-0 rounded-xl p-2 ${stat.color} transition-transform duration-300 group-hover:scale-110`}>
                 <stat.icon className="h-4 w-4" />
               </div>
             </div>
-            <h2 className="text-3xl font-bold tracking-tight">{stat.value}</h2>
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight tabular-nums">{stat.value}</h2>
           </motion.div>
         ))}
       </div>
@@ -161,45 +168,56 @@ export function InventoryClient({ initialItems, activePropertyId, properties, re
             transition={{ duration: 0.3, type: "spring", bounce: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="rounded-2xl border bg-gradient-to-br from-card to-muted/20 p-6 shadow-md mb-2">
+            <div className="rounded-2xl border bg-gradient-to-br from-card to-muted/20 p-4 sm:p-6 shadow-md mb-2">
               <h3 className="text-lg font-semibold mb-5 flex items-center gap-2">
                 <Box className="w-5 h-5 text-primary" />
-                Add New Inventory Item
+                {tr("Add New Inventory Item")}
               </h3>
-              <form onSubmit={handleAddItem} className="grid gap-5 md:grid-cols-2 lg:grid-cols-5">
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">Item Name</label>
-                  <input required name="name" className="flex h-11 w-full rounded-xl border border-input bg-background/50 px-3 py-2 text-sm transition-all focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary/50" placeholder="e.g. Toilet Paper" />
+              <form onSubmit={handleAddItem} className="grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-2 lg:grid-cols-5">
+                {showingAll && (
+                  <div className="col-span-2 md:col-span-2 lg:col-span-5 space-y-2">
+                    <label className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">{tr("Location")}</label>
+                    <select required name="propertyId" defaultValue="" className="flex h-11 w-full rounded-xl border border-input bg-background/50 px-3 py-2 text-sm transition-all focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary/50 lg:max-w-sm">
+                      <option value="" disabled>{tr("Select a location…")}</option>
+                      {properties.map(p => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                <div className="col-span-2 md:col-span-1 space-y-2">
+                  <label className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">{tr("Item Name")}</label>
+                  <input required name="name" className="flex h-11 w-full rounded-xl border border-input bg-background/50 px-3 py-2 text-sm transition-all focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary/50" placeholder={tr("e.g. Toilet Paper")} />
                 </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">Category</label>
+                <div className="col-span-2 md:col-span-1 space-y-2">
+                  <label className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">{tr("Category")}</label>
                   <select required name="category" className="flex h-11 w-full rounded-xl border border-input bg-background/50 px-3 py-2 text-sm transition-all focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary/50">
-                    <option value="TOWELS">Towels</option>
-                    <option value="LINEN">Linen</option>
-                    <option value="TOILETRIES">Toiletries</option>
-                    <option value="CLEANING_SUPPLIES">Cleaning supplies</option>
-                    <option value="KITCHEN_SUPPLIES">Kitchen supplies</option>
-                    <option value="CONSUMABLES">Consumables</option>
+                    <option value="TOWELS">{tr("Towels")}</option>
+                    <option value="LINEN">{tr("Linen")}</option>
+                    <option value="TOILETRIES">{tr("Toiletries")}</option>
+                    <option value="CLEANING_SUPPLIES">{tr("Cleaning supplies")}</option>
+                    <option value="KITCHEN_SUPPLIES">{tr("Kitchen supplies")}</option>
+                    <option value="CONSUMABLES">{tr("Consumables")}</option>
                   </select>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">Initial Qty</label>
+                  <label className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">{tr("Initial Qty")}</label>
                   <input required name="quantity" type="number" min="0" className="flex h-11 w-full rounded-xl border border-input bg-background/50 px-3 py-2 text-sm transition-all focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary/50" placeholder="e.g. 50" />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">Unit Type</label>
-                  <input required name="unit" className="flex h-11 w-full rounded-xl border border-input bg-background/50 px-3 py-2 text-sm transition-all focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary/50" placeholder="e.g. Rolls, Bottles" />
+                  <label className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">{tr("Unit Type")}</label>
+                  <input required name="unit" className="flex h-11 w-full rounded-xl border border-input bg-background/50 px-3 py-2 text-sm transition-all focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary/50" placeholder={tr("e.g. Rolls, Bottles")} />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">Min Alert Level</label>
-                  <input required name="minThreshold" type="number" min="0" className="flex h-11 w-full rounded-xl border border-input bg-background/50 px-3 py-2 text-sm transition-all focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary/50" placeholder="Alert at..." />
+                  <label className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">{tr("Min Alert Level")}</label>
+                  <input required name="minThreshold" type="number" min="0" className="flex h-11 w-full rounded-xl border border-input bg-background/50 px-3 py-2 text-sm transition-all focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary/50" placeholder={tr("Alert at...")} />
                 </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">Deduct Per Clean</label>
+                <div className="col-span-2 md:col-span-1 space-y-2">
+                  <label className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">{tr("Deduct Per Clean")}</label>
                   <div className="flex items-end gap-3">
                     <input required name="defaultDeduction" type="number" min="0" defaultValue="0" className="flex h-11 w-full rounded-xl border border-input bg-background/50 px-3 py-2 text-sm transition-all focus:bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary/50" placeholder="e.g. 2" />
                     <button disabled={isLoading} type="submit" className="h-11 px-6 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl transition-all font-semibold shadow-sm shadow-primary/20">
-                      Save
+                      {tr("Save")}
                     </button>
                   </div>
                 </div>
@@ -215,12 +233,12 @@ export function InventoryClient({ initialItems, activePropertyId, properties, re
         transition={{ duration: 0.4, delay: 0.2 }}
         className="flex flex-col flex-1 min-h-0 rounded-2xl border bg-card shadow-sm overflow-hidden"
       >
-        <div className="p-4 border-b border-border/40 bg-muted/20">
+        <div className="p-3 sm:p-4 border-b border-border/40 bg-muted/20">
           <div className="relative w-full sm:max-w-sm">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Search items by name or category..."
+              placeholder={tr("Search items by name or category...")}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full rounded-xl border border-border/60 bg-background py-2.5 pl-9 pr-4 text-sm shadow-sm transition-all placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary/40"
@@ -228,17 +246,71 @@ export function InventoryClient({ initialItems, activePropertyId, properties, re
           </div>
         </div>
 
-        <div className="relative w-full overflow-auto">
+        {/* Phone: one row per item with − / + right under the thumb. */}
+        <ul className="divide-y divide-border/40 md:hidden">
+          {filteredItems.length === 0 ? (
+            <li className="flex flex-col items-center gap-2 py-12 text-muted-foreground">
+              <Package className="h-8 w-8 text-muted-foreground/50" />
+              <p>{tr("No inventory items found.")}</p>
+            </li>
+          ) : (
+            filteredItems.map((item) => {
+              const isLowStock = item.quantity < item.minThreshold
+              const isUpdating = updatingId === item.id
+              return (
+                <li key={item.id} className="flex items-center gap-3 px-4 py-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-semibold">{item.name}</p>
+                    <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                      {showingAll && `${locationName(item.propertyId)} · `}
+                      {tr(item.category.replace('_', ' '))} · {tr("min")} {item.minThreshold}
+                      {(item as { defaultDeduction?: number }).defaultDeduction ? ` · −${(item as { defaultDeduction?: number }).defaultDeduction}/clean` : ''}
+                    </p>
+                    {isLowStock && (
+                      <span className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-rose-500/10 px-2 py-0.5 text-[11px] font-semibold text-rose-600 dark:text-rose-400">
+                        <AlertTriangle className="h-3 w-3" /> {tr("Restock")}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    <button
+                      onClick={() => handleUpdateStock(item.id, -1)}
+                      disabled={isUpdating || item.quantity <= 0}
+                      aria-label={tr("Remove one {item}", { item: item.name })}
+                      className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-border/60 bg-background shadow-sm disabled:opacity-40 active:scale-95"
+                    >
+                      <Minus className="h-4 w-4" />
+                    </button>
+                    <div className="w-12 text-center leading-none">
+                      <span className={`block text-lg font-bold tabular-nums ${isLowStock ? 'text-red-500' : 'text-emerald-600'}`}>{item.quantity}</span>
+                      <span className="text-[10px] font-medium uppercase text-muted-foreground">{item.unit}</span>
+                    </div>
+                    <button
+                      onClick={() => handleUpdateStock(item.id, 1)}
+                      disabled={isUpdating}
+                      aria-label={tr("Add one {item}", { item: item.name })}
+                      className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-border/60 bg-background shadow-sm disabled:opacity-40 active:scale-95"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </button>
+                  </div>
+                </li>
+              )
+            })
+          )}
+        </ul>
+
+        <div className="relative hidden w-full overflow-auto md:block">
           <table className="w-full caption-bottom text-sm">
             <thead className="[&_tr]:border-b bg-muted/30">
               <tr className="border-b transition-colors">
-                <th className="h-14 px-6 text-left align-middle text-xs font-bold uppercase tracking-wider text-muted-foreground">Item Name</th>
-                <th className="h-14 px-6 text-left align-middle text-xs font-bold uppercase tracking-wider text-muted-foreground">Category</th>
-                <th className="h-14 px-6 text-left align-middle text-xs font-bold uppercase tracking-wider text-muted-foreground">Stock Level</th>
-                <th className="h-14 px-6 text-left align-middle text-xs font-bold uppercase tracking-wider text-muted-foreground">Alert Threshold</th>
-                <th className="h-14 px-6 text-left align-middle text-xs font-bold uppercase tracking-wider text-muted-foreground">Deduct/Clean</th>
-                <th className="h-14 px-6 text-left align-middle text-xs font-bold uppercase tracking-wider text-muted-foreground">Status</th>
-                <th className="h-14 px-6 text-right align-middle text-xs font-bold uppercase tracking-wider text-muted-foreground">Manage</th>
+                <th className="h-14 px-6 text-left align-middle text-xs font-bold uppercase tracking-wider text-muted-foreground">{tr("Item Name")}</th>
+                <th className="h-14 px-6 text-left align-middle text-xs font-bold uppercase tracking-wider text-muted-foreground">{tr("Category")}</th>
+                <th className="h-14 px-6 text-left align-middle text-xs font-bold uppercase tracking-wider text-muted-foreground">{tr("Stock Level")}</th>
+                <th className="h-14 px-6 text-left align-middle text-xs font-bold uppercase tracking-wider text-muted-foreground">{tr("Alert Threshold")}</th>
+                <th className="h-14 px-6 text-left align-middle text-xs font-bold uppercase tracking-wider text-muted-foreground">{tr("Deduct/Clean")}</th>
+                <th className="h-14 px-6 text-left align-middle text-xs font-bold uppercase tracking-wider text-muted-foreground">{tr("Status")}</th>
+                <th className="h-14 px-6 text-right align-middle text-xs font-bold uppercase tracking-wider text-muted-foreground">{tr("Manage")}</th>
               </tr>
             </thead>
             <tbody className="[&_tr:last-child]:border-0">
@@ -247,7 +319,7 @@ export function InventoryClient({ initialItems, activePropertyId, properties, re
                   <td colSpan={6} className="h-32 text-center text-muted-foreground">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <Package className="h-8 w-8 text-muted-foreground/50" />
-                      <p>No inventory items found.</p>
+                      <p>{tr("No inventory items found.")}</p>
                     </div>
                   </td>
                 </tr>
@@ -263,12 +335,15 @@ export function InventoryClient({ initialItems, activePropertyId, properties, re
                           <div className={`h-8 w-8 rounded-lg flex items-center justify-center border ${isLowStock ? 'bg-red-50 border-red-100 text-red-500' : 'bg-primary/5 border-primary/10 text-primary'}`}>
                             <Package className="w-4 h-4" />
                           </div>
-                          <span className="font-semibold text-base">{item.name}</span>
+                          <div>
+                            <span className="font-semibold text-base">{item.name}</span>
+                            {showingAll && <p className="text-xs text-muted-foreground">{locationName(item.propertyId)}</p>}
+                          </div>
                         </div>
                       </td>
                       <td className="p-6 align-middle">
                         <span className="inline-flex items-center rounded-lg border bg-background px-3 py-1 text-xs font-medium text-foreground shadow-sm">
-                          {item.category.replace('_', ' ')}
+                          {tr(item.category.replace('_', ' '))}
                         </span>
                       </td>
                       <td className="p-6 align-middle">
@@ -290,12 +365,12 @@ export function InventoryClient({ initialItems, activePropertyId, properties, re
                         {isLowStock ? (
                           <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-500/10 px-3 py-1 text-xs font-semibold text-rose-600 dark:text-rose-400 border border-rose-500/20">
                             <AlertTriangle className="w-3.5 h-3.5" />
-                            Restock Required
+                            {tr("Restock Required")}
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                            Healthy
+                            {tr("Healthy")}
                           </span>
                         )}
                       </td>

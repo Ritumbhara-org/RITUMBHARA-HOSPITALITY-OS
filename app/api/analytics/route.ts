@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths, differenceInDays } from "date-fns";
+import { adminApiGuard } from "@/lib/auth/guard";
 
 export async function GET(request: Request) {
+  const denied = await adminApiGuard()
+  if (denied) return denied
   try {
     const url = new URL(request.url);
     const propertyId = url.searchParams.get("propertyId");

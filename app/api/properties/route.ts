@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { prisma } from "@/lib/prisma"
+import { adminApiGuard } from "@/lib/auth/guard";
 
 const CreatePropertySchema = z.object({
   name: z.string().min(1),
@@ -16,6 +17,8 @@ const CreatePropertySchema = z.object({
 
 // GET /api/properties — list properties
 export async function GET() {
+  const denied = await adminApiGuard()
+  if (denied) return denied
   try {
     const properties = await prisma.property.findMany({
       include: {
@@ -32,6 +35,8 @@ export async function GET() {
 
 // POST /api/properties — create a property
 export async function POST(req: NextRequest) {
+  const denied = await adminApiGuard()
+  if (denied) return denied
   try {
     const body = await req.json()
     const parsed = CreatePropertySchema.safeParse(body)

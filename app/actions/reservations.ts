@@ -1,10 +1,12 @@
 "use server"
 
+import { requireAdmin } from "@/lib/auth/guard"
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { eventBus } from "@/lib/events/bus"
 
 export async function updateReservationStatus(reservationId: string, status: string) {
+  await requireAdmin()
   try {
     const reservation = await prisma.reservation.update({
       where: { id: reservationId },
@@ -57,6 +59,7 @@ export async function updateReservationStatus(reservationId: string, status: str
 }
 
 export async function createReservation(formData: FormData) {
+  await requireAdmin()
   try {
     const guestId = formData.get("guestId") as string
     const unitId = formData.get("unitId") as string

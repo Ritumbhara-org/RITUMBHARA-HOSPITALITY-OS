@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { TeamClient } from "@/components/team/team-client";
+import { requireAdminPage } from "@/lib/auth/guard"
 
 export const metadata = {
   title: "Team Management | Ritumbhara Hospitality OS",
@@ -7,6 +8,7 @@ export const metadata = {
 };
 
 export default async function TeamPage() {
+  await requireAdminPage("/team")
   const teamMembers = await prisma.teamMember.findMany({
     orderBy: { createdAt: "desc" },
     include: { property: true }

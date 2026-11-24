@@ -39,6 +39,19 @@ function normalizeText(text: string): string {
   return text.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
 }
 
+// Total tax on a booking: the per-room tax lines the PMS sends (roomDetails[].taxes[].taxAmount).
+export function bookingTaxAmount(booking: { roomDetails?: unknown } | null | undefined): number {
+  let sum = 0;
+  const rooms = Array.isArray(booking?.roomDetails) ? (booking.roomDetails as { taxes?: unknown }[]) : [];
+  for (const room of rooms) {
+    for (const t of Array.isArray(room?.taxes) ? (room.taxes as { taxAmount?: unknown }[]) : []) {
+      const v = parseFloat(String(t?.taxAmount ?? ""));
+      if (Number.isFinite(v) && v > 0) sum += v;
+    }
+  }
+  return Math.round(sum * 100) / 100;
+}
+
 export async function syncBookings() {
   console.log("Starting Intellistay Booking Sync...");
   
@@ -164,6 +177,13 @@ export async function syncBookings() {
         const rawStatus = mapBookingStatus(booking.bookingStatusId || booking.status);
         const status = calculateEffectiveStatus(rawStatus, checkInDate, checkOutDate);
         const totalAmount = parseFloat(booking.grandTotal) || 0;
+        // Loyalty inputs: the PMS's own source name, taxes (excluded from eligible spend) and payment state.
+        const loyaltyFields = {
+          sourceDetail: booking.source ? String(booking.source).slice(0, 80) : null,
+          taxAmount: bookingTaxAmount(booking),
+          paidAmount: Number.isFinite(parseFloat(booking.totalPaidAmount)) ? parseFloat(booking.totalPaidAmount) : null,
+          paymentStatus: booking.paymentStatus ? String(booking.paymentStatus).slice(0, 40) : null,
+        };
         
         const specialRequest = booking.specialRequest ? `Special Request: ${booking.specialRequest}\n` : '';
         const paymentInfo = `Payment Status: ${booking.paymentStatus || 'Unknown'}\nPaid: ${booking.totalPaidAmount || 0}`;
@@ -181,6 +201,8 @@ export async function syncBookings() {
           // As requested: if the booking is already processed (checked in, checked out, cancelled)
           // in our local database, we DO NOT process it again from Intellistay to prevent overwriting.
           if (currentStatus !== 'CONFIRMED') {
+            // Status and dates stay as they are; only payment/tax details are refreshed (needed for loyalty).
+            await prisma.reservation.update({ where: { id: existingRes.id }, data: loyaltyFields });
             console.log(`Booking ${intellistayBookingId} is already ${currentStatus} locally. Skipping sync overwrite.`);
             continue;
           }
@@ -194,7 +216,8 @@ export async function syncBookings() {
               checkOut: checkOutDate,
               status: finalStatus,
               totalAmount,
-              bookingNotes
+              bookingNotes,
+              ...loyaltyFields
             }
           });
           
@@ -237,7 +260,8 @@ export async function syncBookings() {
               status,
               source: inferredSource,
               totalAmount,
-              bookingNotes
+              bookingNotes,
+              ...loyaltyFields
             }
           });
           newCount++;

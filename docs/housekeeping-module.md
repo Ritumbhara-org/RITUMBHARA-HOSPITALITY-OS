@@ -6,7 +6,7 @@ Design: see the project doc `housekeeping-checklist-design`.
 
 ## Status
 
-Built: steps 1 to 3 (login and access, checklists, housekeeper capture flow).
+Built: login and access, checklists, housekeeper capture flow, admin review, guest-already-present exemptions, monthly tracker with strict bonus rule, stay reviews and admin overrides.
 Not built yet: admin review and approval, daily and monthly tracker, guest-present exemptions, stay ratings and bonus.
 
 ## Where things live
@@ -14,32 +14,26 @@ Not built yet: admin review and approval, daily and monthly tracker, guest-prese
 | What | Path |
 |---|---|
 | Housekeeper app (mobile) | `/hk` (sign in at `/hk/login`) |
-| Admin pages | `/hk-admin` (sign in at `/hk-admin/login`) |
+| Admin pages | `/hk-admin` (the OS admin sign-in at `/login`; also in the sidebar as Housekeeping) |
 | Housekeeper server actions | `app/actions/hk.ts` |
 | Admin server actions | `app/actions/hk-admin.ts` |
 | Upload token route | `app/api/hk/upload/route.ts` |
 | Rules (pure, tested) | `lib/hk/*` |
-| Auth config | `lib/hk/auth.ts`, `proxy.ts` |
+| HK session + login | `lib/hk/session.ts`, `app/actions/hk-auth.ts`; admin side uses the OS admin auth (`lib/auth/*`) |
 
 ## Setup
 
-1. Apply the schema. The repo's migrations folder is behind the schema, so this project syncs with `prisma db push`:
-   `npx prisma db push`
-   All changes are new tables and enums. Nothing existing is altered.
+1. Apply the schema BEFORE deploying: run `prisma/sql/2026-11-21_housekeeping_proof_of_work.sql` in the SQL editor (or `npx prisma db push`). Only new tables and enums; nothing existing is altered. Production and preview share one database.
 2. Set environment variables (Vercel project settings):
-   - `NEXTAUTH_SECRET`: a long random string
-   - `NEXTAUTH_URL`: the site URL, e.g. `https://<your-domain>`
-   - `HK_ADMIN_EMAIL`: the admin login email
-   - `HK_ADMIN_PASSWORD_HASH`: from `npx tsx scripts/hk-hash-secret.ts '<password, 10+ chars>'`
    - `BLOB_READ_WRITE_TOKEN`: create a Vercel Blob store and connect it to the project
-3. Sign in at `/hk-admin/login`. Add locations (stand at the property and use "Use my current location"), then checklists, then housekeepers with their mobile number and PIN, and assign locations.
+3. Sign in to the OS as admin, open Housekeeping in the sidebar. Add locations (stand at the property and use "Use my current location"), then checklists, then housekeepers with their mobile number and PIN, and assign locations.
 
 ## How access works
 
 - Housekeepers sign in with mobile number and a PIN set by the admin. Five wrong PINs lock the account for 15 minutes. Deactivating a housekeeper cuts them off immediately.
-- The admin is one account defined by env vars.
-- `/hk` and `/hk-admin` are checked in the proxy and again in every page, server action and route handler.
-- The rest of the OS has no login yet. A signed-in housekeeper is redirected into `/hk` and blocked from other pages and APIs, but a person with no session can still open the open dashboard. Locking down the whole OS is a separate rollout.
+- Admin pages (`/hk-admin`) need the normal OS admin sign-in (proxy, layout, page and every action check it).
+- `/hk` and `/api/hk` are public at the proxy only so housekeepers can reach them; each page, action and the upload route checks the HK session itself.
+- Housekeepers sign in at `/hk/login` with mobile + PIN (own signed cookie `rb_hk_session`, 12 h; 5 wrong PINs lock the account 15 min; resetting a PIN or deactivating the user ends their sessions). The session key is derived from `ADMIN_SESSION_SECRET` unless `HK_SESSION_SECRET` is set. A housekeeper session cannot open any OS page, and the admin session is not an HK session.
 
 ## Proof rules
 
@@ -55,3 +49,10 @@ Not built yet: admin review and approval, daily and monthly tracker, guest-prese
 - Location can be faked on a phone. It is recorded as a signal for the reviewer, not as proof.
 - Uploads retry on a weak network, but there is no offline queue yet. The phone needs a connection to finish an upload.
 - No PWA install prompt yet.
+
+## Review, exemptions and bonus
+
+- `/hk-admin/review`: submitted turnovers with every photo and video. Approve, reject (reason required) or send back for a redo (reopens it for the housekeeper).
+- Guest already present: the housekeeper taps "Guest present" on a unit and gives a reason. The admin approves or rejects at `/hk-admin/exemptions`. Approved means excused for that unit and day.
+- `/hk-admin/tracker?month=YYYY-MM`: per housekeeper turnover counts, reviews and the bonus result. Rule (`lib/hk/bonus.ts`, tested): any rejected turnover, or any review below 5 stars, fails the whole month; stays with no review do not count against them; unreviewed turnovers keep the month pending. Admin enters guest review scores by hand; an override needs a reason and is shown on the tracker. A warning shows checkouts (from reservations) with no turnover or exemption logged. It does not fail the bonus by itself.
+- Not built yet: offline upload queue, private media storage. Review scores stay manual (entered by the admin on the tracker) by decision.

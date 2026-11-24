@@ -4,8 +4,15 @@ if (typeof dns.setDefaultResultOrder === "function") {
 }
 
 import { PrismaClient } from "@prisma/client"
+import { databaseFingerprint, resolveDatabaseUrl } from "@/lib/db/preview-isolation"
 
 const prismaClientSingleton = () => {
+  // Preview deployments must use the separate TEST database (fails closed); Production/local are unchanged.
+  const previewUrl = resolveDatabaseUrl()
+  if (previewUrl) {
+    console.log("[db] Preview is using the isolated test database: " + databaseFingerprint(previewUrl))
+    return new PrismaClient({ datasourceUrl: previewUrl })
+  }
   return new PrismaClient()
 }
 

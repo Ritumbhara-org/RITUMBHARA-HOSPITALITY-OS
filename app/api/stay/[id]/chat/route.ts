@@ -134,7 +134,7 @@ Do NOT just say you will do it—you must actually call the tool.`;
             }
           });
 
-          eventBus.emit('TICKET_CREATED', {
+          await eventBus.emit('TICKET_CREATED', {
             ticketId: ticket.id,
             propertyId: ticket.propertyId,
             category: ticket.category,

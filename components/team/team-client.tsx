@@ -5,6 +5,7 @@ import { TeamMember, Property } from "@prisma/client";
 import { Users, Plus, Edit2, Trash2, MapPin } from "lucide-react";
 import { TeamModal } from "./team-modal";
 import { deleteTeamMember } from "@/app/actions/team";
+import { useTr } from "@/components/i18n/language-provider"
 
 type TeamMemberWithProperty = TeamMember & { property?: Property };
 
@@ -14,6 +15,7 @@ interface TeamClientProps {
 }
 
 export function TeamClient({ initialMembers, properties }: TeamClientProps) {
+  const tr = useTr()
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
   const [locationFilter, setLocationFilter] = useState<string>("ALL");
@@ -40,25 +42,25 @@ export function TeamClient({ initialMembers, properties }: TeamClientProps) {
   };
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-8">
+    <div className="w-full max-w-7xl mx-auto space-y-4 sm:space-y-8 pb-4 sm:p-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 tracking-tight flex items-center gap-3">
-            <Users className="w-8 h-8 text-rose-600" />
-            Team Management
+      <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 sm:gap-4">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-3xl font-bold text-gray-900 tracking-tight flex items-center gap-2 sm:gap-3">
+            <Users className="w-6 h-6 sm:w-8 sm:h-8 shrink-0 text-rose-600" />
+            {tr("Team Management")}
           </h1>
-          <p className="text-gray-500 mt-1">Manage staff, roles, and WhatsApp automation numbers.</p>
+          <p className="text-sm sm:text-base text-gray-500 mt-1">{tr("Manage staff, roles, and WhatsApp automation numbers.")}</p>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="relative">
+        <div className="flex items-center gap-2 sm:gap-4">
+          <div className="relative min-w-0 flex-1 sm:flex-none">
             <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <select
               value={locationFilter}
               onChange={(e) => setLocationFilter(e.target.value)}
-              className="pl-9 pr-8 py-2 rounded-xl border border-gray-200 bg-white text-sm font-medium focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 outline-none appearance-none"
+              className="w-full sm:w-auto h-11 sm:h-auto pl-9 pr-8 py-2 rounded-xl border border-gray-200 bg-white text-sm font-medium focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 outline-none appearance-none"
             >
-              <option value="ALL">All Locations</option>
+              <option value="ALL">{tr("All Locations")}</option>
               {properties.map(p => (
                 <option key={p.id} value={p.id}>{p.name}</option>
               ))}
@@ -66,33 +68,70 @@ export function TeamClient({ initialMembers, properties }: TeamClientProps) {
           </div>
           <button
             onClick={handleAddNew}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm shadow-primary/20 transition-all duration-200 hover:bg-primary/90 hover:shadow-md hover:shadow-primary/25 active:scale-[0.98]"
+            className="inline-flex h-11 sm:h-auto shrink-0 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm shadow-primary/20 transition-all duration-200 hover:bg-primary/90 hover:shadow-md hover:shadow-primary/25 active:scale-[0.98]"
           >
             <Plus className="w-5 h-5" />
-            Add Team Member
+            <span className="sm:hidden">{tr("Add")}</span>
+            <span className="hidden sm:inline">{tr("Add Team Member")}</span>
           </button>
         </div>
       </div>
 
+      {/* Phone: one card per person. */}
+      <ul className="divide-y divide-gray-100 rounded-2xl border border-gray-100 bg-white shadow-sm md:hidden">
+        {filteredMembers.length === 0 ? (
+          <li className="px-4 py-10 text-center text-sm text-gray-500">{tr("No team members found for this location.")}</li>
+        ) : (
+          filteredMembers.map((member) => (
+            <li key={member.id} className="flex items-start gap-3 px-4 py-3.5">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rose-50 text-sm font-bold text-rose-600">
+                {member.name.charAt(0)}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <p className="truncate font-semibold text-gray-900">{member.name}</p>
+                  <span className={`h-2 w-2 shrink-0 rounded-full ${member.isActive ? "bg-emerald-500" : "bg-gray-300"}`} title={member.isActive ? tr("Active") : tr("Inactive")} />
+                </div>
+                <p className="truncate text-xs text-gray-500 capitalize">
+                  {member.department.replace("_", " ").toLowerCase()} · {member.role.toLowerCase().replace("_", " ")}
+                </p>
+                <p className="truncate text-xs text-gray-500">{member.property?.name || tr("Unassigned")}</p>
+                {member.whatsappNumber && (
+                  <a href={`tel:${member.whatsappNumber}`} className="mt-1 inline-block font-mono text-xs text-rose-700">{member.whatsappNumber}</a>
+                )}
+              </div>
+              <div className="-mr-2 flex shrink-0">
+                <button onClick={() => handleEdit(member)} className="p-2.5 text-gray-400 active:text-rose-600 rounded-lg" aria-label={`Edit ${member.name}`}>
+                  <Edit2 className="w-4 h-4" />
+                </button>
+                <button onClick={() => handleDelete(member.id)} className="p-2.5 text-gray-400 active:text-red-600 rounded-lg" aria-label={`Delete ${member.name}`}>
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            </li>
+          ))
+        )}
+      </ul>
+
       {/* Data Table */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      <div className="hidden md:block bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
             <thead className="bg-gray-50 text-gray-600 font-medium border-b border-gray-100">
               <tr>
-                <th className="px-6 py-4">Name</th>
-                <th className="px-6 py-4">Location</th>
-                <th className="px-6 py-4">Department & Role</th>
-                <th className="px-6 py-4">WhatsApp Number</th>
-                <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4 text-right">Actions</th>
+                <th className="px-6 py-4">{tr("Name")}</th>
+                <th className="px-6 py-4">{tr("Location")}</th>
+                <th className="px-6 py-4">{tr("Department & Role")}</th>
+                <th className="px-6 py-4">{tr("WhatsApp Number")}</th>
+                <th className="px-6 py-4">{tr("Status")}</th>
+                <th className="px-6 py-4 text-right">{tr("Actions")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {filteredMembers.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
-                    No team members found for this location.
+                    {tr("No team members found for this location.")}
                   </td>
                 </tr>
               ) : (
@@ -102,7 +141,7 @@ export function TeamClient({ initialMembers, properties }: TeamClientProps) {
                       {member.name}
                     </td>
                     <td className="px-6 py-4 text-gray-600 font-medium">
-                      {member.property?.name || "Unassigned"}
+                      {member.property?.name || tr("Unassigned")}
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-col">
@@ -125,7 +164,7 @@ export function TeamClient({ initialMembers, properties }: TeamClientProps) {
                             : "bg-gray-100 text-gray-600 border border-gray-200"
                         }`}
                       >
-                        {member.isActive ? "Active" : "Inactive"}
+                        {member.isActive ? tr("Active") : tr("Inactive")}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
@@ -133,14 +172,14 @@ export function TeamClient({ initialMembers, properties }: TeamClientProps) {
                         <button
                           onClick={() => handleEdit(member)}
                           className="p-2 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-                          title="Edit"
+                          title={tr("Edit")}
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleDelete(member.id)}
                           className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                          title="Delete"
+                          title={tr("Delete")}
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>

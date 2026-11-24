@@ -1,11 +1,15 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { assignTicketRoundRobin } from '@/lib/operations/round-robin';
+import { cronGuard } from '@/lib/auth/cron';
 
 // Note: To prevent cron-job.org from disabling this endpoint on error,
 // we will return 200 OK on failures with a JSON payload explaining the error,
 // as done in other cron jobs.
 export async function GET(req: Request) {
+  // Cron service only: requires "Authorization: Bearer <CRON_SECRET>"; refused if CRON_SECRET is not configured.
+  const denied = cronGuard(req);
+  if (denied) return denied;
   try {
     // 10 minutes ago
     const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);

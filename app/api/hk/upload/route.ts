@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client"
-import { HkAuthError, assertHk, assertHkAdmin } from "@/lib/hk/session"
+import { HkAuthError, assertHk } from "@/lib/hk/session"
+import { getAdminSession } from "@/lib/auth/guard"
 import {
   ALLOWED_MEDIA_TYPES,
   MAX_VIDEO_BYTES,
@@ -24,7 +25,7 @@ export async function POST(request: Request) {
       request,
       onBeforeGenerateToken: async (pathname) => {
         if (isPathAllowed(pathname, REFERENCE_PREFIX)) {
-          await assertHkAdmin()
+          if (!(await getAdminSession())) throw new HkAuthError()
         } else {
           const hk = await assertHk()
           if (!isPathAllowed(pathname, proofPrefix(hk.id))) throw new Error("Upload path not allowed")

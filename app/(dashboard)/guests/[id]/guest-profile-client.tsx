@@ -4,8 +4,10 @@ import { motion } from "framer-motion"
 import { ArrowLeft, Phone, Mail, Calendar, CreditCard } from "lucide-react"
 import Link from "next/link"
 import { format } from "date-fns"
+import { useTr } from "@/components/i18n/language-provider"
 
 export function GuestProfileClient({ guest, totalSpend, totalStays }: { guest: any, totalSpend: number, totalStays: number }) {
+  const tr = useTr()
   return (
     <div className="flex h-full flex-col gap-5 overflow-auto pb-8">
       <motion.div
@@ -18,9 +20,9 @@ export function GuestProfileClient({ guest, totalSpend, totalStays }: { guest: a
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Guest Profile</h1>
+          <h1 className="text-2xl font-bold tracking-tight">{tr("Guest Profile")}</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Detailed information for <span className="font-semibold text-foreground">{guest.name}</span>
+            {tr("Detailed information for")} <span className="font-semibold text-foreground">{guest.name}</span>
           </p>
         </div>
       </motion.div>
@@ -38,14 +40,17 @@ export function GuestProfileClient({ guest, totalSpend, totalStays }: { guest: a
           <h2 className="text-xl font-bold">{guest.name}</h2>
           
           {guest.membership ? (
+            <>
             <div className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-violet-50 text-violet-700 dark:bg-violet-500/10 dark:text-violet-400 border border-violet-200/60 dark:border-violet-500/20 text-xs font-semibold">
               <svg className="h-3 w-3 fill-violet-700 dark:fill-violet-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
                 <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clipRule="evenodd" />
               </svg>
-              {guest.membership.tier} MEMBER
+              {guest.membership.tier === "SUPERSTAR" ? "SUPER STAR" : guest.membership.tier} MEMBER
             </div>
+            <a href={`/loyalty/${guest.membership.id}`} className="mt-2 text-xs font-semibold text-primary hover:underline">{tr("View loyalty profile")}</a>
+            </>
           ) : (
-            <span className="text-xs text-muted-foreground italic mt-2">No Membership</span>
+            <span className="text-xs text-muted-foreground italic mt-2">{tr("No Membership")}</span>
           )}
 
           <div className="w-full mt-6 space-y-4 text-left border-t border-border/40 pt-6">
@@ -67,7 +72,7 @@ export function GuestProfileClient({ guest, totalSpend, totalStays }: { guest: a
               <div className="rounded-lg bg-muted p-2">
                 <CreditCard className="h-4 w-4 text-muted-foreground" />
               </div>
-              <span className="font-medium">{guest.idType || 'ID'}: {guest.idNumber || 'Not provided'}</span>
+              <span className="font-medium">{guest.idType || 'ID'}: {guest.idNumber || tr("Not provided")}</span>
             </div>
             <div className="flex items-center gap-3 text-sm">
               <div className="rounded-lg bg-muted p-2">
@@ -86,11 +91,11 @@ export function GuestProfileClient({ guest, totalSpend, totalStays }: { guest: a
             className="grid grid-cols-2 gap-4"
           >
             <div className="border border-border/60 rounded-2xl bg-card p-5 flex flex-col justify-center shadow-sm">
-              <p className="text-sm font-medium text-muted-foreground mb-1">Total Stays</p>
+              <p className="text-sm font-medium text-muted-foreground mb-1">{tr("Total Stays")}</p>
               <div className="text-3xl font-bold">{totalStays}</div>
             </div>
             <div className="border border-border/60 rounded-2xl bg-card p-5 flex flex-col justify-center shadow-sm">
-              <p className="text-sm font-medium text-muted-foreground mb-1">Total Spend</p>
+              <p className="text-sm font-medium text-muted-foreground mb-1">{tr("Total Spend")}</p>
               <div className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">₹{totalSpend.toFixed(2)}</div>
             </div>
           </motion.div>
@@ -102,14 +107,14 @@ export function GuestProfileClient({ guest, totalSpend, totalStays }: { guest: a
             className="border border-border/60 rounded-2xl bg-card shadow-sm flex flex-col"
           >
             <div className="p-4 border-b border-border/40 font-semibold flex items-center justify-between text-sm">
-              Reservations History
+              {tr("Reservations History")}
               <Link href={`/reservations?newBooking=true&guestId=${guest.id}`} className="text-xs text-primary hover:underline font-normal">
                 + New Booking
               </Link>
             </div>
             <div className="p-0">
               {guest.reservations.length === 0 ? (
-                <div className="p-10 text-center text-muted-foreground text-sm">No reservations found.</div>
+                <div className="p-10 text-center text-muted-foreground text-sm">{tr("No reservations found.")}</div>
               ) : (
                 <div className="divide-y divide-border/40">
                   {guest.reservations.map((res: any) => (
@@ -140,14 +145,14 @@ export function GuestProfileClient({ guest, totalSpend, totalStays }: { guest: a
             className="border border-border/60 rounded-2xl bg-card shadow-sm flex flex-col"
           >
             <div className="p-4 border-b border-border/40 font-semibold flex items-center justify-between text-sm">
-              Tickets & Requests
+              {tr("Tickets & Requests")}
               <Link href={`/operations?newTicket=true&guestId=${guest.id}`} className="text-xs text-primary hover:underline font-normal">
                 + New Ticket
               </Link>
             </div>
             <div className="p-0">
               {guest.tickets.length === 0 ? (
-                <div className="p-10 text-center text-muted-foreground text-sm">No tickets found.</div>
+                <div className="p-10 text-center text-muted-foreground text-sm">{tr("No tickets found.")}</div>
               ) : (
                 <div className="divide-y divide-border/40">
                   {guest.tickets.map((ticket: any) => (

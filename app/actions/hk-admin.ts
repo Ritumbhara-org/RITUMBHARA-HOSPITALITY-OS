@@ -2,9 +2,10 @@
 
 import { revalidatePath } from "next/cache"
 import { prisma } from "@/lib/prisma"
-import { assertHkAdmin } from "@/lib/hk/session"
+import { requireAdmin } from "@/lib/auth/guard"
 import { hashSecret, isValidPinFormat } from "@/lib/hk/secret"
 import { normalizeMobile } from "@/lib/hk/validation"
+import { isValidMonth } from "@/lib/hk/bonus"
 import { REFERENCE_PREFIX, isOwnedMediaUrl, parseReferenceMedia, type ReferenceMedia } from "@/lib/hk/media"
 
 type Result = { success: boolean; error?: string; message?: string }
@@ -20,8 +21,8 @@ const str = (fd: FormData, key: string) => String(fd.get(key) ?? "").trim()
 // ── Locations ────────────────────────────────────────────────
 
 export async function createHkLocation(fd: FormData): Promise<Result> {
+  await requireAdmin()
   try {
-    await assertHkAdmin()
     const propertyId = str(fd, "propertyId")
     const name = str(fd, "name")
     const latitude = Number(str(fd, "latitude"))
@@ -42,8 +43,8 @@ export async function createHkLocation(fd: FormData): Promise<Result> {
 }
 
 export async function setHkLocationActive(id: string, isActive: boolean): Promise<Result> {
+  await requireAdmin()
   try {
-    await assertHkAdmin()
     await prisma.hkLocation.update({ where: { id }, data: { isActive } })
     revalidatePath("/hk-admin/locations")
     return { success: true, message: isActive ? "Location activated" : "Location deactivated" }
@@ -55,8 +56,8 @@ export async function setHkLocationActive(id: string, isActive: boolean): Promis
 // ── Housekeepers ─────────────────────────────────────────────
 
 export async function createHkUser(fd: FormData): Promise<Result> {
+  await requireAdmin()
   try {
-    await assertHkAdmin()
     const name = str(fd, "name")
     const mobile = normalizeMobile(str(fd, "mobile"))
     const pin = str(fd, "pin")
@@ -77,8 +78,8 @@ export async function createHkUser(fd: FormData): Promise<Result> {
 }
 
 export async function resetHkUserPin(id: string, fd: FormData): Promise<Result> {
+  await requireAdmin()
   try {
-    await assertHkAdmin()
     const pin = str(fd, "pin")
     if (!isValidPinFormat(pin)) throw new Error("PIN must be 4 to 6 digits.")
     await prisma.hkUser.update({
@@ -93,8 +94,8 @@ export async function resetHkUserPin(id: string, fd: FormData): Promise<Result> 
 }
 
 export async function setHkUserActive(id: string, isActive: boolean): Promise<Result> {
+  await requireAdmin()
   try {
-    await assertHkAdmin()
     await prisma.hkUser.update({ where: { id }, data: { isActive } })
     revalidatePath("/hk-admin/housekeepers")
     return { success: true, message: isActive ? "Housekeeper activated" : "Housekeeper deactivated" }
@@ -104,8 +105,8 @@ export async function setHkUserActive(id: string, isActive: boolean): Promise<Re
 }
 
 export async function setHkAssignments(hkUserId: string, fd: FormData): Promise<Result> {
+  await requireAdmin()
   try {
-    await assertHkAdmin()
     const locationIds = fd.getAll("locationIds").map(String)
     await prisma.$transaction([
       prisma.hkAssignment.deleteMany({ where: { hkUserId, locationId: { notIn: locationIds } } }),
@@ -128,8 +129,8 @@ export async function setHkAssignments(hkUserId: string, fd: FormData): Promise<
 // ── Checklists ───────────────────────────────────────────────
 
 export async function createHkTemplate(fd: FormData): Promise<Result> {
+  await requireAdmin()
   try {
-    await assertHkAdmin()
     const locationId = str(fd, "locationId")
     const title = str(fd, "title")
     const unitType = str(fd, "unitType") || null
@@ -143,8 +144,8 @@ export async function createHkTemplate(fd: FormData): Promise<Result> {
 }
 
 export async function setHkTemplateActive(id: string, isActive: boolean): Promise<Result> {
+  await requireAdmin()
   try {
-    await assertHkAdmin()
     await prisma.hkChecklistTemplate.update({ where: { id }, data: { isActive } })
     revalidatePath("/hk-admin/checklists")
     return { success: true, message: isActive ? "Template activated" : "Template deactivated" }
@@ -154,8 +155,8 @@ export async function setHkTemplateActive(id: string, isActive: boolean): Promis
 }
 
 export async function createHkArea(templateId: string, fd: FormData): Promise<Result> {
+  await requireAdmin()
   try {
-    await assertHkAdmin()
     const title = str(fd, "title")
     const instructions = str(fd, "instructions") || null
     const minPhotos = Math.round(Number(str(fd, "minPhotos") || 1))
@@ -189,8 +190,8 @@ export async function createHkArea(templateId: string, fd: FormData): Promise<Re
 }
 
 export async function updateHkAreaOrder(areaId: string, fd: FormData): Promise<Result> {
+  await requireAdmin()
   try {
-    await assertHkAdmin()
     const sortOrder = Math.round(Number(str(fd, "sortOrder")))
     if (!Number.isFinite(sortOrder)) throw new Error("Order must be a number.")
     await prisma.hkChecklistArea.update({ where: { id: areaId }, data: { sortOrder } })
@@ -202,8 +203,8 @@ export async function updateHkAreaOrder(areaId: string, fd: FormData): Promise<R
 }
 
 export async function deleteHkArea(areaId: string): Promise<Result> {
+  await requireAdmin()
   try {
-    await assertHkAdmin()
     const used = await prisma.hkSubmission.count({ where: { areaId } })
     if (used > 0) throw new Error("This area already has submitted proof, so it can't be deleted.")
     await prisma.hkChecklistArea.delete({ where: { id: areaId } })
@@ -211,5 +212,131 @@ export async function deleteHkArea(areaId: string): Promise<Result> {
     return { success: true, message: "Area deleted" }
   } catch (e) {
     return fail(e, "Could not delete the area.")
+  }
+}
+
+// ── Review ───────────────────────────────────────────────────
+
+export async function approveHkTurnover(id: string): Promise<Result> {
+  await requireAdmin()
+  try {
+    const t = await prisma.hkTurnover.findUnique({ where: { id }, select: { status: true } })
+    if (!t || t.status !== "SUBMITTED") throw new Error("Only submitted turnovers can be approved.")
+    await prisma.hkTurnover.update({ where: { id }, data: { status: "APPROVED", reviewedAt: new Date(), reviewNote: null } })
+    revalidatePath("/hk-admin", "layout")
+    return { success: true, message: "Approved" }
+  } catch (e) {
+    return fail(e, "Could not approve.")
+  }
+}
+
+export async function rejectHkTurnover(id: string, fd: FormData): Promise<Result> {
+  await requireAdmin()
+  try {
+    const note = str(fd, "note")
+    if (note.length < 3) throw new Error("Say why it is rejected.")
+    const t = await prisma.hkTurnover.findUnique({ where: { id }, select: { status: true } })
+    if (!t || t.status !== "SUBMITTED") throw new Error("Only submitted turnovers can be rejected.")
+    await prisma.hkTurnover.update({ where: { id }, data: { status: "REJECTED", reviewedAt: new Date(), reviewNote: note } })
+    revalidatePath("/hk-admin", "layout")
+    return { success: true, message: "Rejected" }
+  } catch (e) {
+    return fail(e, "Could not reject.")
+  }
+}
+
+// Gives a rejected or submitted turnover back to the housekeeper to add the missing proof.
+export async function reopenHkTurnover(id: string): Promise<Result> {
+  await requireAdmin()
+  try {
+    const t = await prisma.hkTurnover.findUnique({ where: { id }, select: { status: true } })
+    if (!t || (t.status !== "REJECTED" && t.status !== "SUBMITTED")) throw new Error("Only rejected or submitted turnovers can be reopened.")
+    await prisma.hkTurnover.update({ where: { id }, data: { status: "IN_PROGRESS", checkOutAt: null, checkOutLat: null, checkOutLng: null, checkOutAccuracyM: null, reviewedAt: new Date() } })
+    revalidatePath("/hk-admin", "layout")
+    revalidatePath("/hk")
+    return { success: true, message: "Reopened for the housekeeper" }
+  } catch (e) {
+    return fail(e, "Could not reopen.")
+  }
+}
+
+// ── Exemptions ───────────────────────────────────────────────
+
+export async function decideHkExemption(id: string, approve: boolean, fd: FormData): Promise<Result> {
+  await requireAdmin()
+  try {
+    const note = str(fd, "note")
+    const ex = await prisma.hkExemption.findUnique({ where: { id }, select: { status: true } })
+    if (!ex || ex.status !== "PENDING") throw new Error("This request was already decided.")
+    await prisma.hkExemption.update({
+      where: { id },
+      data: { status: approve ? "APPROVED" : "REJECTED", decisionNote: note || null, decidedAt: new Date() },
+    })
+    revalidatePath("/hk-admin", "layout")
+    revalidatePath("/hk")
+    return { success: true, message: approve ? "Exemption approved" : "Exemption rejected" }
+  } catch (e) {
+    return fail(e, "Could not save the decision.")
+  }
+}
+
+// ── Ratings and bonus ────────────────────────────────────────
+
+export async function addHkStayRating(fd: FormData): Promise<Result> {
+  await requireAdmin()
+  try {
+    const hkUserId = str(fd, "hkUserId")
+    const unitId = str(fd, "unitId")
+    const month = str(fd, "month")
+    const rating = Math.round(Number(str(fd, "rating")))
+    if (!hkUserId || !unitId) throw new Error("Pick the housekeeper and the unit.")
+    if (!isValidMonth(month)) throw new Error("Pick a month.")
+    if (!Number.isFinite(rating) || rating < 1 || rating > 5) throw new Error("Rating must be 1 to 5.")
+    await prisma.hkStayRating.create({ data: { hkUserId, unitId, month, rating, note: str(fd, "note") || null } })
+    revalidatePath("/hk-admin/tracker")
+    return { success: true, message: "Rating saved" }
+  } catch (e) {
+    return fail(e, "Could not save the rating.")
+  }
+}
+
+export async function deleteHkStayRating(id: string): Promise<Result> {
+  await requireAdmin()
+  try {
+    await prisma.hkStayRating.delete({ where: { id } })
+    revalidatePath("/hk-admin/tracker")
+    return { success: true, message: "Rating removed" }
+  } catch (e) {
+    return fail(e, "Could not remove the rating.")
+  }
+}
+
+export async function setHkBonusDecision(hkUserId: string, month: string, fd: FormData): Promise<Result> {
+  await requireAdmin()
+  try {
+    const reason = str(fd, "reason")
+    const awarded = str(fd, "awarded") === "yes"
+    if (!isValidMonth(month)) throw new Error("Bad month.")
+    if (reason.length < 5) throw new Error("A reason is required for an override.")
+    await prisma.hkBonusDecision.upsert({
+      where: { hkUserId_month: { hkUserId, month } },
+      create: { hkUserId, month, awarded, reason },
+      update: { awarded, reason },
+    })
+    revalidatePath("/hk-admin/tracker")
+    return { success: true, message: "Decision saved" }
+  } catch (e) {
+    return fail(e, "Could not save the decision.")
+  }
+}
+
+export async function clearHkBonusDecision(hkUserId: string, month: string): Promise<Result> {
+  await requireAdmin()
+  try {
+    await prisma.hkBonusDecision.deleteMany({ where: { hkUserId, month } })
+    revalidatePath("/hk-admin/tracker")
+    return { success: true, message: "Override removed" }
+  } catch (e) {
+    return fail(e, "Could not remove the override.")
   }
 }

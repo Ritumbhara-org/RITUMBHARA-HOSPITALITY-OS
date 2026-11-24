@@ -1,12 +1,12 @@
 "use client"
 
-import { signOut } from "next-auth/react"
+import { hkLogoutAction } from "@/app/actions/hk-auth"
 import { Button } from "@/components/ui/button"
 
-export function SignOutButton({ to }: { to: string }) {
+export function HkSignOutButton() {
   return (
-    <Button variant="outline" size="sm" onClick={() => signOut({ callbackUrl: to })}>
-      Sign out
-    </Button>
+    <form action={hkLogoutAction}>
+      <Button type="submit" variant="outline" size="sm">Sign out</Button>
+    </form>
   )
 }

@@ -1,9 +1,11 @@
 "use server";
+import { requireAdmin } from "@/lib/auth/guard";
 
 import { prisma } from "@/lib/prisma";
 import { normalizePhoneNumber } from "@/lib/utils/phone";
 
 export async function getWhatsAppConversations() {
+  await requireAdmin()
   const messages = await prisma.whatsAppMessage.findMany({
     orderBy: { createdAt: 'desc' },
     take: 500 // Limit for performance
@@ -72,6 +74,7 @@ export async function getWhatsAppConversations() {
 }
 
 export async function sendBroadcast(campaignName: string, audience: string, messageContent: string, propertyId: string) {
+  await requireAdmin()
   const { sendWhatsAppMessage } = await import("@/lib/whatsapp/client");
   
   let targetPhones: string[] = [];
@@ -120,6 +123,7 @@ export async function sendBroadcast(campaignName: string, audience: string, mess
 }
 
 export async function getBroadcastCampaigns(propertyId: string) {
+  await requireAdmin()
   const broadcasts = await prisma.whatsAppMessage.findMany({
     where: { relatedEntityType: 'BROADCAST' },
     orderBy: { createdAt: 'desc' }
@@ -157,6 +161,7 @@ export async function getBroadcastCampaigns(propertyId: string) {
 }
 
 export async function sendManualMessage(phone: string, content: string) {
+  await requireAdmin()
   const { sendWhatsAppMessage } = await import("@/lib/whatsapp/client");
   // Check 24 hour window
   const lastInbound = await prisma.whatsAppMessage.findFirst({
@@ -176,6 +181,7 @@ export async function sendManualMessage(phone: string, content: string) {
 }
 
 export async function sendTemplateMessage(phone: string, templateName: string, variables: Record<string, string>) {
+  await requireAdmin()
   const { sendWhatsAppMessage } = await import("@/lib/whatsapp/client");
   let contentText = "Automated Template Sent";
   const { normalizePhoneNumber } = await import("@/lib/utils/phone");
@@ -228,6 +234,7 @@ export async function sendTemplateMessage(phone: string, templateName: string, v
 }
 
 export async function generateDraftResponse(phone: string) {
+  await requireAdmin()
   const messages = await prisma.whatsAppMessage.findMany({
     where: {
       OR: [

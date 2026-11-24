@@ -1,49 +1,56 @@
-import { NextResponse } from "next/server"
-import type { NextRequest } from "next/server"
-import { getToken } from "next-auth/jwt"
-
-// Optimistic checks only. Real authorization happens in each page, server
-// action and route handler (lib/hk/session.ts).
+// First gate for every request (Next.js 16 "proxy", formerly middleware). Runs on the Node.js runtime.
 //
-// - /hk/*        housekeeper app: needs an HK session
-// - /hk-admin/*  module admin: needs an ADMIN session
-// - A signed-in housekeeper is kept inside /hk and /api/hk. The rest of the
-//   OS has no login yet, so this only holds while they stay signed in.
+// - Public paths (lib/auth/policy.ts) pass through.
+// - Cron paths need "Authorization: Bearer <CRON_SECRET>" (fail closed if CRON_SECRET is not set).
+// - /api/inbox/inbound-email passes through; the route checks its own INBOX_WEBHOOK_SECRET (fail closed).
+// - Everything else needs a valid admin session cookie:
+//     page requests (GET/HEAD)  -> redirect to /login?next=<path>
+//     API requests              -> 401 JSON
+//     any other request (e.g. a server action POST) -> 401
+// - A signed-in admin who opens /login is sent to the dashboard.
+// This is defence in depth: pages, server actions and API routes also check the session themselves.
 
-const hasSessionCookie = (req: NextRequest) =>
-  req.cookies.has("next-auth.session-token") || req.cookies.has("__Secure-next-auth.session-token")
+import { NextResponse, type NextRequest } from "next/server"
+import { isCronPath, isPublicPath, isSelfAuthenticatedMachinePath } from "@/lib/auth/policy"
+import { checkCronAuth } from "@/lib/auth/cron"
+import { isValidSession, safeNextPath, SESSION_COOKIE } from "@/lib/auth/session"
 
-export async function proxy(req: NextRequest) {
-  const path = req.nextUrl.pathname
-  const inHk = path === "/hk" || path.startsWith("/hk/")
-  const inHkAdmin = path === "/hk-admin" || path.startsWith("/hk-admin/")
-  const isApi = path.startsWith("/api/")
+export function proxy(request: NextRequest) {
+  const { pathname, search } = request.nextUrl
 
-  // Fast path: no session cookie, nothing to enforce except the two gated areas.
-  const token = hasSessionCookie(req)
-    ? await getToken({ req, secret: process.env.NEXTAUTH_SECRET })
-    : null
-
-  if (token?.role === "HK") {
-    const allowed = inHk || path.startsWith("/api/hk/") || path.startsWith("/api/auth/")
-    if (!allowed) {
-      return isApi
-        ? NextResponse.json({ error: "Forbidden" }, { status: 403 })
-        : NextResponse.redirect(new URL("/hk", req.url))
-    }
+  // Cron endpoints are machine-to-machine: only the cron secret opens them (an admin session does not), and a
+  // missing CRON_SECRET keeps them closed. Each cron route checks again itself.
+  if (isCronPath(pathname)) {
+    const cron = checkCronAuth(request.headers.get("authorization"))
+    if (cron.ok) return NextResponse.next()
+    return NextResponse.json({ success: false, error: cron.error }, { status: cron.status, headers: { "Cache-Control": "no-store" } })
   }
 
-  if (inHkAdmin && path !== "/hk-admin/login" && token?.role !== "ADMIN") {
-    return NextResponse.redirect(new URL("/hk-admin/login", req.url))
+  // Machine endpoints with their own secret (the inbox email webhook): the route checks INBOX_WEBHOOK_SECRET and
+  // refuses everything when it is not set, so no admin session is required here.
+  if (isSelfAuthenticatedMachinePath(pathname)) return NextResponse.next()
+
+  const signedIn = isValidSession(request.cookies.get(SESSION_COOKIE)?.value)
+
+  if (pathname === "/login" && signedIn && (request.method === "GET" || request.method === "HEAD")) {
+    return NextResponse.redirect(new URL(safeNextPath(request.nextUrl.searchParams.get("next")), request.url))
   }
-  if (inHk && path !== "/hk/login" && token?.role !== "HK") {
-    return NextResponse.redirect(new URL("/hk/login", req.url))
+
+  if (signedIn || isPublicPath(pathname)) return NextResponse.next()
+
+  if (pathname === "/api" || pathname.startsWith("/api/")) {
+    return NextResponse.json({ success: false, error: "unauthorized" }, { status: 401, headers: { "Cache-Control": "no-store" } })
   }
-  return NextResponse.next()
+  const isNavigation = (request.method === "GET" || request.method === "HEAD") && !request.headers.has("next-action")
+  if (!isNavigation) {
+    return new NextResponse("Unauthorized", { status: 401, headers: { "Cache-Control": "no-store" } })
+  }
+  const login = new URL("/login", request.url)
+  if (pathname !== "/") login.searchParams.set("next", pathname + search)
+  return NextResponse.redirect(login)
 }
 
 export const config = {
-  matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|icon.svg|logo.jpg|logo.svg|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
-  ],
+  // Every route except Next.js build assets and files with an extension (images, icons, fonts in /public).
+  matcher: ["/((?!_next/static|_next/image|.*\\.[A-Za-z0-9]+$).*)"],
 }

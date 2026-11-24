@@ -3,12 +3,16 @@ import { cookies } from "next/headers"
 import { prisma } from "@/lib/prisma"
 import { getInventoryItems } from "@/app/actions/inventory"
 import { InventoryClient } from "@/components/inventory/inventory-client"
+import { requireAdminPage } from "@/lib/auth/guard"
+import { getTranslator } from "@/lib/i18n/server"
 
 export default async function InventoryPage({
   searchParams,
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }) {
+  await requireAdminPage("/inventory")
+  const tr = await getTranslator()
   const cookieStore = await cookies()
   const token = cookieStore.get("auth-token")
 
@@ -32,7 +36,7 @@ export default async function InventoryPage({
   });
 
   if (properties.length === 0) {
-    return <div className="p-8">No properties found. Please create a property first.</div>
+    return <div className="p-8">{tr("No properties found. Please create a property first.")}</div>
   }
 
   // Resolve searchParams promise for Next.js 15
@@ -43,15 +47,17 @@ export default async function InventoryPage({
   // 1. The one selected in the URL
   // 2. The user's assigned property
   // 3. The first property in the database
-  const activePropertyId = paramPropertyId || user?.propertyId || properties[0].id;
+  // Defaults to all locations; a location picked in the selector comes through the URL.
+  const activePropertyId = paramPropertyId || "ALL";
   
   // Fetch items for the active property
   const items = await getInventoryItems(activePropertyId)
 
   return (
-    <div className="flex-1 space-y-4 p-8 pt-6">
-      <div className="flex items-center justify-between space-y-2">
-        <h2 className="text-3xl font-bold tracking-tight">Inventory Engine</h2>
+    <div className="flex flex-1 flex-col gap-4 pb-4">
+      <div className="min-w-0">
+        <h1 className="text-xl sm:text-2xl font-bold tracking-tight">{tr("Inventory")}</h1>
+        <p className="text-sm text-muted-foreground mt-1">{tr("Stock levels per location. Tap − or + to adjust.")}</p>
       </div>
       <InventoryClient 
         initialItems={items} 

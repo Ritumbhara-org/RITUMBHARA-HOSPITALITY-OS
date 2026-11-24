@@ -19,7 +19,9 @@ export default async function StayPage({ params }: { params: Promise<{ id: strin
           membership: {
             include: {
               transactions: {
-                orderBy: { createdAt: 'desc' }
+                orderBy: { createdAt: 'desc' },
+                take: 20,
+                select: { id: true, amount: true, description: true, createdAt: true }
               }
             }
           }

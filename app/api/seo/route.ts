@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
+import { adminApiGuard } from "@/lib/auth/guard";
 
 const SeoInputSchema = z.object({
   propertyName: z.string().min(1, "Property name is required"),
@@ -169,6 +170,8 @@ function generateSEOPackage(input: z.infer<typeof SeoInputSchema>) {
 
 // POST /api/seo — generate SEO package for a property
 export async function POST(req: NextRequest) {
+  const denied = await adminApiGuard()
+  if (denied) return denied
   try {
     const body = await req.json()
     const parsed = SeoInputSchema.safeParse(body)
@@ -201,6 +204,8 @@ export async function POST(req: NextRequest) {
 
 // GET /api/seo — describe the SEO API
 export async function GET() {
+  const denied = await adminApiGuard()
+  if (denied) return denied
   return NextResponse.json({
     success: true,
     description: "SEO Automation API for Ritumbhara Hospitality OS",

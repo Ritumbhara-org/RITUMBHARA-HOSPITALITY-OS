@@ -1,18 +1,18 @@
-import Link from "next/link"
 import { requireHk } from "@/lib/hk/session"
-import { SignOutButton } from "@/components/hk/sign-out-button"
+import { HkSignOutButton } from "@/components/hk/sign-out-button"
 
 export const dynamic = "force-dynamic"
 
-export default async function HkLayout({ children }: { children: React.ReactNode }) {
+export default async function HkAppLayout({ children }: { children: React.ReactNode }) {
   const hk = await requireHk()
   return (
-    <div className="mx-auto w-full max-w-md space-y-4 p-4">
-      <header className="flex items-center justify-between border-b pb-3">
-        <Link href="/hk" className="font-semibold">
-          {hk.name}
-        </Link>
-        <SignOutButton to="/hk/login" />
+    <div className="mx-auto min-h-[100dvh] w-full max-w-xl p-4">
+      <header className="mb-4 flex items-center justify-between">
+        <div>
+          <p className="text-xs text-muted-foreground">Housekeeping</p>
+          <p className="font-semibold">{hk.name}</p>
+        </div>
+        <HkSignOutButton />
       </header>
       {children}
     </div>
