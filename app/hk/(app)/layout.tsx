@@ -1,6 +1,9 @@
 import { requireHk } from "@/lib/hk/session"
 import { HkSignOutButton } from "@/components/hk/sign-out-button"
 
+import { HK_MANIFEST_PATH } from "@/lib/pwa/manifest"
+
+export const metadata = { manifest: HK_MANIFEST_PATH }
 export const dynamic = "force-dynamic"
 
 export default async function HkAppLayout({ children }: { children: React.ReactNode }) {
