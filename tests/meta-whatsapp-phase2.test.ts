@@ -126,7 +126,7 @@ test("outbound: text outside the window is NOT sent and is logged FAILED with WI
   let textCalls = 0;
   const r = await sendWhatsAppMessageViaMeta("+919000000001", "text", "hello", undefined, "MANUAL_REPLY", "INBOX", undefined, {
     send: { text: async () => { textCalls++; return { ok: true as const, id: "x" }; }, template: sendOk.template } as never,
-    log: async (d) => { rows.push(d); }, windowOpen: async () => false,
+    log: async (d: Record<string, unknown>) => { rows.push(d); }, windowOpen: async () => false,
   });
   assert.deepEqual(r, { success: false, status: "WINDOW_CLOSED" });
   assert.equal(textCalls, 0);
@@ -136,7 +136,7 @@ test("outbound: text outside the window is NOT sent and is logged FAILED with WI
 
 test("outbound: text inside the window is sent, logged SENT with the wamid", async () => {
   const rows: Record<string, unknown>[] = [];
-  const r = await sendWhatsAppMessageViaMeta("+919000000001", "text", "hello", undefined, undefined, undefined, undefined, { send: sendOk as never, log: async (d) => { rows.push(d); }, windowOpen: async () => true });
+  const r = await sendWhatsAppMessageViaMeta("+919000000001", "text", "hello", undefined, undefined, undefined, undefined, { send: sendOk as never, log: async (d: Record<string, unknown>) => { rows.push(d); }, windowOpen: async () => true });
   assert.deepEqual(r, { success: true, status: "SENT" });
   assert.equal(rows[0].status, "SENT");
   assert.equal(rows[0].providerMessageId, "wamid.T");
@@ -146,7 +146,7 @@ test("outbound: an approved template is sent even when the window is closed", as
   const rows: Record<string, unknown>[] = [];
   let windowAsked = false;
   const r = await sendWhatsAppMessageViaMeta("+919000000001", "template", "c", "booking_confirmation", "RESERVATION", "r1", { "1": "A" }, {
-    send: sendOk as never, log: async (d) => { rows.push(d); }, windowOpen: async () => { windowAsked = true; return false; },
+    send: sendOk as never, log: async (d: Record<string, unknown>) => { rows.push(d); }, windowOpen: async () => { windowAsked = true; return false; },
   });
   assert.equal(r.success, true);
   assert.equal(rows[0].providerMessageId, "wamid.TPL");
@@ -159,13 +159,13 @@ test("long-stay: no plain-text fallback outside the window when the template fai
   const failTpl = { ok: false as const, reason: "http_400", status: 400 };
   const r = await sendLongStayWhatsAppViaMeta({ to: "+919000000001", kind: "SIGN_LINK", body: "b", variables: {}, bookingId: "b1" }, {
     send: { template: async () => failTpl, text: async () => { textCalls++; return { ok: true as const, id: "x" }; } } as never,
-    log: async (d) => { rows.push(d); }, windowOpen: async () => false,
+    log: async (d: Record<string, unknown>) => { rows.push(d); }, windowOpen: async () => false,
   });
   assert.equal(r.ok, false);
   assert.equal(textCalls, 0);
   const r2 = await sendLongStayWhatsAppViaMeta({ to: "+919000000001", kind: "SIGN_LINK", body: "b", variables: {}, bookingId: "b1" }, {
     send: { template: async () => failTpl, text: async () => { textCalls++; return { ok: true as const, id: "wamid.F" }; } } as never,
-    log: async (d) => { rows.push(d); }, windowOpen: async () => true,
+    log: async (d: Record<string, unknown>) => { rows.push(d); }, windowOpen: async () => true,
   });
   assert.equal(r2.ok, true);
   assert.equal(textCalls, 1);
