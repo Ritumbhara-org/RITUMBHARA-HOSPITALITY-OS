@@ -5,14 +5,14 @@ import { ExemptionButton } from "@/components/hk/exemption-button"
 import { StartTurnoverButton } from "@/components/hk/start-turnover-button"
 import Link from "next/link"
 
-export const metadata = { title: "Housekeeping" }
+export const metadata = { title: "हाउसकीपिंग" }
 
 const STATUS_LABEL: Record<string, string> = {
-  IN_PROGRESS: "In progress",
-  SUBMITTED: "Submitted",
-  APPROVED: "Approved",
-  REJECTED: "Needs redo",
-  EXEMPT: "Exempt",
+  IN_PROGRESS: "जारी है",
+  SUBMITTED: "जमा हो गया",
+  APPROVED: "मंज़ूर",
+  REJECTED: "दोबारा करें",
+  EXEMPT: "छूट मिली",
 }
 
 export default async function HkHomePage() {
@@ -44,7 +44,7 @@ export default async function HkHomePage() {
   ])
 
   if (assignments.length === 0) {
-    return <p className="text-sm text-muted-foreground">No locations are assigned to you yet. Ask your manager.</p>
+    return <p className="text-sm text-muted-foreground">अभी आपको कोई लोकेशन नहीं दी गई है। अपने मैनेजर से पूछें।</p>
   }
 
   return (
@@ -55,7 +55,7 @@ export default async function HkHomePage() {
           <section key={location.id} className="space-y-2">
             <h1 className="text-lg font-bold">{location.name}</h1>
             <div className="divide-y rounded-lg border">
-              {locUnits.length === 0 && <p className="p-3 text-sm text-muted-foreground">No units at this location.</p>}
+              {locUnits.length === 0 && <p className="p-3 text-sm text-muted-foreground">इस लोकेशन पर कोई यूनिट नहीं है।</p>}
               {locUnits.map((u) => {
                 const mine = turnovers.filter((t) => t.unitId === u.id)
                 const open = mine.find((t) => t.status === "IN_PROGRESS")
@@ -68,17 +68,17 @@ export default async function HkHomePage() {
                       <p className="text-sm font-medium">{u.name}</p>
                       <p className="text-xs text-muted-foreground">
                         {u.type}
-                        {latest ? ` · Today: ${STATUS_LABEL[latest.status] ?? latest.status}` : ""}
-                        {ex ? ` · Guest present: ${ex.status === "PENDING" ? "waiting for manager" : ex.status === "APPROVED" ? "approved" : "not approved"}` : ""}
+                        {latest ? ` · आज: ${STATUS_LABEL[latest.status] ?? latest.status}` : ""}
+                        {ex ? ` · गेस्ट मौजूद: ${ex.status === "PENDING" ? "मैनेजर के जवाब का इंतज़ार" : ex.status === "APPROVED" ? "मंज़ूर" : "मंज़ूर नहीं"}` : ""}
                       </p>
-                      {latest?.status === "REJECTED" && latest.reviewNote && <p className="text-xs text-red-600">Manager: {latest.reviewNote}</p>}
-                      {ex?.status === "REJECTED" && ex.decisionNote && <p className="text-xs text-red-600">Manager: {ex.decisionNote}</p>}
+                      {latest?.status === "REJECTED" && latest.reviewNote && <p className="text-xs text-red-600">मैनेजर: {latest.reviewNote}</p>}
+                      {ex?.status === "REJECTED" && ex.decisionNote && <p className="text-xs text-red-600">मैनेजर: {ex.decisionNote}</p>}
                     </div>
                     {exempt ? (
-                      <span className="text-xs text-muted-foreground">Excused today</span>
+                      <span className="text-xs text-muted-foreground">आज छूट मिली</span>
                     ) : open ? (
                       <Link href={`/hk/turnover/${open.id}`} className="text-sm underline">
-                        Continue
+                        जारी रखें
                       </Link>
                     ) : (
                       <div className="flex gap-2">

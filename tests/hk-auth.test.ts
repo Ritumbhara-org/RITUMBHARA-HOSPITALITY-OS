@@ -96,7 +96,7 @@ test("login: wrong PIN, unknown number, bad format and inactive users get the sa
   addUser({ id: "u2", mobile: "+919812345678", isActive: false })
   for (const [m, p] of [[MOBILE, "0000"], ["9000000000", "4821"], [MOBILE, "12"], ["+919812345678", "4821"]]) {
     const r = await login(m, p)
-    assert.equal(r.state?.error, "Incorrect mobile number or PIN.", m + p)
+    assert.equal(r.state?.error, "मोबाइल नंबर या पिन ग़लत है।", m + p)
   }
   assert.equal(fakeCookies.get(session.HK_COOKIE), undefined)
 })
@@ -107,7 +107,7 @@ test("login: five wrong PINs lock the account even for the right PIN", async () 
   assert.ok(users.get("u1")?.lockedUntil)
   resetLoginRateLimit() // the per-IP limiter would also have tripped; test the per-account lock on its own
   const r = await login(MOBILE, "4821")
-  assert.match(r.state?.error ?? "", /locked/)
+  assert.match(r.state?.error ?? "", /लॉक/)
   assert.equal(fakeCookies.get(session.HK_COOKIE), undefined)
 })
 

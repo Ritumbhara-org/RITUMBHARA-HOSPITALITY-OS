@@ -16,15 +16,15 @@ export function HkLoginForm() {
         </div>
       )}
       <div className="space-y-1.5">
-        <Label htmlFor="mobile">Mobile number</Label>
+        <Label htmlFor="mobile">मोबाइल नंबर</Label>
         <Input id="mobile" name="mobile" type="tel" inputMode="tel" autoComplete="username" defaultValue={state.mobile ?? ""} required />
       </div>
       <div className="space-y-1.5">
-        <Label htmlFor="pin">PIN</Label>
+        <Label htmlFor="pin">पिन</Label>
         <Input id="pin" name="pin" type="password" inputMode="numeric" autoComplete="current-password" maxLength={6} required />
       </div>
       <Button type="submit" className="w-full" disabled={pending}>
-        {pending ? "Signing in..." : "Sign in"}
+        {pending ? "साइन इन हो रहा है..." : "साइन इन करें"}
       </Button>
     </form>
   )

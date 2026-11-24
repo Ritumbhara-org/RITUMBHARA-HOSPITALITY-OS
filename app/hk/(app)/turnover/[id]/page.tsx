@@ -5,7 +5,7 @@ import { requireHk } from "@/lib/hk/session"
 import { parseReferenceMedia } from "@/lib/hk/media"
 import { TurnoverRunner } from "@/components/hk/turnover-runner"
 
-export const metadata = { title: "Turnover" }
+export const metadata = { title: "सफ़ाई" }
 
 export default async function TurnoverPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -38,13 +38,13 @@ export default async function TurnoverPage({ params }: { params: Promise<{ id: s
     <div className="space-y-4">
       <div>
         <Link href="/hk" className="text-xs underline">
-          Back
+          पीछे
         </Link>
         <h1 className="text-lg font-bold">{turnover.unit.name}</h1>
         <p className="text-xs text-muted-foreground">
-          {turnover.location.name} · checked in {turnover.checkInAt.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit" })}
+          {turnover.location.name} · चेक-इन {turnover.checkInAt.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit" })}
         </p>
-        {turnover.status !== "IN_PROGRESS" && <p className="mt-1 text-sm font-medium">This turnover is submitted.</p>}
+        {turnover.status !== "IN_PROGRESS" && <p className="mt-1 text-sm font-medium">यह सफ़ाई जमा हो चुकी है।</p>}
       </div>
       <TurnoverRunner turnoverId={turnover.id} hkUserId={hk.id} areas={areas} readOnly={turnover.status !== "IN_PROGRESS"} />
     </div>

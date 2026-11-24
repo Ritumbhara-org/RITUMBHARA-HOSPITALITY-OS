@@ -6,7 +6,7 @@ export type Fix = { lat: number; lng: number; accuracyM: number }
 export function getFix(timeoutMs = 15000): Promise<Fix> {
   return new Promise((resolve, reject) => {
     if (!("geolocation" in navigator)) {
-      reject(new Error("This phone cannot share its location."))
+      reject(new Error("यह फ़ोन लोकेशन नहीं दे सकता।"))
       return
     }
     navigator.geolocation.getCurrentPosition(
@@ -15,8 +15,8 @@ export function getFix(timeoutMs = 15000): Promise<Fix> {
         reject(
           new Error(
             err.code === err.PERMISSION_DENIED
-              ? "Location is blocked. Allow location for this site in your browser settings."
-              : "Could not get your location. Try again."
+              ? "लोकेशन बंद है। ब्राउज़र की सेटिंग में इस साइट के लिए लोकेशन चालू करें।"
+              : "लोकेशन नहीं मिल सकी। दोबारा कोशिश करें।"
           )
         ),
       { enableHighAccuracy: true, timeout: timeoutMs, maximumAge: 10_000 }
