@@ -967,6 +967,8 @@ model Invoice {
   reservation Reservation @relation(fields: [reservationId], references: [id])
 
   @@index([reservationId])
+}
+
 // ─────────────────────────────────────────────────────────────
 // Housekeeping proof-of-work module (attendance + bonus)
 // Separate from HousekeepingTask above: that is the WhatsApp task flow,

@@ -29,9 +29,7 @@
 //   /api/instagram/webhook     - Meta's Instagram DM webhook (machine-to-machine; verifies X-Hub-Signature-256 itself and
 //                            refuses everything when no Instagram/Meta app secret and verify token are set)
 //   /api/whatsapp/meta-audit   - read-only Meta audit; 404 everywhere except Preview with a matching META_AUDIT_KEY
-const PUBLIC_EXACT = new Set(["/login", "/member", "/api/whatsapp/webhook", "/api/whatsapp/meta-webhook", "/api/whatsapp/meta-audit", "/api/instagram/webhook", "/api/channex/webhook"])
-const PUBLIC_PREFIXES = ["/stay/", "/api/stay/", "/sign/", "/api/sign/", "/api/member/"]
-const PUBLIC_EXACT = new Set(["/login", "/member", "/hk", "/api/whatsapp/webhook", "/api/whatsapp/meta-webhook", "/api/whatsapp/meta-audit", "/api/instagram/webhook"])
+const PUBLIC_EXACT = new Set(["/login", "/member", "/hk", "/api/whatsapp/webhook", "/api/whatsapp/meta-webhook", "/api/whatsapp/meta-audit", "/api/instagram/webhook", "/api/channex/webhook"])
 const PUBLIC_PREFIXES = ["/stay/", "/api/stay/", "/sign/", "/api/sign/", "/api/member/", "/hk/", "/api/hk/"]
 const CRON_PREFIX = "/api/cron/"
 // Machine endpoints that authenticate themselves with their own secret (no admin session needed or used).
