@@ -22,7 +22,7 @@ function geofenceError(r: Exclude<GeofenceResult, { ok: true }>, radiusM: number
     case "BAD_COORDS":
       return "लोकेशन पढ़ी नहीं जा सकी। लोकेशन चालू करके दोबारा कोशिश करें।"
     case "WEAK_SIGNAL":
-      return "लोकेशन सिग्नल कमज़ोर है। बाहर या खिड़की के पास जाकर दोबारा कोशिश करें।"
+      return `लोकेशन साफ़ नहीं मिल रही (करीब ${Math.round(r.accuracyM ?? 0)} मीटर का फ़र्क)। फ़ोन की सेटिंग में "सटीक लोकेशन" (Precise location) चालू करें, बाहर या खिड़की के पास जाएं और दोबारा कोशिश करें।`
     case "TOO_FAR":
       return `आप प्रॉपर्टी से लगभग ${Math.round(r.distanceM ?? 0)} मीटर दूर हैं। ${radiusM} मीटर के अंदर होना ज़रूरी है।`
   }
