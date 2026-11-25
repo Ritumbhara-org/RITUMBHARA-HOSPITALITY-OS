@@ -3,6 +3,7 @@ import { requireHk } from "@/lib/hk/session"
 import { startOfDayIST } from "@/lib/hk/time"
 import { ExemptionButton } from "@/components/hk/exemption-button"
 import { StartTurnoverButton } from "@/components/hk/start-turnover-button"
+import { LocationCheck } from "@/components/hk/location-check"
 import Link from "next/link"
 
 export const metadata = { title: "हाउसकीपिंग" }
@@ -49,6 +50,7 @@ export default async function HkHomePage() {
 
   return (
     <div className="space-y-6">
+      <LocationCheck />
       {assignments.map(({ location }) => {
         const locUnits = units.filter((u) => u.propertyId === location.propertyId)
         return (
