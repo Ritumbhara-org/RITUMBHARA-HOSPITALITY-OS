@@ -132,6 +132,7 @@ model Unit {
   hkTurnovers       HkTurnover[]
   hkExemptions      HkExemption[]
   hkStayRatings     HkStayRating[]
+  hkAreas           HkChecklistArea[]
   longStayBookings  LongStayBooking[]
 
   @@index([propertyId])
@@ -900,13 +901,16 @@ model HkChecklistArea {
   minPhotos      Int      @default(1)
   requiresVideo  Boolean  @default(true)
   referenceMedia Json     @default("[]") // [{ url, kind: "PHOTO" | "VIDEO" }]
+  unitId         String? // set = extra room/space for this one unit only; null = applies to every unit using the template
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
   template    HkChecklistTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  unit        Unit?               @relation(fields: [unitId], references: [id], onDelete: Cascade)
   submissions HkSubmission[]
 
   @@index([templateId])
+  @@index([unitId])
 }
 
 model HkTurnover {

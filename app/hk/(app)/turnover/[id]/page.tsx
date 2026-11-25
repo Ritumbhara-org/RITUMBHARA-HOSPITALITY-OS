@@ -3,6 +3,7 @@ import Link from "next/link"
 import { prisma } from "@/lib/prisma"
 import { requireHk } from "@/lib/hk/session"
 import { parseReferenceMedia } from "@/lib/hk/media"
+import { areasForUnit } from "@/lib/hk/checklist"
 import { TurnoverRunner } from "@/components/hk/turnover-runner"
 
 export const metadata = { title: "सफ़ाई" }
@@ -22,7 +23,7 @@ export default async function TurnoverPage({ params }: { params: Promise<{ id: s
   })
   if (!turnover) notFound()
 
-  const areas = turnover.template.areas.map((a) => ({
+  const areas = areasForUnit(turnover.template.areas, turnover.unitId).map((a) => ({
     id: a.id,
     title: a.title,
     instructions: a.instructions,

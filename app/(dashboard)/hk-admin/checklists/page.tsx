@@ -24,8 +24,13 @@ export default async function ChecklistsPage({
 }) {
   await requireAdminPage("/hk-admin/checklists")
   const { location: locationParam } = await searchParams
-  const locations = await prisma.hkLocation.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } })
+  const locations = await prisma.hkLocation.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true, propertyId: true } })
   const current = locations.find((l) => l.id === locationParam) ?? locations[0]
+
+  const units = current
+    ? await prisma.unit.findMany({ where: { propertyId: current.propertyId }, orderBy: [{ floor: "asc" }, { name: "asc" }], select: { id: true, name: true, type: true } })
+    : []
+  const unitName = new Map(units.map((u) => [u.id, u.name]))
 
   const templates = current
     ? await prisma.hkChecklistTemplate.findMany({
@@ -40,7 +45,7 @@ export default async function ChecklistsPage({
       <section className="space-y-3">
         <h1 className="text-xl font-bold">Checklists</h1>
         <p className="text-sm text-muted-foreground">
-          Each template is a list of areas. For every area, the housekeeper sees your reference media and must capture photos and a video.
+          Each template is a list of areas. For every area, the housekeeper sees your reference media and must capture photos and a video. To add a room or space to just one unit (for example a balcony, or two more bedrooms), use &quot;Only for unit&quot; when adding an area.
         </p>
         {locations.length === 0 ? (
           <p className="text-sm text-muted-foreground">Add a location first.</p>
@@ -88,7 +93,10 @@ export default async function ChecklistsPage({
                     <div key={a.id} className="space-y-2 p-3">
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
-                          <p className="text-sm font-medium">{a.title}</p>
+                          <p className="text-sm font-medium">
+                            {a.title}
+                            {a.unitId && <span className="ml-2 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-normal text-blue-800">Only {unitName.get(a.unitId) ?? "one unit"}</span>}
+                          </p>
                           <p className="text-xs text-muted-foreground">
                             {a.minPhotos} photo(s){a.requiresVideo ? " + video" : ""}
                           </p>
@@ -133,6 +141,25 @@ export default async function ChecklistsPage({
                 <div className="space-y-1.5">
                   <Label htmlFor={`ins-${t.id}`}>Instructions (optional)</Label>
                   <Textarea id={`ins-${t.id}`} name="instructions" rows={2} />
+                </div>
+                <div className="flex flex-wrap items-end gap-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor={`unit-${t.id}`}>Only for unit</Label>
+                    <select id={`unit-${t.id}`} name="unitId" defaultValue="" className="h-9 rounded-md border bg-background px-2 text-sm">
+                      <option value="">All units using this template</option>
+                      {units
+                        .filter((u) => !t.unitType || u.type.trim().toLowerCase() === t.unitType.trim().toLowerCase())
+                        .map((u) => (
+                          <option key={u.id} value={u.id}>
+                            {u.name}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor={`copies-${t.id}`}>How many</Label>
+                    <Input id={`copies-${t.id}`} name="copies" type="number" min={1} max={10} defaultValue={1} className="w-20" />
+                  </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-4">
                   <div className="space-y-1.5">

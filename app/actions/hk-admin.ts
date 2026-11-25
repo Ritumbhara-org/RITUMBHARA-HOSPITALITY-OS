@@ -174,16 +174,36 @@ export async function createHkArea(templateId: string, fd: FormData): Promise<Re
       }
     }
 
+    // Optional: only for one unit (an extra room or space), and optionally several copies ("Bedroom 1", "Bedroom 2"...).
+    const unitId = str(fd, "unitId") || null
+    const copies = Math.round(Number(str(fd, "copies") || 1))
+    if (!Number.isFinite(copies) || copies < 1 || copies > 10) throw new Error("Copies must be 1 to 10.")
+    if (unitId) {
+      const template = await prisma.hkChecklistTemplate.findUnique({ where: { id: templateId }, select: { location: { select: { propertyId: true } } } })
+      const unit = await prisma.unit.findUnique({ where: { id: unitId }, select: { propertyId: true } })
+      if (!template || !unit || unit.propertyId !== template.location.propertyId) throw new Error("That unit is not at this location.")
+    }
+
     const last = await prisma.hkChecklistArea.findFirst({
       where: { templateId },
       orderBy: { sortOrder: "desc" },
       select: { sortOrder: true },
     })
-    await prisma.hkChecklistArea.create({
-      data: { templateId, title, instructions, minPhotos, requiresVideo, referenceMedia, sortOrder: (last?.sortOrder ?? 0) + 1 },
+    const start = (last?.sortOrder ?? 0) + 1
+    await prisma.hkChecklistArea.createMany({
+      data: Array.from({ length: copies }, (_, i) => ({
+        templateId,
+        unitId,
+        title: copies > 1 ? `${title} ${i + 1}` : title,
+        instructions,
+        minPhotos,
+        requiresVideo,
+        referenceMedia: referenceMedia as object[],
+        sortOrder: start + i,
+      })),
     })
     revalidatePath("/hk-admin/checklists")
-    return { success: true, message: "Area added" }
+    return { success: true, message: copies > 1 ? `${copies} areas added` : "Area added" }
   } catch (e) {
     return fail(e, "Could not add the area.")
   }
