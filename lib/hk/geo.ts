@@ -18,11 +18,11 @@ export function haversineMeters(
 }
 
 // A fix worse than this is too vague to trust, so we ask the user to retry.
-export const MAX_ACCURACY_M = 100
+export const MAX_ACCURACY_M = 150
 
 export type GeofenceResult =
   | { ok: true; distanceM: number }
-  | { ok: false; reason: "BAD_COORDS" | "WEAK_SIGNAL" | "TOO_FAR"; distanceM?: number }
+  | { ok: false; reason: "BAD_COORDS" | "WEAK_SIGNAL" | "TOO_FAR"; distanceM?: number; accuracyM?: number }
 
 export function checkGeofence(
   point: { lat: number; lng: number; accuracyM?: number | null },
@@ -36,7 +36,7 @@ export function checkGeofence(
     Math.abs(point.lng) <= 180
   if (!valid) return { ok: false, reason: "BAD_COORDS" }
   if (point.accuracyM != null && point.accuracyM > MAX_ACCURACY_M) {
-    return { ok: false, reason: "WEAK_SIGNAL" }
+    return { ok: false, reason: "WEAK_SIGNAL", accuracyM: point.accuracyM }
   }
   const distanceM = haversineMeters({ lat: point.lat, lng: point.lng }, center)
   if (distanceM > radiusM) return { ok: false, reason: "TOO_FAR", distanceM }
