@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache"
 import { prisma } from "@/lib/prisma"
 import { assertHk } from "@/lib/hk/session"
 import { checkGeofence, type GeofenceResult } from "@/lib/hk/geo"
-import { isCaptureTimeValid, missingRequirements, pickTemplate } from "@/lib/hk/checklist"
+import { areasForUnit, isCaptureTimeValid, missingRequirements, pickTemplate } from "@/lib/hk/checklist"
 import { startOfDayIST } from "@/lib/hk/time"
 import { MAX_IMAGE_BYTES, MAX_VIDEO_BYTES, MAX_VIDEO_SECONDS, isOwnedMediaUrl, kindFromMime, proofPrefix } from "@/lib/hk/media"
 
@@ -63,12 +63,12 @@ export async function startTurnover(locationId: string, unitId: string, rawFix: 
 
     const templates = await prisma.hkChecklistTemplate.findMany({
       where: { locationId },
-      include: { _count: { select: { areas: true } } },
+      include: { areas: { select: { unitId: true } } },
     })
     const template = pickTemplate(templates, unit.type)
     if (!template) throw new Error("इस यूनिट के लिए अभी कोई चेकलिस्ट नहीं बनी है। मैनेजर से पूछें।")
     const withAreas = templates.find((t) => t.id === template.id)
-    if (!withAreas || withAreas._count.areas === 0) throw new Error("इस यूनिट की चेकलिस्ट में अभी कोई हिस्सा नहीं है। मैनेजर से पूछें।")
+    if (!withAreas || areasForUnit(withAreas.areas, unitId).length === 0) throw new Error("इस यूनिट की चेकलिस्ट में अभी कोई हिस्सा नहीं है। मैनेजर से पूछें।")
 
     const turnover = await prisma.hkTurnover.create({
       data: {
@@ -105,11 +105,11 @@ export async function recordSubmission(turnoverId: string, input: SubmissionInpu
     const hk = await assertHk()
     const turnover = await prisma.hkTurnover.findFirst({
       where: { id: turnoverId, hkUserId: hk.id },
-      include: { template: { include: { areas: { select: { id: true } } } } },
+      include: { template: { include: { areas: { select: { id: true, unitId: true } } } } },
     })
     if (!turnover) throw new Error("सफ़ाई का रिकॉर्ड नहीं मिला।")
     if (turnover.status !== "IN_PROGRESS") throw new Error("यह सफ़ाई पहले ही जमा हो चुकी है।")
-    if (!turnover.template.areas.some((a) => a.id === input.areaId)) throw new Error("यह हिस्सा इस चेकलिस्ट में नहीं है।")
+    if (!areasForUnit(turnover.template.areas, turnover.unitId).some((a) => a.id === input.areaId)) throw new Error("यह हिस्सा इस चेकलिस्ट में नहीं है।")
 
     const mime = String(input.mimeType).split(";")[0].trim()
     const kind = kindFromMime(mime)
@@ -187,7 +187,7 @@ export async function finishTurnover(turnoverId: string, rawFix: Fix): Promise<R
     if (!turnover) throw new Error("सफ़ाई का रिकॉर्ड नहीं मिला।")
     if (turnover.status !== "IN_PROGRESS") throw new Error("यह सफ़ाई पहले ही जमा हो चुकी है।")
 
-    const missing = missingRequirements(turnover.template.areas, turnover.submissions)
+    const missing = missingRequirements(areasForUnit(turnover.template.areas, turnover.unitId), turnover.submissions)
     if (missing.length > 0) {
       const first = missing[0]
       const parts = [first.needPhotos > 0 ? `${first.needPhotos} फ़ोटो` : "", first.needVideo ? "एक वीडियो" : ""].filter(Boolean)
