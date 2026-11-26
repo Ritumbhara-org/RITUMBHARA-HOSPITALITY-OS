@@ -66,3 +66,14 @@ test("startOfDayIST returns midnight India time as UTC", () => {
   // 00:10 IST on the 22nd = 18:40 UTC on the 21st; day started 18:30 UTC on the 21st
   assert.equal(startOfDayIST(new Date("2026-11-21T18:40:00Z")).toISOString(), "2026-11-21T18:30:00.000Z")
 })
+
+test("areasForUnit keeps shared areas and only that unit's extra spaces", async () => {
+  const { areasForUnit } = await import("../lib/hk/checklist")
+  const list = [
+    { id: "all", unitId: null },
+    { id: "u1-balcony", unitId: "u1" },
+    { id: "u2-balcony", unitId: "u2" },
+  ]
+  assert.deepEqual(areasForUnit(list, "u1").map((a) => a.id), ["all", "u1-balcony"])
+  assert.deepEqual(areasForUnit(list, "u3").map((a) => a.id), ["all"])
+})

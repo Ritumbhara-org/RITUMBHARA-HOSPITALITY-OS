@@ -12,6 +12,11 @@ export function pickTemplate<T extends TemplateLite>(templates: T[], unitType: s
   return active.find((t) => !t.unitType) ?? null
 }
 
+// An area with a unitId belongs to that one unit (an extra room or space); without one it applies to every unit.
+export function areasForUnit<T extends { unitId: string | null }>(areas: T[], unitId: string): T[] {
+  return areas.filter((a) => !a.unitId || a.unitId === unitId)
+}
+
 export type AreaLite = { id: string; title: string; minPhotos: number; requiresVideo: boolean }
 export type SubmissionLite = { areaId: string; kind: "PHOTO" | "VIDEO" }
 

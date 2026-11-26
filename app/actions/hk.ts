@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache"
 import { prisma } from "@/lib/prisma"
 import { assertHk } from "@/lib/hk/session"
 import { checkGeofence, type GeofenceResult } from "@/lib/hk/geo"
-import { isCaptureTimeValid, missingRequirements, pickTemplate } from "@/lib/hk/checklist"
+import { areasForUnit, isCaptureTimeValid, missingRequirements, pickTemplate } from "@/lib/hk/checklist"
 import { startOfDayIST } from "@/lib/hk/time"
 import { MAX_IMAGE_BYTES, MAX_VIDEO_BYTES, MAX_VIDEO_SECONDS, isOwnedMediaUrl, kindFromMime, proofPrefix } from "@/lib/hk/media"
 
@@ -20,17 +20,17 @@ function fail(error: unknown, fallback: string): { success: false; error: string
 function geofenceError(r: Exclude<GeofenceResult, { ok: true }>, radiusM: number): string {
   switch (r.reason) {
     case "BAD_COORDS":
-      return "Could not read your location. Turn on location and try again."
+      return "लोकेशन पढ़ी नहीं जा सकी। लोकेशन चालू करके दोबारा कोशिश करें।"
     case "WEAK_SIGNAL":
-      return "Your location signal is weak. Step outside or near a window and try again."
+      return `लोकेशन साफ़ नहीं मिल रही (करीब ${Math.round(r.accuracyM ?? 0)} मीटर का फ़र्क)। फ़ोन की सेटिंग में "सटीक लोकेशन" (Precise location) चालू करें, बाहर या खिड़की के पास जाएं और दोबारा कोशिश करें।`
     case "TOO_FAR":
-      return `You are about ${Math.round(r.distanceM ?? 0)} m from the property. You must be within ${radiusM} m.`
+      return `आप प्रॉपर्टी से लगभग ${Math.round(r.distanceM ?? 0)} मीटर दूर हैं। ${radiusM} मीटर के अंदर होना ज़रूरी है।`
   }
 }
 
 function parseFix(raw: unknown): Fix {
   const f = raw as Fix
-  if (!f || !Number.isFinite(f.lat) || !Number.isFinite(f.lng)) throw new Error("Location is missing. Turn on location and try again.")
+  if (!f || !Number.isFinite(f.lat) || !Number.isFinite(f.lng)) throw new Error("लोकेशन नहीं मिली। लोकेशन चालू करके दोबारा कोशिश करें।")
   return { lat: f.lat, lng: f.lng, accuracyM: Number.isFinite(f.accuracyM) ? (f.accuracyM as number) : null }
 }
 
@@ -45,11 +45,11 @@ export async function startTurnover(locationId: string, unitId: string, rawFix: 
       where: { hkUserId_locationId: { hkUserId: hk.id, locationId } },
       include: { location: true },
     })
-    if (!assignment || !assignment.location.isActive) throw new Error("You are not assigned to this location.")
+    if (!assignment || !assignment.location.isActive) throw new Error("यह लोकेशन आपको नहीं दी गई है।")
     const location = assignment.location
 
     const unit = await prisma.unit.findFirst({ where: { id: unitId, propertyId: location.propertyId } })
-    if (!unit) throw new Error("This unit is not at this location.")
+    if (!unit) throw new Error("यह यूनिट इस लोकेशन पर नहीं है।")
 
     // Resuming an unfinished turnover needs no new check-in.
     const open = await prisma.hkTurnover.findFirst({
@@ -63,12 +63,12 @@ export async function startTurnover(locationId: string, unitId: string, rawFix: 
 
     const templates = await prisma.hkChecklistTemplate.findMany({
       where: { locationId },
-      include: { _count: { select: { areas: true } } },
+      include: { areas: { select: { unitId: true } } },
     })
     const template = pickTemplate(templates, unit.type)
-    if (!template) throw new Error("No checklist is set up for this unit yet. Ask your manager.")
+    if (!template) throw new Error("इस यूनिट के लिए अभी कोई चेकलिस्ट नहीं बनी है। मैनेजर से पूछें।")
     const withAreas = templates.find((t) => t.id === template.id)
-    if (!withAreas || withAreas._count.areas === 0) throw new Error("The checklist for this unit has no areas yet. Ask your manager.")
+    if (!withAreas || areasForUnit(withAreas.areas, unitId).length === 0) throw new Error("इस यूनिट की चेकलिस्ट में अभी कोई हिस्सा नहीं है। मैनेजर से पूछें।")
 
     const turnover = await prisma.hkTurnover.create({
       data: {
@@ -84,7 +84,7 @@ export async function startTurnover(locationId: string, unitId: string, rawFix: 
     revalidatePath("/hk")
     return { success: true, turnoverId: turnover.id }
   } catch (e) {
-    return fail(e, "Could not check in.")
+    return fail(e, "चेक-इन नहीं हो सका।")
   }
 }
 
@@ -105,29 +105,29 @@ export async function recordSubmission(turnoverId: string, input: SubmissionInpu
     const hk = await assertHk()
     const turnover = await prisma.hkTurnover.findFirst({
       where: { id: turnoverId, hkUserId: hk.id },
-      include: { template: { include: { areas: { select: { id: true } } } } },
+      include: { template: { include: { areas: { select: { id: true, unitId: true } } } } },
     })
-    if (!turnover) throw new Error("Turnover not found.")
-    if (turnover.status !== "IN_PROGRESS") throw new Error("This turnover is already submitted.")
-    if (!turnover.template.areas.some((a) => a.id === input.areaId)) throw new Error("That area is not part of this checklist.")
+    if (!turnover) throw new Error("सफ़ाई का रिकॉर्ड नहीं मिला।")
+    if (turnover.status !== "IN_PROGRESS") throw new Error("यह सफ़ाई पहले ही जमा हो चुकी है।")
+    if (!areasForUnit(turnover.template.areas, turnover.unitId).some((a) => a.id === input.areaId)) throw new Error("यह हिस्सा इस चेकलिस्ट में नहीं है।")
 
     const mime = String(input.mimeType).split(";")[0].trim()
     const kind = kindFromMime(mime)
-    if (!kind) throw new Error("Unsupported file type.")
-    if (!isOwnedMediaUrl(input.mediaUrl, proofPrefix(hk.id))) throw new Error("File was not uploaded through this app.")
+    if (!kind) throw new Error("इस तरह की फ़ाइल मान्य नहीं है।")
+    if (!isOwnedMediaUrl(input.mediaUrl, proofPrefix(hk.id))) throw new Error("फ़ाइल इस ऐप से अपलोड नहीं हुई।")
 
     const size = Math.round(Number(input.sizeBytes))
-    if (!Number.isFinite(size) || size <= 0 || size > (kind === "VIDEO" ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES)) throw new Error("File size is not allowed.")
+    if (!Number.isFinite(size) || size <= 0 || size > (kind === "VIDEO" ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES)) throw new Error("फ़ाइल का साइज़ मान्य नहीं है।")
 
     let durationSec: number | null = null
     if (kind === "VIDEO") {
       durationSec = Math.round(Number(input.durationSec))
-      if (!Number.isFinite(durationSec) || durationSec < 3) throw new Error("The video is too short. Record at least 3 seconds.")
-      if (durationSec > MAX_VIDEO_SECONDS) throw new Error(`The video is too long. Keep it under ${MAX_VIDEO_SECONDS} seconds.`)
+      if (!Number.isFinite(durationSec) || durationSec < 3) throw new Error("वीडियो बहुत छोटा है। कम से कम 3 सेकंड रिकॉर्ड करें।")
+      if (durationSec > MAX_VIDEO_SECONDS) throw new Error(`वीडियो बहुत लंबा है। ${MAX_VIDEO_SECONDS} सेकंड से कम रखें।`)
     }
 
     const capturedAt = new Date(input.capturedAt)
-    if (!isCaptureTimeValid(capturedAt, turnover.checkInAt)) throw new Error("The capture time looks wrong. Check your phone clock and record again.")
+    if (!isCaptureTimeValid(capturedAt, turnover.checkInAt)) throw new Error("कैप्चर का समय ग़लत लग रहा है। फ़ोन की घड़ी जांचें और दोबारा रिकॉर्ड करें।")
 
     const fix = input.fix && Number.isFinite(input.fix.lat) && Number.isFinite(input.fix.lng) ? input.fix : null
 
@@ -149,7 +149,7 @@ export async function recordSubmission(turnoverId: string, input: SubmissionInpu
     revalidatePath(`/hk/turnover/${turnoverId}`)
     return { success: true, submissionId: sub.id }
   } catch (e) {
-    return fail(e, "Could not save the proof.")
+    return fail(e, "प्रमाण सेव नहीं हो सका।")
   }
 }
 
@@ -161,12 +161,12 @@ export async function removeSubmission(submissionId: string): Promise<Result> {
       where: { id: submissionId, turnover: { hkUserId: hk.id, status: "IN_PROGRESS" } },
       select: { id: true, turnoverId: true },
     })
-    if (!sub) throw new Error("Item not found, or the turnover is already submitted.")
+    if (!sub) throw new Error("आइटम नहीं मिला, या सफ़ाई पहले ही जमा हो चुकी है।")
     await prisma.hkSubmission.delete({ where: { id: sub.id } })
     revalidatePath(`/hk/turnover/${sub.turnoverId}`)
     return { success: true }
   } catch (e) {
-    return fail(e, "Could not remove the item.")
+    return fail(e, "आइटम हटाया नहीं जा सका।")
   }
 }
 
@@ -184,14 +184,14 @@ export async function finishTurnover(turnoverId: string, rawFix: Fix): Promise<R
         submissions: { select: { areaId: true, kind: true } },
       },
     })
-    if (!turnover) throw new Error("Turnover not found.")
-    if (turnover.status !== "IN_PROGRESS") throw new Error("This turnover is already submitted.")
+    if (!turnover) throw new Error("सफ़ाई का रिकॉर्ड नहीं मिला।")
+    if (turnover.status !== "IN_PROGRESS") throw new Error("यह सफ़ाई पहले ही जमा हो चुकी है।")
 
-    const missing = missingRequirements(turnover.template.areas, turnover.submissions)
+    const missing = missingRequirements(areasForUnit(turnover.template.areas, turnover.unitId), turnover.submissions)
     if (missing.length > 0) {
       const first = missing[0]
-      const parts = [first.needPhotos > 0 ? `${first.needPhotos} photo(s)` : "", first.needVideo ? "a video" : ""].filter(Boolean)
-      throw new Error(`Still missing in ${missing.length} area(s). Start with ${first.title}: ${parts.join(" and ")}.`)
+      const parts = [first.needPhotos > 0 ? `${first.needPhotos} फ़ोटो` : "", first.needVideo ? "एक वीडियो" : ""].filter(Boolean)
+      throw new Error(`${missing.length} हिस्सों में अभी कुछ बाकी है। पहले ${first.title} देखें: ${parts.join(" और ")} चाहिए।`)
     }
 
     const geo = checkGeofence(fix, { lat: turnover.location.latitude, lng: turnover.location.longitude }, turnover.location.radiusM)
@@ -211,7 +211,7 @@ export async function finishTurnover(turnoverId: string, rawFix: Fix): Promise<R
     revalidatePath(`/hk/turnover/${turnoverId}`)
     return { success: true }
   } catch (e) {
-    return fail(e, "Could not submit.")
+    return fail(e, "जमा नहीं हो सका।")
   }
 }
 
@@ -221,26 +221,26 @@ export async function raiseExemption(locationId: string, unitId: string, reason:
   try {
     const hk = await assertHk()
     const text = String(reason ?? "").trim()
-    if (text.length < 3) throw new Error("Say why you could not clean the unit.")
-    if (text.length > 500) throw new Error("Keep the reason under 500 characters.")
+    if (text.length < 3) throw new Error("बताएं कि यूनिट की सफ़ाई क्यों नहीं हो सकी।")
+    if (text.length > 500) throw new Error("कारण 500 अक्षरों से कम रखें।")
 
     const assignment = await prisma.hkAssignment.findUnique({
       where: { hkUserId_locationId: { hkUserId: hk.id, locationId } },
       include: { location: true },
     })
-    if (!assignment || !assignment.location.isActive) throw new Error("You are not assigned to this location.")
+    if (!assignment || !assignment.location.isActive) throw new Error("यह लोकेशन आपको नहीं दी गई है।")
     const unit = await prisma.unit.findFirst({ where: { id: unitId, propertyId: assignment.location.propertyId }, select: { id: true } })
-    if (!unit) throw new Error("This unit is not at this location.")
+    if (!unit) throw new Error("यह यूनिट इस लोकेशन पर नहीं है।")
 
     const day = startOfDayIST()
     const existing = await prisma.hkExemption.findFirst({ where: { hkUserId: hk.id, unitId, day, status: { in: ["PENDING", "APPROVED"] } }, select: { id: true } })
-    if (existing) throw new Error("You already raised this for today.")
+    if (existing) throw new Error("आज के लिए आप यह पहले ही भेज चुके हैं।")
 
     await prisma.hkExemption.create({ data: { hkUserId: hk.id, unitId, day, reason: text } })
     revalidatePath("/hk")
     revalidatePath("/hk-admin", "layout")
     return { success: true }
   } catch (e) {
-    return fail(e, "Could not send the request.")
+    return fail(e, "रिक्वेस्ट नहीं भेजी जा सकी।")
   }
 }

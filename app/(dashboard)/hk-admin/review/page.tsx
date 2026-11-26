@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma"
+import { areasForUnit } from "@/lib/hk/checklist"
 import { requireAdminPage } from "@/lib/auth/guard"
 import { ActionForm } from "@/components/hk/action-form"
 import { Textarea } from "@/components/ui/textarea"
@@ -43,7 +44,7 @@ export default async function ReviewPage() {
             </div>
           </div>
 
-          {t.template.areas.map((a) => {
+          {areasForUnit(t.template.areas, t.unitId).map((a) => {
             const subs = t.submissions.filter((s) => s.areaId === a.id)
             return (
               <div key={a.id} className="space-y-2">

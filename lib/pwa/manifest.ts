@@ -3,6 +3,7 @@ import type { MetadataRoute } from "next"
 // Lets staff install Ritumbhara OS on their phone or desktop: home-screen icon, opens full screen without the browser bar.
 // Served at /ritumbhara-os.webmanifest and linked only from the staff pages (login + OS), not the guest portal or signing page.
 export const MANIFEST_PATH = "/ritumbhara-os.webmanifest"
+export const HK_MANIFEST_PATH = "/hk-app.webmanifest"
 
 export function osManifest(): MetadataRoute.Manifest {
   return {
@@ -28,6 +29,28 @@ export function osManifest(): MetadataRoute.Manifest {
       { name: "Reservations", url: "/reservations", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
       { name: "Inbox", url: "/inbox", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
       { name: "Operations", url: "/operations", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
+    ],
+  }
+}
+
+// Housekeeper app: installs from /hk/login, opens straight into /hk, and stays inside /hk (the admin OS is a separate install).
+export function hkManifest(): MetadataRoute.Manifest {
+  return {
+    id: "/hk",
+    name: "Ritumbhara Housekeeping",
+    short_name: "HK",
+    description: "Housekeeping checklists with photo and video proof.",
+    start_url: "/hk",
+    scope: "/hk",
+    display: "standalone",
+    orientation: "portrait",
+    background_color: "#4a0518",
+    theme_color: "#5c0a20",
+    icons: [
+      { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+      { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+      { src: "/icons/icon-maskable-192.png", sizes: "192x192", type: "image/png", purpose: "maskable" },
+      { src: "/icons/icon-maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
     ],
   }
 }

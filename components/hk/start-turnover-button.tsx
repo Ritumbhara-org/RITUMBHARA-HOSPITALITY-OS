@@ -19,7 +19,7 @@ export function StartTurnoverButton({ locationId, unitId, resume }: { locationId
       if (res.success) router.push(`/hk/turnover/${res.turnoverId}`)
       else toast.error(res.error)
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not check in.")
+      toast.error(e instanceof Error ? e.message : "चेक-इन नहीं हो सका।")
     } finally {
       setBusy(false)
     }
@@ -27,7 +27,7 @@ export function StartTurnoverButton({ locationId, unitId, resume }: { locationId
 
   return (
     <Button size="sm" onClick={go} disabled={busy}>
-      {busy ? "Checking location..." : resume ? "Continue" : "Check in"}
+      {busy ? "लोकेशन जांच रहे हैं..." : resume ? "जारी रखें" : "चेक-इन"}
     </Button>
   )
 }

@@ -16,7 +16,7 @@ async function clientKey(): Promise<string> {
   return "hk-ip:" + (forwarded || h.get("x-real-ip") || "unknown")
 }
 
-const BAD = "Incorrect mobile number or PIN."
+const BAD = "मोबाइल नंबर या पिन ग़लत है।"
 
 // Housekeeper sign-in: mobile number + PIN set by the admin. Public by design (it is the login itself).
 export async function hkLoginAction(_prev: HkLoginState, formData: FormData): Promise<HkLoginState> {
@@ -25,12 +25,12 @@ export async function hkLoginAction(_prev: HkLoginState, formData: FormData): Pr
   const mobile = normalizeMobile(rawMobile)
 
   const key = await clientKey()
-  if (loginBlocked(key)) return { error: "Too many failed attempts. Please wait 15 minutes and try again.", mobile: rawMobile }
+  if (loginBlocked(key)) return { error: "बहुत ज़्यादा ग़लत कोशिशें। 15 मिनट रुककर दोबारा कोशिश करें।", mobile: rawMobile }
 
   const user = mobile && isValidPinFormat(pin) ? await prisma.hkUser.findUnique({ where: { mobile } }) : null
 
   if (user && isLocked(user.lockedUntil)) {
-    return { error: "This account is locked for a while after too many wrong PINs. Try again later.", mobile: rawMobile }
+    return { error: "ग़लत पिन बहुत बार डालने से अकाउंट कुछ देर के लिए लॉक है। बाद में कोशिश करें।", mobile: rawMobile }
   }
 
   // Always run the hash check so timing does not reveal whether the number exists.
@@ -47,7 +47,7 @@ export async function hkLoginAction(_prev: HkLoginState, formData: FormData): Pr
   const made = createHkToken(user)
   if (!made) {
     console.error("[hk-auth] no session secret configured (HK_SESSION_SECRET or ADMIN_SESSION_SECRET)")
-    return { error: "Sign-in is not set up on this server yet. Please contact the administrator.", mobile: rawMobile }
+    return { error: "साइन-इन अभी चालू नहीं है। कृपया एडमिन से संपर्क करें।", mobile: rawMobile }
   }
 
   clearLoginFailures(key)
