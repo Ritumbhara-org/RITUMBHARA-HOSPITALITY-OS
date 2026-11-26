@@ -12,16 +12,35 @@ const mod = (p: string) => pathToFileURL(path.join(root, p)).href;
 
 const logged: Record<string, unknown>[] = [];
 const twilioCalls: Record<string, unknown>[] = [];
+const waMock = {
+  create: async (args: { data: Record<string, unknown> }) => { logged.push(args.data); return {}; },
+  findFirst: async (args: { where: Record<string, any> }) =>
+    // 24-hour window lookup: the guest wrote just now (the window is open). The window itself is tested in meta-whatsapp-phase2.
+    args.where.direction === "INBOUND" && args.where.from?.in ? { createdAt: new Date() } :
+    logged.find((r) => Object.entries(args.where).every(([k, v]) => r[k] === v)) ? { id: "row" } : null,
+};
+// $transaction + pg_advisory_xact_lock, modelled as one lock held until the transaction ends.
+const advisoryLocks: string[] = [];
+let lockTail: Promise<void> = Promise.resolve();
+async function mockTransaction<T>(fn: (tx: unknown) => Promise<T>): Promise<T> {
+  let release: () => void = () => {};
+  const tx = {
+    whatsAppMessage: waMock,
+    $executeRaw: async (_s: TemplateStringsArray, ...vals: unknown[]) => {
+      advisoryLocks.push(String(vals[0]));
+      const prev = lockTail;
+      lockTail = new Promise<void>((r) => { release = r; });
+      await prev;
+      return 0;
+    },
+  };
+  try { return await fn(tx); } finally { release(); }
+}
 mock.module(mod("lib/prisma.ts"), {
   namedExports: {
     prisma: {
-      whatsAppMessage: {
-        create: async (args: { data: Record<string, unknown> }) => { logged.push(args.data); return {}; },
-        findFirst: async (args: { where: Record<string, any> }) =>
-          // 24-hour window lookup: the guest wrote just now (the window is open). The window itself is tested in meta-whatsapp-phase2.
-          args.where.direction === "INBOUND" && args.where.from?.in ? { createdAt: new Date() } :
-          logged.find((r) => Object.entries(args.where).every(([k, v]) => r[k] === v)) ? { id: "row" } : null,
-      },
+      $transaction: mockTransaction,
+      whatsAppMessage: waMock,
       guest: { findMany: async () => [] },
       teamMember: { findMany: async () => [] },
     },
@@ -352,6 +371,15 @@ test("pipeline (default wiring): the inbound row records the Meta message id; th
   assert.equal(logged[0].relatedEntityType, "META_INBOUND");
   assert.equal(logged[0].relatedEntityId, "wamid.DUP");
   assert.equal(logged[0].direction, "INBOUND");
+  assert.ok(advisoryLocks.includes("meta-inbound:wamid.DUP"));
+});
+
+test("pipeline (default wiring): the same retry reaching two instances at once is logged and processed once", async () => {
+  logged.length = 0;
+  const deps = defaultPipelineDeps();
+  const results = await Promise.all([deps.logInbound({ ...MSG, id: "wamid.RACE" }), deps.logInbound({ ...MSG, id: "wamid.RACE" })]);
+  assert.deepEqual(results.slice().sort(), [false, true]);
+  assert.equal(logged.filter((r) => r.relatedEntityId === "wamid.RACE").length, 1);
 });
 
 test("pipeline notification: guest/lead messages notify the admin (after the staff check, before routing); staff commands and duplicates do not", async () => {

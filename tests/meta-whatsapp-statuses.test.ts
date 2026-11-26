@@ -23,3 +23,47 @@ test("applyMetaStatuses: moves forward only, FAILED only before delivery", async
   await applyMetaStatuses([ev("c", "sent")], { update: async () => { throw new Error("db"); } });
 });
 
+
+const ev = (id: string, status: string) => ({ id, status, recipientDigits: "", timestamp: 0, errorCode: status === "failed" ? 131026 : null, errorTitle: null });
+
+// A tiny in-memory outbound table that applies the same forward-only rule as the real updateMany.
+function table(rows: Record<string, string>) {
+  return async (id: string, next: string, may: string[]) => {
+    if (!(id in rows) || !may.includes(rows[id])) return 0;
+    rows[id] = next;
+    return 1;
+  };
+}
+
+test("statuses: full lifecycle SENT -> DELIVERED -> READ, and FAILED for an undelivered message", async () => {
+  const rows: Record<string, string> = { m1: "SENT", m2: "SENT" };
+  await applyMetaStatuses([ev("m1", "sent"), ev("m1", "delivered"), ev("m1", "read"), ev("m2", "failed")], { update: table(rows), retryDelayMs: 0 });
+  assert.deepEqual(rows, { m1: "READ", m2: "FAILED" });
+});
+
+test("statuses: out of order and duplicate events never move a message backwards", async () => {
+  const rows: Record<string, string> = { m1: "SENT" };
+  await applyMetaStatuses([ev("m1", "read"), ev("m1", "delivered"), ev("m1", "sent"), ev("m1", "read"), ev("m1", "failed")], { update: table(rows), retryDelayMs: 0 });
+  assert.equal(rows.m1, "READ");
+});
+
+test("statuses: an event that arrives before the outbound row is written is applied on the single retry", async () => {
+  const rows: Record<string, string> = {};
+  const slept: number[] = [];
+  const update = table(rows);
+  const s = await applyMetaStatuses([ev("late", "failed"), ev("unknown", "delivered")], {
+    update,
+    retryDelayMs: 1234,
+    sleep: async (ms: number) => { slept.push(ms); rows.late = "SENT"; }, // the send's log row lands while we wait
+  });
+  assert.deepEqual(slept, [1234]);
+  assert.equal(rows.late, "FAILED");
+  assert.equal(s.updated, 1); // the unknown id (e.g. a message from another app) stays unmatched
+});
+
+test("statuses: nothing to retry -> no wait; 'sent' alone is never retried", async () => {
+  let slept = 0;
+  await applyMetaStatuses([ev("x", "sent")], { update: async () => 0, sleep: async () => { slept++; } });
+  await applyMetaStatuses([ev("x", "delivered")], { update: async () => 1, sleep: async () => { slept++; } });
+  assert.equal(slept, 0);
+});

@@ -1,3 +1,4 @@
+import { createHash, timingSafeEqual } from "node:crypto";
 import { NextResponse, after } from "next/server";
 import { getMetaWebhookConfig, metaPhoneNumberId } from "@/lib/whatsapp/meta/config";
 import { verifyMetaSignature } from "@/lib/whatsapp/meta/signature";
@@ -30,10 +31,17 @@ function firstSighting(id: string): boolean {
   return true;
 }
 
+// Constant-time comparison for the verify token (hash both sides so lengths always match).
+function sameSecret(given: string, expected: string): boolean {
+  const a = createHash("sha256").update(given).digest();
+  const b = createHash("sha256").update(expected).digest();
+  return timingSafeEqual(a, b);
+}
+
 export async function GET(req: Request) {
   const cfg = getMetaWebhookConfig();
   const p = new URL(req.url).searchParams;
-  if (cfg && p.get("hub.mode") === "subscribe" && p.get("hub.verify_token") === cfg.verifyToken) {
+  if (cfg && p.get("hub.mode") === "subscribe" && sameSecret(p.get("hub.verify_token") || "", cfg.verifyToken)) {
     const challenge = (p.get("hub.challenge") || "").slice(0, 200);
     return new Response(challenge, { status: 200, headers: { "Content-Type": "text/plain", "Cache-Control": "no-store" } });
   }

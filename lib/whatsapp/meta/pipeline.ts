@@ -90,26 +90,30 @@ export async function processMetaInbound(msg: MetaInboundMessage, deps: Pipeline
 // (handlers imported lazily).
 export function defaultPipelineDeps(): PipelineDeps {
   return {
-    logInbound: async (msg) => {
-      const already = await prisma.whatsAppMessage.findFirst({
-        where: { direction: "INBOUND", relatedEntityType: META_INBOUND_ENTITY, relatedEntityId: msg.id },
-        select: { id: true },
-      });
-      if (already) return false;
-      await prisma.whatsAppMessage.create({
-        data: {
-          direction: "INBOUND",
-          from: "whatsapp:" + msg.senderPhone, // same shape the Twilio webhook stores
-          to: metaDisplayNumber(),
-          messageType: "text",
-          content: msg.text || (msg.mediaId ? "[" + msg.type + "]" : ""),
-          status: "RECEIVED",
-          relatedEntityType: META_INBOUND_ENTITY,
-          relatedEntityId: msg.id,
-        },
-      });
-      return true;
-    },
+    // Check-and-insert under a per-wamid advisory lock (same pattern as lib/loyalty/ledger.ts), so the same retry
+    // reaching two server instances at once is processed once, without a schema change.
+    logInbound: (msg) =>
+      prisma.$transaction(async (tx) => {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${"meta-inbound:" + msg.id}))`;
+        const already = await tx.whatsAppMessage.findFirst({
+          where: { direction: "INBOUND", relatedEntityType: META_INBOUND_ENTITY, relatedEntityId: msg.id },
+          select: { id: true },
+        });
+        if (already) return false;
+        await tx.whatsAppMessage.create({
+          data: {
+            direction: "INBOUND",
+            from: "whatsapp:" + msg.senderPhone, // same shape the Twilio webhook stores
+            to: metaDisplayNumber(),
+            messageType: "text",
+            content: msg.text || (msg.mediaId ? "[" + msg.type + "]" : ""),
+            status: "RECEIVED",
+            relatedEntityType: META_INBOUND_ENTITY,
+            relatedEntityId: msg.id,
+          },
+        });
+        return true;
+      }),
     resolveMedia: async (mediaId) => {
       if (!mediaId) return null;
       const cfg = getMetaSendConfig();
