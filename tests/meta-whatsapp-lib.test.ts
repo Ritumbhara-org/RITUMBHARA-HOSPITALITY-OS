@@ -12,14 +12,35 @@ const mod = (p: string) => pathToFileURL(path.join(root, p)).href;
 
 const logged: Record<string, unknown>[] = [];
 const twilioCalls: Record<string, unknown>[] = [];
+const waMock = {
+  create: async (args: { data: Record<string, unknown> }) => { logged.push(args.data); return {}; },
+  findFirst: async (args: { where: Record<string, any> }) =>
+    // 24-hour window lookup: the guest wrote just now (the window is open). The window itself is tested in meta-whatsapp-phase2.
+    args.where.direction === "INBOUND" && args.where.from?.in ? { createdAt: new Date() } :
+    logged.find((r) => Object.entries(args.where).every(([k, v]) => r[k] === v)) ? { id: "row" } : null,
+};
+// $transaction + pg_advisory_xact_lock, modelled as one lock held until the transaction ends.
+const advisoryLocks: string[] = [];
+let lockTail: Promise<void> = Promise.resolve();
+async function mockTransaction<T>(fn: (tx: unknown) => Promise<T>): Promise<T> {
+  let release: () => void = () => {};
+  const tx = {
+    whatsAppMessage: waMock,
+    $executeRaw: async (_s: TemplateStringsArray, ...vals: unknown[]) => {
+      advisoryLocks.push(String(vals[0]));
+      const prev = lockTail;
+      lockTail = new Promise<void>((r) => { release = r; });
+      await prev;
+      return 0;
+    },
+  };
+  try { return await fn(tx); } finally { release(); }
+}
 mock.module(mod("lib/prisma.ts"), {
   namedExports: {
     prisma: {
-      whatsAppMessage: {
-        create: async (args: { data: Record<string, unknown> }) => { logged.push(args.data); return {}; },
-        findFirst: async (args: { where: Record<string, unknown> }) =>
-          logged.find((r) => Object.entries(args.where).every(([k, v]) => r[k] === v)) ? { id: "row" } : null,
-      },
+      $transaction: mockTransaction,
+      whatsAppMessage: waMock,
       guest: { findMany: async () => [] },
       teamMember: { findMany: async () => [] },
     },
@@ -49,7 +70,7 @@ before(async () => {
 });
 
 const SECRET = "app_secret_for_tests_only_0123456789";
-const CFG = { accessToken: "test-token", phoneNumberId: "1234567890", graphApiVersion: "v23.0", displayNumber: "+15550001111" };
+const CFG = { accessToken: "test-token", phoneNumberId: "1234567890", graphApiVersion: "v23.0", displayNumber: "+15550001111", messagingAccountId: "" };
 
 function withEnv<T>(vars: Record<string, string | undefined>, fn: () => Promise<T>): Promise<T> {
   const old: Record<string, string | undefined> = {};
@@ -180,7 +201,7 @@ test("client.sendWhatsAppMessage: inside a Meta conversation it sends through Me
   try {
     await withEnv({ WHATSAPP_PROVIDER: undefined, TWILIO_ACCOUNT_SID: "AC_test", TWILIO_AUTH_TOKEN: "tok", TWILIO_WHATSAPP_NUMBER: "+918306312778", META_WA_ACCESS_TOKEN: "t", META_WA_PHONE_NUMBER_ID: "1234567890", META_WA_DISPLAY_NUMBER: "+15550001111" }, async () => {
       const r = await runWithWhatsAppProvider("meta", () => sendWhatsAppMessage("+919000000001", "template", "Hi", "post_stay_thank_you", "Reservation", "r1", { "1": "Asha" }));
-      assert.deepEqual(r, { success: true, status: "DELIVERED" });
+      assert.deepEqual(r, { success: true, status: "SENT" });
     });
   } finally {
     globalThis.fetch = realFetch;
@@ -189,7 +210,7 @@ test("client.sendWhatsAppMessage: inside a Meta conversation it sends through Me
   assert.equal(calls.length, 1);
   assert.equal(JSON.parse(String(calls[0].init.body)).template.name, "post_stay_thank_you");
   assert.equal(logged[0].from, "+15550001111");
-  assert.equal(logged[0].status, "DELIVERED");
+  assert.equal(logged[0].status, "SENT");
 });
 
 test("Preview + WHATSAPP_PROVIDER=meta (no conversation context): sends via graph.facebook.com from the configured phone number id; Twilio never called", async () => {
@@ -200,7 +221,7 @@ test("Preview + WHATSAPP_PROVIDER=meta (no conversation context): sends via grap
   try {
     await withEnv({ VERCEL: "1", VERCEL_ENV: "preview", WHATSAPP_PROVIDER: "meta", TWILIO_ACCOUNT_SID: "AC_test", TWILIO_AUTH_TOKEN: "tok", TWILIO_WHATSAPP_NUMBER: "+918306312778", META_WA_ACCESS_TOKEN: "t", META_WA_PHONE_NUMBER_ID: "1329917073545911", META_WA_DISPLAY_NUMBER: "+15551422953", META_GRAPH_API_VERSION: undefined }, async () => {
       const r = await sendWhatsAppMessage("+919000000001", "text", "Preview test");
-      assert.deepEqual(r, { success: true, status: "DELIVERED" });
+      assert.deepEqual(r, { success: true, status: "SENT" });
     });
   } finally {
     globalThis.fetch = realFetch;
@@ -350,6 +371,15 @@ test("pipeline (default wiring): the inbound row records the Meta message id; th
   assert.equal(logged[0].relatedEntityType, "META_INBOUND");
   assert.equal(logged[0].relatedEntityId, "wamid.DUP");
   assert.equal(logged[0].direction, "INBOUND");
+  assert.ok(advisoryLocks.includes("meta-inbound:wamid.DUP"));
+});
+
+test("pipeline (default wiring): the same retry reaching two instances at once is logged and processed once", async () => {
+  logged.length = 0;
+  const deps = defaultPipelineDeps();
+  const results = await Promise.all([deps.logInbound({ ...MSG, id: "wamid.RACE" }), deps.logInbound({ ...MSG, id: "wamid.RACE" })]);
+  assert.deepEqual(results.slice().sort(), [false, true]);
+  assert.equal(logged.filter((r) => r.relatedEntityId === "wamid.RACE").length, 1);
 });
 
 test("pipeline notification: guest/lead messages notify the admin (after the staff check, before routing); staff commands and duplicates do not", async () => {

@@ -37,7 +37,14 @@ async function post(cfg: MetaSendConfig, payload: Record<string, unknown>, opts?
     res = await doFetch(`https://graph.facebook.com/${cfg.graphApiVersion}/${cfg.phoneNumberId}/messages`, {
       method: "POST",
       headers: { Authorization: "Bearer " + cfg.accessToken, "Content-Type": "application/json" },
-      body: JSON.stringify(Object.assign({ messaging_product: "whatsapp", recipient_type: "individual" }, payload)),
+      body: JSON.stringify(
+        Object.assign(
+          { messaging_product: "whatsapp", recipient_type: "individual" },
+          // Only sent when configured: optional for a token with one Messaging account on the number.
+          cfg.messagingAccountId ? { messaging_account_id: cfg.messagingAccountId } : {},
+          payload
+        )
+      ),
       signal: controller.signal,
       cache: "no-store",
     });

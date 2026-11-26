@@ -1,4 +1,6 @@
 import { prisma } from "@/lib/prisma";
+import { allSystemWhatsAppNumbers } from "@/lib/whatsapp/meta/config";
+import { WINDOW_CLOSED_MESSAGE } from "@/lib/whatsapp/meta/window";
 import { normalizePhoneNumber } from "@/lib/utils/phone";
 import { CHANNELS, type InboxChannelId } from "./channels";
 import { EARLY_CHECKIN_POLICY } from "./policies";
@@ -88,12 +90,13 @@ async function loadWhatsAppThreads(): Promise<WaThread[]> {
   const staffPhones = new Set(
     team.flatMap((t) => [normalizePhoneNumber(t.whatsappNumber), normalizePhoneNumber(t.phone)]).filter(Boolean)
   );
-  const systemPhone = normalizePhoneNumber(process.env.TWILIO_WHATSAPP_NUMBER);
+  // Both providers' system numbers (Twilio and Meta) are excluded, so the system never shows up as a guest.
+  const systemPhones = new Set(allSystemWhatsAppNumbers().map((n) => normalizePhoneNumber(n)).filter(Boolean));
 
   const threads = new Map<string, WaThread>();
   for (const msg of messages) {
     const phone = normalizePhoneNumber(msg.direction === "OUTBOUND" ? msg.to : msg.from);
-    if (!phone || phone === systemPhone || staffPhones.has(phone)) continue;
+    if (!phone || systemPhones.has(phone) || staffPhones.has(phone)) continue;
     if (!threads.has(phone)) threads.set(phone, { phone, messages: [] });
     threads.get(phone)!.messages.push(msg);
   }
@@ -332,7 +335,10 @@ export async function sendReply(key: string, body: string, senderId: string | nu
     if (!thread.canReply) return { success: false, error: thread.replyNote || "Can't reply on WhatsApp right now." };
     const { sendWhatsAppMessage } = await import("@/lib/whatsapp/client");
     const result = await sendWhatsAppMessage(thread.conversation.contact!, "text", text, undefined, "MANUAL_REPLY", "INBOX");
-    if (!result.success) return { success: false, error: "WhatsApp send failed. Check the Twilio settings." };
+    if (!result.success) {
+      if (result.status === "WINDOW_CLOSED") return { success: false, error: WINDOW_CLOSED_MESSAGE };
+      return { success: false, error: "WhatsApp send failed. Check the WhatsApp provider settings." };
+    }
     const row = await conversationRow(key);
     if (row) await prisma.inboxConversation.update({ where: { id: row.id }, data: { lastReadAt: new Date(), lastMessageAt: new Date() } });
     return { success: true };

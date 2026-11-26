@@ -306,10 +306,13 @@ model WhatsAppMessage {
   status           String
   relatedEntityType String?
   relatedEntityId   String?
+  // Provider message id (Meta wamid.…) of an OUTBOUND message, so delivery/read/failed status webhooks can find the row.
+  providerMessageId String?
   createdAt        DateTime         @default(now())
 
   @@index([from])
   @@index([to])
+  @@index([providerMessageId])
 }
 
 enum InboxChannel {

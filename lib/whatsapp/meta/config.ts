@@ -35,6 +35,9 @@ export interface MetaSendConfig {
   phoneNumberId: string;
   graphApiVersion: string;
   displayNumber: string; // E.164 of the Meta number, used as "from" in the message log
+  // Messaging account (templates, billing) to attribute sends to. Optional while the token can reach exactly one
+  // Messaging account on the number; Meta requires it when it can reach more than one (new account model).
+  messagingAccountId: string;
 }
 
 export interface MetaWebhookConfig {
@@ -63,8 +66,15 @@ export function getMetaSendConfig(env: Env = process.env): { ok: true; config: M
       phoneNumberId,
       graphApiVersion: /^v\d+\.\d+$/.test(version) ? version : DEFAULT_GRAPH_API_VERSION,
       displayNumber: read(env, "META_WA_DISPLAY_NUMBER") || "META",
+      messagingAccountId: metaMessagingAccountId(env),
     },
   };
+}
+
+// The Messaging account id (digits) to send under, or "" when not configured / not a valid id.
+export function metaMessagingAccountId(env: Env = process.env): string {
+  const id = read(env, "META_WA_MESSAGING_ACCOUNT_ID");
+  return /^\d{5,25}$/.test(id) ? id : "";
 }
 
 // Webhook settings. Both are required; without them the Meta webhook refuses everything (fail closed).
@@ -84,4 +94,22 @@ export function metaPhoneNumberId(env: Env = process.env): string {
 
 export function metaDisplayNumber(env: Env = process.env): string {
   return read(env, "META_WA_DISPLAY_NUMBER") || "META";
+}
+
+// The WhatsApp number guests and staff should see as "the system number", for the provider that is active:
+// Meta's display number when the provider resolves to Meta, else the Twilio number. "" when none is configured.
+// (The Meta display number defaults to the placeholder "META", which is not a number, so it counts as unset.)
+export function systemWhatsAppNumber(env: Env = process.env): string {
+  if (resolveWhatsAppProvider(env) === "meta") {
+    const n = read(env, "META_WA_DISPLAY_NUMBER");
+    return /\d{7,}/.test(n) ? n : "";
+  }
+  return read(env, "TWILIO_WHATSAPP_NUMBER");
+}
+
+// Every number that belongs to the system (both providers), so the Unified Inbox never shows the system itself as a
+// guest while the two providers overlap.
+export function allSystemWhatsAppNumbers(env: Env = process.env): string[] {
+  const out = [read(env, "TWILIO_WHATSAPP_NUMBER"), read(env, "META_WA_DISPLAY_NUMBER")].filter((n) => /\d{7,}/.test(n));
+  return [...new Set(out)];
 }
